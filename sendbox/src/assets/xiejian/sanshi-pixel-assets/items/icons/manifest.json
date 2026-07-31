@@ -1,0 +1,644 @@
+{
+  "actions": {
+    "white_jade_bracelet": {
+      "name": "白玉镯",
+      "category": "bond",
+      "speed": 160,
+      "frames": [
+        "white_jade_bracelet/00.png"
+      ]
+    },
+    "crescent_jade_charm": {
+      "name": "弯月玉佩",
+      "category": "bond",
+      "speed": 160,
+      "frames": [
+        "crescent_jade_charm/00.png"
+      ]
+    },
+    "life_saving_gold_plaque": {
+      "name": "保命金牌",
+      "category": "bond",
+      "speed": 160,
+      "frames": [
+        "life_saving_gold_plaque/00.png"
+      ]
+    },
+    "sect_leader_token": {
+      "name": "掌门令",
+      "category": "bond",
+      "speed": 160,
+      "frames": [
+        "sect_leader_token/00.png"
+      ]
+    },
+    "young_sect_master_token": {
+      "name": "少门主令",
+      "category": "bond",
+      "speed": 160,
+      "frames": [
+        "young_sect_master_token/00.png"
+      ]
+    },
+    "martial_alliance_token": {
+      "name": "武林盟令",
+      "category": "bond",
+      "speed": 160,
+      "frames": [
+        "martial_alliance_token/00.png"
+      ]
+    },
+    "three_wish_slips": {
+      "name": "三愿笺",
+      "category": "bond",
+      "speed": 160,
+      "frames": [
+        "three_wish_slips/00.png"
+      ]
+    },
+    "graduation_wish_slip": {
+      "name": "结业愿笺",
+      "category": "bond",
+      "speed": 160,
+      "frames": [
+        "graduation_wish_slip/00.png"
+      ]
+    },
+    "wedding_invitation": {
+      "name": "婚帖",
+      "category": "bond",
+      "speed": 160,
+      "frames": [
+        "wedding_invitation/00.png"
+      ]
+    },
+    "star_moon_poetry_paper": {
+      "name": "星月诗笺",
+      "category": "bond",
+      "speed": 160,
+      "frames": [
+        "star_moon_poetry_paper/00.png"
+      ]
+    },
+    "secret_letter_pigeon": {
+      "name": "飞鸽密信",
+      "category": "bond",
+      "speed": 160,
+      "frames": [
+        "secret_letter_pigeon/00.png"
+      ]
+    },
+    "plum_blossom_seal": {
+      "name": "梅花私印",
+      "category": "bond",
+      "speed": 160,
+      "frames": [
+        "plum_blossom_seal/00.png"
+      ]
+    },
+    "official_seal": {
+      "name": "官印",
+      "category": "bond",
+      "speed": 160,
+      "frames": [
+        "official_seal/00.png"
+      ]
+    },
+    "memorial_scroll": {
+      "name": "奏折",
+      "category": "bond",
+      "speed": 160,
+      "frames": [
+        "memorial_scroll/00.png"
+      ]
+    },
+    "fate_cards": {
+      "name": "命数牌",
+      "category": "bond",
+      "speed": 160,
+      "frames": [
+        "fate_cards/00.png"
+      ]
+    },
+    "wish_lantern": {
+      "name": "许愿灯",
+      "category": "bond",
+      "speed": 160,
+      "frames": [
+        "wish_lantern/00.png"
+      ]
+    },
+    "bone_fan": {
+      "name": "骨扇",
+      "category": "weapons",
+      "speed": 160,
+      "frames": [
+        "bone_fan/00.png"
+      ]
+    },
+    "zunqian_sword": {
+      "name": "樽前剑",
+      "category": "weapons",
+      "speed": 160,
+      "frames": [
+        "zunqian_sword/00.png"
+      ]
+    },
+    "tang_wanchu_sword": {
+      "name": "唐挽初佩剑",
+      "category": "weapons",
+      "speed": 160,
+      "frames": [
+        "tang_wanchu_sword/00.png"
+      ]
+    },
+    "zhou_ran_dragon_sword": {
+      "name": "游龙剑",
+      "category": "weapons",
+      "speed": 160,
+      "frames": [
+        "zhou_ran_dragon_sword/00.png"
+      ]
+    },
+    "peachwood_sword": {
+      "name": "桃木剑",
+      "category": "weapons",
+      "speed": 160,
+      "frames": [
+        "peachwood_sword/00.png"
+      ]
+    },
+    "scholar_defensive_sword": {
+      "name": "书生防身剑",
+      "category": "weapons",
+      "speed": 160,
+      "frames": [
+        "scholar_defensive_sword/00.png"
+      ]
+    },
+    "silver_needle_case": {
+      "name": "银针匣",
+      "category": "weapons",
+      "speed": 160,
+      "frames": [
+        "silver_needle_case/00.png"
+      ]
+    },
+    "jade_bee_needles": {
+      "name": "玉蜂针",
+      "category": "weapons",
+      "speed": 160,
+      "frames": [
+        "jade_bee_needles/00.png"
+      ]
+    },
+    "twin_short_knives": {
+      "name": "双刃短刀",
+      "category": "weapons",
+      "speed": 160,
+      "frames": [
+        "twin_short_knives/00.png"
+      ]
+    },
+    "taoist_whisk": {
+      "name": "道家拂尘",
+      "category": "weapons",
+      "speed": 160,
+      "frames": [
+        "taoist_whisk/00.png"
+      ]
+    },
+    "white_feather_fan": {
+      "name": "白羽扇",
+      "category": "weapons",
+      "speed": 160,
+      "frames": [
+        "white_feather_fan/00.png"
+      ]
+    },
+    "peach_folding_fan": {
+      "name": "桃花折扇",
+      "category": "weapons",
+      "speed": 160,
+      "frames": [
+        "peach_folding_fan/00.png"
+      ]
+    },
+    "curved_saber": {
+      "name": "弯刀",
+      "category": "weapons",
+      "speed": 160,
+      "frames": [
+        "curved_saber/00.png"
+      ]
+    },
+    "general_armor": {
+      "name": "将门甲胄",
+      "category": "weapons",
+      "speed": 160,
+      "frames": [
+        "general_armor/00.png"
+      ]
+    },
+    "training_sword_target": {
+      "name": "练剑木桩",
+      "category": "weapons",
+      "speed": 160,
+      "frames": [
+        "training_sword_target/00.png"
+      ]
+    },
+    "four_treasures": {
+      "name": "文房四宝",
+      "category": "weapons",
+      "speed": 160,
+      "frames": [
+        "four_treasures/00.png"
+      ]
+    },
+    "plum_fall_poison": {
+      "name": "梅落毒",
+      "category": "medicine",
+      "speed": 160,
+      "frames": [
+        "plum_fall_poison/00.png"
+      ]
+    },
+    "sleeping_drug": {
+      "name": "迷香",
+      "category": "medicine",
+      "speed": 160,
+      "frames": [
+        "sleeping_drug/00.png"
+      ]
+    },
+    "poison_powder": {
+      "name": "毒粉",
+      "category": "medicine",
+      "speed": 160,
+      "frames": [
+        "poison_powder/00.png"
+      ]
+    },
+    "antidote": {
+      "name": "解毒丸",
+      "category": "medicine",
+      "speed": 160,
+      "frames": [
+        "antidote/00.png"
+      ]
+    },
+    "poison_manual": {
+      "name": "毒经",
+      "category": "medicine",
+      "speed": 160,
+      "frames": [
+        "poison_manual/00.png"
+      ]
+    },
+    "medicine_pouch": {
+      "name": "药囊",
+      "category": "medicine",
+      "speed": 160,
+      "frames": [
+        "medicine_pouch/00.png"
+      ]
+    },
+    "physician_box": {
+      "name": "医箱",
+      "category": "medicine",
+      "speed": 160,
+      "frames": [
+        "physician_box/00.png"
+      ]
+    },
+    "rare_herbs": {
+      "name": "珍稀药草",
+      "category": "medicine",
+      "speed": 160,
+      "frames": [
+        "rare_herbs/00.png"
+      ]
+    },
+    "medicine_gourd_pills": {
+      "name": "药葫芦与丹丸",
+      "category": "medicine",
+      "speed": 160,
+      "frames": [
+        "medicine_gourd_pills/00.png"
+      ]
+    },
+    "rock_sugar_snow_pear": {
+      "name": "冰糖雪梨",
+      "category": "medicine",
+      "speed": 160,
+      "frames": [
+        "rock_sugar_snow_pear/00.png"
+      ]
+    },
+    "peach_blossom_wine": {
+      "name": "桃花酒",
+      "category": "medicine",
+      "speed": 160,
+      "frames": [
+        "peach_blossom_wine/00.png"
+      ]
+    },
+    "meng_po_soup": {
+      "name": "孟婆汤",
+      "category": "medicine",
+      "speed": 160,
+      "frames": [
+        "meng_po_soup/00.png"
+      ]
+    },
+    "alchemy_furnace": {
+      "name": "炼丹炉",
+      "category": "medicine",
+      "speed": 160,
+      "frames": [
+        "alchemy_furnace/00.png"
+      ]
+    },
+    "incense_burner": {
+      "name": "香炉",
+      "category": "medicine",
+      "speed": 160,
+      "frames": [
+        "incense_burner/00.png"
+      ]
+    },
+    "rouge_box": {
+      "name": "胭脂盒",
+      "category": "medicine",
+      "speed": 160,
+      "frames": [
+        "rouge_box/00.png"
+      ]
+    },
+    "jewelry_box": {
+      "name": "首饰匣",
+      "category": "medicine",
+      "speed": 160,
+      "frames": [
+        "jewelry_box/00.png"
+      ]
+    },
+    "bridal_robe": {
+      "name": "嫁衣",
+      "category": "clothing",
+      "speed": 160,
+      "frames": [
+        "bridal_robe/00.png"
+      ]
+    },
+    "academy_outer_robe": {
+      "name": "书院外袍",
+      "category": "clothing",
+      "speed": 160,
+      "frames": [
+        "academy_outer_robe/00.png"
+      ]
+    },
+    "taoist_robe": {
+      "name": "道袍",
+      "category": "clothing",
+      "speed": 160,
+      "frames": [
+        "taoist_robe/00.png"
+      ]
+    },
+    "tianxing_black_robe": {
+      "name": "天行黑袍",
+      "category": "clothing",
+      "speed": 160,
+      "frames": [
+        "tianxing_black_robe/00.png"
+      ]
+    },
+    "scholar_robe": {
+      "name": "书生长衫",
+      "category": "clothing",
+      "speed": 160,
+      "frames": [
+        "scholar_robe/00.png"
+      ]
+    },
+    "medical_valley_dress": {
+      "name": "医谷衣裙",
+      "category": "clothing",
+      "speed": 160,
+      "frames": [
+        "medical_valley_dress/00.png"
+      ]
+    },
+    "righteous_sect_robe": {
+      "name": "正派门服",
+      "category": "clothing",
+      "speed": 160,
+      "frames": [
+        "righteous_sect_robe/00.png"
+      ]
+    },
+    "hanlin_official_robe": {
+      "name": "翰林官服",
+      "category": "clothing",
+      "speed": 160,
+      "frames": [
+        "hanlin_official_robe/00.png"
+      ]
+    },
+    "jade_hairpin": {
+      "name": "玉簪",
+      "category": "clothing",
+      "speed": 160,
+      "frames": [
+        "jade_hairpin/00.png"
+      ]
+    },
+    "jade_pendant": {
+      "name": "玉佩",
+      "category": "clothing",
+      "speed": 160,
+      "frames": [
+        "jade_pendant/00.png"
+      ]
+    },
+    "white_crane": {
+      "name": "白鹤",
+      "category": "clothing",
+      "speed": 160,
+      "frames": [
+        "white_crane/00.png"
+      ]
+    },
+    "carrier_pigeon": {
+      "name": "信鸽",
+      "category": "clothing",
+      "speed": 160,
+      "frames": [
+        "carrier_pigeon/00.png"
+      ]
+    },
+    "crane_feathers": {
+      "name": "鹤羽",
+      "category": "clothing",
+      "speed": 160,
+      "frames": [
+        "crane_feathers/00.png"
+      ]
+    },
+    "taoist_scripture": {
+      "name": "道经",
+      "category": "clothing",
+      "speed": 160,
+      "frames": [
+        "taoist_scripture/00.png"
+      ]
+    },
+    "medical_manual": {
+      "name": "医书",
+      "category": "clothing",
+      "speed": 160,
+      "frames": [
+        "medical_manual/00.png"
+      ]
+    },
+    "scrolls_and_books": {
+      "name": "书卷",
+      "category": "clothing",
+      "speed": 160,
+      "frames": [
+        "scrolls_and_books/00.png"
+      ]
+    },
+    "revolving_horse_lantern": {
+      "name": "走马灯",
+      "category": "story",
+      "speed": 160,
+      "frames": [
+        "revolving_horse_lantern/00.png"
+      ]
+    },
+    "reincarnation_light": {
+      "name": "轮回灯",
+      "category": "story",
+      "speed": 160,
+      "frames": [
+        "reincarnation_light/00.png"
+      ]
+    },
+    "bridal_sewing_kit": {
+      "name": "嫁衣针线",
+      "category": "story",
+      "speed": 160,
+      "frames": [
+        "bridal_sewing_kit/00.png"
+      ]
+    },
+    "secret_command_scroll": {
+      "name": "密令卷轴",
+      "category": "story",
+      "speed": 160,
+      "frames": [
+        "secret_command_scroll/00.png"
+      ]
+    },
+    "sect_rules_bamboo_book": {
+      "name": "门规竹简",
+      "category": "story",
+      "speed": 160,
+      "frames": [
+        "sect_rules_bamboo_book/00.png"
+      ]
+    },
+    "academy_grade_roster": {
+      "name": "书院成绩册",
+      "category": "story",
+      "speed": 160,
+      "frames": [
+        "academy_grade_roster/00.png"
+      ]
+    },
+    "exam_and_answer_slip": {
+      "name": "试卷与答笺",
+      "category": "story",
+      "speed": 160,
+      "frames": [
+        "exam_and_answer_slip/00.png"
+      ]
+    },
+    "twig_bound_script": {
+      "name": "树枝装订手稿",
+      "category": "story",
+      "speed": 160,
+      "frames": [
+        "twig_bound_script/00.png"
+      ]
+    },
+    "ceremonial_salt_cups": {
+      "name": "合卺盐杯",
+      "category": "story",
+      "speed": 160,
+      "frames": [
+        "ceremonial_salt_cups/00.png"
+      ]
+    },
+    "crane_incense_burner": {
+      "name": "鹤纹香炉",
+      "category": "story",
+      "speed": 160,
+      "frames": [
+        "crane_incense_burner/00.png"
+      ]
+    },
+    "poisonous_peach_branch": {
+      "name": "毒桃枝",
+      "category": "story",
+      "speed": 160,
+      "frames": [
+        "poisonous_peach_branch/00.png"
+      ]
+    },
+    "preserved_white_plum": {
+      "name": "白梅标本",
+      "category": "story",
+      "speed": 160,
+      "frames": [
+        "preserved_white_plum/00.png"
+      ]
+    },
+    "folded_sky_lanterns": {
+      "name": "折叠天灯",
+      "category": "story",
+      "speed": 160,
+      "frames": [
+        "folded_sky_lanterns/00.png"
+      ]
+    },
+    "baby_name_maple_charm": {
+      "name": "幼名枫叶牌",
+      "category": "story",
+      "speed": 160,
+      "frames": [
+        "baby_name_maple_charm/00.png"
+      ]
+    },
+    "betrothal_scrolls": {
+      "name": "婚约卷",
+      "category": "story",
+      "speed": 160,
+      "frames": [
+        "betrothal_scrolls/00.png"
+      ]
+    },
+    "scarred_half_mask": {
+      "name": "残痕半面具",
+      "category": "story",
+      "speed": 160,
+      "frames": [
+        "scarred_half_mask/00.png"
+      ]
+    }
+  }
+}

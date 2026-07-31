@@ -1,0 +1,145 @@
+﻿{
+    "source":  "public\\assets\\characters\\xiujing-xuanxuan\\xiujing\\spritesheet-transparent.png",
+    "actions":  {
+                    "idle_book":  {
+                                      "speed":  250,
+                                      "frames":  [
+                                                     "idle_book/00.png"
+                                                 ],
+                                      "once":  true
+                                  },
+                    "read_book":  {
+                                      "speed":  250,
+                                      "frames":  [
+                                                     "read_book/00.png"
+                                                 ],
+                                      "once":  true
+                                  },
+                    "calligraphy":  {
+                                        "speed":  250,
+                                        "frames":  [
+                                                       "calligraphy/00.png"
+                                                   ],
+                                        "once":  true
+                                    },
+                    "think_brush":  {
+                                        "speed":  250,
+                                        "frames":  [
+                                                       "think_brush/00.png"
+                                                   ],
+                                        "once":  true
+                                    },
+                    "salute":  {
+                                   "speed":  250,
+                                   "frames":  [
+                                                  "salute/00.png"
+                                              ],
+                                   "once":  true
+                               },
+                    "deep_bow":  {
+                                     "speed":  250,
+                                     "frames":  [
+                                                    "deep_bow/00.png"
+                                                ],
+                                     "once":  true
+                                 },
+                    "kneeling_rite":  {
+                                          "speed":  250,
+                                          "frames":  [
+                                                         "kneeling_rite/00.png"
+                                                     ],
+                                          "once":  true
+                                      },
+                    "offer_scroll":  {
+                                         "speed":  250,
+                                         "frames":  [
+                                                        "offer_scroll/00.png"
+                                                    ],
+                                         "once":  true
+                                     },
+                    "walk_bamboo_slips":  {
+                                              "speed":  250,
+                                              "frames":  [
+                                                             "walk_bamboo_slips/00.png"
+                                                         ],
+                                              "once":  true
+                                          },
+                    "run":  {
+                                "speed":  250,
+                                "frames":  [
+                                               "run/00.png"
+                                           ],
+                                "once":  true
+                            },
+                    "pick_page":  {
+                                      "speed":  250,
+                                      "frames":  [
+                                                     "pick_page/00.png"
+                                                 ],
+                                      "once":  true
+                                  },
+                    "arrange_tablets":  {
+                                            "speed":  250,
+                                            "frames":  [
+                                                           "arrange_tablets/00.png"
+                                                       ],
+                                            "once":  true
+                                        },
+                    "teach_etiquette":  {
+                                            "speed":  250,
+                                            "frames":  [
+                                                           "teach_etiquette/00.png"
+                                                       ],
+                                            "once":  true
+                                        },
+                    "recite":  {
+                                   "speed":  250,
+                                   "frames":  [
+                                                  "recite/00.png"
+                                              ],
+                                   "once":  true
+                               },
+                    "offer_incense":  {
+                                          "speed":  250,
+                                          "frames":  [
+                                                         "offer_incense/00.png"
+                                                     ],
+                                          "once":  true
+                                      },
+                    "study_long_scroll":  {
+                                              "speed":  250,
+                                              "frames":  [
+                                                             "study_long_scroll/00.png"
+                                                         ],
+                                              "once":  true
+                                          },
+                    "meditate_books":  {
+                                           "speed":  250,
+                                           "frames":  [
+                                                          "meditate_books/00.png"
+                                                      ],
+                                           "once":  true
+                                       },
+                    "protect_manuscript":  {
+                                               "speed":  250,
+                                               "frames":  [
+                                                              "protect_manuscript/00.png"
+                                                          ],
+                                               "once":  true
+                                           },
+                    "mute_writing_board":  {
+                                               "speed":  250,
+                                               "frames":  [
+                                                              "mute_writing_board/00.png"
+                                                          ],
+                                               "once":  true
+                                           },
+                    "silent_thanks":  {
+                                          "speed":  250,
+                                          "frames":  [
+                                                         "silent_thanks/00.png"
+                                                     ],
+                                          "once":  true
+                                      }
+                }
+}

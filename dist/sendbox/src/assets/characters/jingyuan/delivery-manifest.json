@@ -1,0 +1,29 @@
+{
+  "title": "静远七人Q版像素20动作交付包",
+  "characterCount": 7,
+  "framesPerCharacter": 20,
+  "totalFrames": 140,
+  "layout": "4 columns x 5 action groups",
+  "actionGroups": [
+    "personality",
+    "run",
+    "etiquette",
+    "martial",
+    "signature"
+  ],
+  "characters": [
+    { "id": 1, "name": "周然", "directory": "01-周然" },
+    { "id": 2, "name": "贺清风", "directory": "02-贺清风" },
+    { "id": 3, "name": "任朝野", "directory": "03-任朝野" },
+    { "id": 4, "name": "沈池懿", "directory": "04-沈池懿" },
+    { "id": 5, "name": "戚凭川", "directory": "05-戚凭川", "blindfoldInAllFrames": true },
+    { "id": 6, "name": "江淮安", "directory": "06-江淮安" },
+    { "id": 7, "name": "唐挽初", "directory": "07-唐挽初" }
+  ],
+  "validation": {
+    "exactFrameCount": true,
+    "noHighSimilarityPairs": true,
+    "transparentMargins": true,
+    "crossCellFragmentsRemoved": true
+  }
+}

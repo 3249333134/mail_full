@@ -1,0 +1,1652 @@
+{
+  "version": 1,
+  "mapCount": 11,
+  "description": "三世完整地点地图推荐行动路线、入口/广场/桥面节点与路线遮罩",
+  "maps": [
+    {
+      "id": "jingyuan_academy",
+      "name": "静远书院",
+      "map": "high-resolution-maps/jingyuan-academy-map.png",
+      "routeOverlay": "route-maps/jingyuan-academy-map.png",
+      "walkableMask": "walkable-masks/jingyuan-academy-map.png",
+      "maskConvention": "white=recommended walkable route, black=outside route plan",
+      "coordinateSystem": "normalized 0..1, origin at top-left",
+      "nodes": [
+        {
+          "number": 1,
+          "id": "south_gate",
+          "name": "书院山门",
+          "x": 0.5,
+          "y": 0.91,
+          "radius": 0.03
+        },
+        {
+          "number": 2,
+          "id": "outer_junction",
+          "name": "书院外路口",
+          "x": 0.5,
+          "y": 0.82,
+          "radius": 0.03
+        },
+        {
+          "number": 3,
+          "id": "guanhe_tavern",
+          "name": "观鹤楼入口",
+          "x": 0.18,
+          "y": 0.87,
+          "radius": 0.03
+        },
+        {
+          "number": 4,
+          "id": "fanghe_tavern",
+          "name": "放鹤楼入口",
+          "x": 0.82,
+          "y": 0.87,
+          "radius": 0.03
+        },
+        {
+          "number": 5,
+          "id": "kitchen",
+          "name": "食堂/膳房入口",
+          "x": 0.34,
+          "y": 0.73,
+          "radius": 0.03
+        },
+        {
+          "number": 6,
+          "id": "garden_junction",
+          "name": "花园路口",
+          "x": 0.5,
+          "y": 0.68,
+          "radius": 0.026
+        },
+        {
+          "number": 7,
+          "id": "crane_yard",
+          "name": "鹤院步道",
+          "x": 0.22,
+          "y": 0.65,
+          "radius": 0.03
+        },
+        {
+          "number": 8,
+          "id": "pavilion",
+          "name": "凉亭石桌",
+          "x": 0.32,
+          "y": 0.61,
+          "radius": 0.03
+        },
+        {
+          "number": 9,
+          "id": "lotus_pond",
+          "name": "荷花池石桥",
+          "x": 0.78,
+          "y": 0.6,
+          "radius": 0.032
+        },
+        {
+          "number": 10,
+          "id": "main_hall",
+          "name": "大殿/正殿前广场",
+          "x": 0.5,
+          "y": 0.54,
+          "radius": 0.04
+        },
+        {
+          "number": 11,
+          "id": "practice",
+          "name": "练功房前场地",
+          "x": 0.23,
+          "y": 0.48,
+          "radius": 0.042
+        },
+        {
+          "number": 12,
+          "id": "teacher_rooms",
+          "name": "先生厢房入口",
+          "x": 0.73,
+          "y": 0.49,
+          "radius": 0.036
+        },
+        {
+          "number": 13,
+          "id": "masked_room",
+          "name": "面具人厢房入口",
+          "x": 0.81,
+          "y": 0.43,
+          "radius": 0.026
+        },
+        {
+          "number": 14,
+          "id": "disciple_rooms",
+          "name": "七间弟子厢房门前",
+          "x": 0.5,
+          "y": 0.36,
+          "radius": 0.042
+        },
+        {
+          "number": 15,
+          "id": "library",
+          "name": "藏书阁入口",
+          "x": 0.5,
+          "y": 0.23,
+          "radius": 0.036
+        },
+        {
+          "number": 16,
+          "id": "back_stream",
+          "name": "后山溪流踏石",
+          "x": 0.8,
+          "y": 0.24,
+          "radius": 0.03
+        },
+        {
+          "number": 17,
+          "id": "wish_river",
+          "name": "小河许愿灯台",
+          "x": 0.12,
+          "y": 0.8,
+          "radius": 0.03
+        }
+      ],
+      "edges": [
+        {
+          "from": "south_gate",
+          "to": "outer_junction"
+        },
+        {
+          "from": "outer_junction",
+          "to": "guanhe_tavern"
+        },
+        {
+          "from": "outer_junction",
+          "to": "fanghe_tavern"
+        },
+        {
+          "from": "outer_junction",
+          "to": "kitchen"
+        },
+        {
+          "from": "outer_junction",
+          "to": "garden_junction"
+        },
+        {
+          "from": "guanhe_tavern",
+          "to": "wish_river"
+        },
+        {
+          "from": "garden_junction",
+          "to": "crane_yard"
+        },
+        {
+          "from": "garden_junction",
+          "to": "pavilion"
+        },
+        {
+          "from": "garden_junction",
+          "to": "lotus_pond"
+        },
+        {
+          "from": "garden_junction",
+          "to": "main_hall"
+        },
+        {
+          "from": "main_hall",
+          "to": "practice"
+        },
+        {
+          "from": "main_hall",
+          "to": "teacher_rooms"
+        },
+        {
+          "from": "teacher_rooms",
+          "to": "masked_room"
+        },
+        {
+          "from": "main_hall",
+          "to": "disciple_rooms"
+        },
+        {
+          "from": "disciple_rooms",
+          "to": "library"
+        },
+        {
+          "from": "disciple_rooms",
+          "to": "back_stream"
+        }
+      ]
+    },
+    {
+      "id": "daohua_temple",
+      "name": "道华观",
+      "map": "high-resolution-maps/daohua-temple-map.png",
+      "routeOverlay": "route-maps/daohua-temple-map.png",
+      "walkableMask": "walkable-masks/daohua-temple-map.png",
+      "maskConvention": "white=recommended walkable route, black=outside route plan",
+      "coordinateSystem": "normalized 0..1, origin at top-left",
+      "nodes": [
+        {
+          "number": 1,
+          "id": "tailor_cottage",
+          "name": "山脚制衣小屋",
+          "x": 0.51,
+          "y": 0.9,
+          "radius": 0.04
+        },
+        {
+          "number": 2,
+          "id": "lower_stairs",
+          "name": "登山石阶下段",
+          "x": 0.5,
+          "y": 0.76,
+          "radius": 0.026
+        },
+        {
+          "number": 3,
+          "id": "mountain_gate",
+          "name": "道观山门",
+          "x": 0.5,
+          "y": 0.63,
+          "radius": 0.04
+        },
+        {
+          "number": 4,
+          "id": "memorial",
+          "name": "灵堂",
+          "x": 0.24,
+          "y": 0.58,
+          "radius": 0.042
+        },
+        {
+          "number": 5,
+          "id": "disciple_rooms",
+          "name": "弟子房",
+          "x": 0.73,
+          "y": 0.53,
+          "radius": 0.05
+        },
+        {
+          "number": 6,
+          "id": "middle_junction",
+          "name": "中庭路口",
+          "x": 0.5,
+          "y": 0.48,
+          "radius": 0.028
+        },
+        {
+          "number": 7,
+          "id": "practice",
+          "name": "练功场",
+          "x": 0.26,
+          "y": 0.4,
+          "radius": 0.05
+        },
+        {
+          "number": 8,
+          "id": "crane_court",
+          "name": "鹤院",
+          "x": 0.53,
+          "y": 0.37,
+          "radius": 0.038
+        },
+        {
+          "number": 9,
+          "id": "library",
+          "name": "藏经阁",
+          "x": 0.79,
+          "y": 0.35,
+          "radius": 0.045
+        },
+        {
+          "number": 10,
+          "id": "master_room",
+          "name": "观主厢房",
+          "x": 0.75,
+          "y": 0.24,
+          "radius": 0.036
+        },
+        {
+          "number": 11,
+          "id": "alchemy",
+          "name": "丹房",
+          "x": 0.68,
+          "y": 0.2,
+          "radius": 0.04
+        },
+        {
+          "number": 12,
+          "id": "main_hall",
+          "name": "三清殿",
+          "x": 0.52,
+          "y": 0.17,
+          "radius": 0.055
+        },
+        {
+          "number": 13,
+          "id": "cliff_view",
+          "name": "松柏观景台",
+          "x": 0.21,
+          "y": 0.2,
+          "radius": 0.038
+        }
+      ],
+      "edges": [
+        {
+          "from": "tailor_cottage",
+          "to": "lower_stairs"
+        },
+        {
+          "from": "lower_stairs",
+          "to": "mountain_gate"
+        },
+        {
+          "from": "mountain_gate",
+          "to": "memorial"
+        },
+        {
+          "from": "mountain_gate",
+          "to": "disciple_rooms"
+        },
+        {
+          "from": "mountain_gate",
+          "to": "middle_junction"
+        },
+        {
+          "from": "middle_junction",
+          "to": "practice"
+        },
+        {
+          "from": "middle_junction",
+          "to": "crane_court"
+        },
+        {
+          "from": "middle_junction",
+          "to": "library"
+        },
+        {
+          "from": "crane_court",
+          "to": "main_hall"
+        },
+        {
+          "from": "library",
+          "to": "master_room"
+        },
+        {
+          "from": "main_hall",
+          "to": "alchemy"
+        },
+        {
+          "from": "practice",
+          "to": "cliff_view"
+        }
+      ]
+    },
+    {
+      "id": "tianxing_cult",
+      "name": "天行教",
+      "map": "high-resolution-maps/tianxing-cult-map.png",
+      "routeOverlay": "route-maps/tianxing-cult-map.png",
+      "walkableMask": "walkable-masks/tianxing-cult-map.png",
+      "maskConvention": "white=recommended walkable route, black=outside route plan",
+      "coordinateSystem": "normalized 0..1, origin at top-left",
+      "nodes": [
+        {
+          "number": 1,
+          "id": "water_dungeon",
+          "name": "地牢/水牢",
+          "x": 0.5,
+          "y": 0.91,
+          "radius": 0.05
+        },
+        {
+          "number": 2,
+          "id": "main_gate",
+          "name": "险要山门",
+          "x": 0.5,
+          "y": 0.73,
+          "radius": 0.045
+        },
+        {
+          "number": 3,
+          "id": "council",
+          "name": "议事厅",
+          "x": 0.5,
+          "y": 0.59,
+          "radius": 0.05
+        },
+        {
+          "number": 4,
+          "id": "barracks",
+          "name": "教众营房",
+          "x": 0.25,
+          "y": 0.57,
+          "radius": 0.055
+        },
+        {
+          "number": 5,
+          "id": "secret_room",
+          "name": "密室入口",
+          "x": 0.84,
+          "y": 0.56,
+          "radius": 0.038
+        },
+        {
+          "number": 6,
+          "id": "ritual_square",
+          "name": "仪式广场",
+          "x": 0.5,
+          "y": 0.43,
+          "radius": 0.06
+        },
+        {
+          "number": 7,
+          "id": "guardian_hall",
+          "name": "左护法殿",
+          "x": 0.25,
+          "y": 0.29,
+          "radius": 0.048
+        },
+        {
+          "number": 8,
+          "id": "training",
+          "name": "练功场",
+          "x": 0.76,
+          "y": 0.31,
+          "radius": 0.058
+        },
+        {
+          "number": 9,
+          "id": "watchtower",
+          "name": "瞭望塔",
+          "x": 0.84,
+          "y": 0.27,
+          "radius": 0.028
+        },
+        {
+          "number": 10,
+          "id": "leader_hall",
+          "name": "教主大殿",
+          "x": 0.51,
+          "y": 0.16,
+          "radius": 0.06
+        }
+      ],
+      "edges": [
+        {
+          "from": "water_dungeon",
+          "to": "main_gate"
+        },
+        {
+          "from": "main_gate",
+          "to": "council"
+        },
+        {
+          "from": "main_gate",
+          "to": "barracks"
+        },
+        {
+          "from": "main_gate",
+          "to": "secret_room"
+        },
+        {
+          "from": "council",
+          "to": "ritual_square"
+        },
+        {
+          "from": "ritual_square",
+          "to": "guardian_hall"
+        },
+        {
+          "from": "ritual_square",
+          "to": "training"
+        },
+        {
+          "from": "training",
+          "to": "watchtower"
+        },
+        {
+          "from": "ritual_square",
+          "to": "leader_hall"
+        }
+      ]
+    },
+    {
+      "id": "danxi_valley",
+      "name": "丹溪谷",
+      "map": "high-resolution-maps/danxi-valley-map.png",
+      "routeOverlay": "route-maps/danxi-valley-map.png",
+      "walkableMask": "walkable-masks/danxi-valley-map.png",
+      "maskConvention": "white=recommended walkable route, black=outside route plan",
+      "coordinateSystem": "normalized 0..1, origin at top-left",
+      "nodes": [
+        {
+          "number": 1,
+          "id": "valley_gate",
+          "name": "谷口牌楼",
+          "x": 0.5,
+          "y": 0.93,
+          "radius": 0.034
+        },
+        {
+          "number": 2,
+          "id": "clinic",
+          "name": "诊堂",
+          "x": 0.29,
+          "y": 0.8,
+          "radius": 0.05
+        },
+        {
+          "number": 3,
+          "id": "flower_pavilion",
+          "name": "药花凉亭",
+          "x": 0.72,
+          "y": 0.78,
+          "radius": 0.045
+        },
+        {
+          "number": 4,
+          "id": "lower_bridge",
+          "name": "溪流下桥",
+          "x": 0.5,
+          "y": 0.75,
+          "radius": 0.028
+        },
+        {
+          "number": 5,
+          "id": "drying_ground",
+          "name": "晒药场",
+          "x": 0.25,
+          "y": 0.65,
+          "radius": 0.048
+        },
+        {
+          "number": 6,
+          "id": "library",
+          "name": "藏书阁",
+          "x": 0.73,
+          "y": 0.62,
+          "radius": 0.048
+        },
+        {
+          "number": 7,
+          "id": "alchemy",
+          "name": "丹房",
+          "x": 0.24,
+          "y": 0.52,
+          "radius": 0.048
+        },
+        {
+          "number": 8,
+          "id": "main_hall",
+          "name": "谷主殿",
+          "x": 0.5,
+          "y": 0.38,
+          "radius": 0.055
+        },
+        {
+          "number": 9,
+          "id": "medicine_room",
+          "name": "药房",
+          "x": 0.25,
+          "y": 0.35,
+          "radius": 0.05
+        },
+        {
+          "number": 10,
+          "id": "herb_field_lower",
+          "name": "下层药田",
+          "x": 0.76,
+          "y": 0.37,
+          "radius": 0.06
+        },
+        {
+          "number": 11,
+          "id": "herb_field_upper",
+          "name": "上层药田",
+          "x": 0.76,
+          "y": 0.24,
+          "radius": 0.06
+        },
+        {
+          "number": 12,
+          "id": "disciple_rooms",
+          "name": "弟子房",
+          "x": 0.24,
+          "y": 0.23,
+          "radius": 0.052
+        },
+        {
+          "number": 13,
+          "id": "master_room",
+          "name": "谷主厢房",
+          "x": 0.76,
+          "y": 0.14,
+          "radius": 0.044
+        },
+        {
+          "number": 14,
+          "id": "waterfall",
+          "name": "瀑布源头",
+          "x": 0.5,
+          "y": 0.12,
+          "radius": 0.038
+        }
+      ],
+      "edges": [
+        {
+          "from": "valley_gate",
+          "to": "clinic"
+        },
+        {
+          "from": "valley_gate",
+          "to": "flower_pavilion"
+        },
+        {
+          "from": "valley_gate",
+          "to": "lower_bridge"
+        },
+        {
+          "from": "lower_bridge",
+          "to": "drying_ground"
+        },
+        {
+          "from": "lower_bridge",
+          "to": "library"
+        },
+        {
+          "from": "lower_bridge",
+          "to": "main_hall"
+        },
+        {
+          "from": "drying_ground",
+          "to": "alchemy"
+        },
+        {
+          "from": "library",
+          "to": "herb_field_lower"
+        },
+        {
+          "from": "main_hall",
+          "to": "medicine_room"
+        },
+        {
+          "from": "main_hall",
+          "to": "herb_field_lower"
+        },
+        {
+          "from": "medicine_room",
+          "to": "disciple_rooms"
+        },
+        {
+          "from": "herb_field_lower",
+          "to": "herb_field_upper"
+        },
+        {
+          "from": "herb_field_upper",
+          "to": "master_room"
+        },
+        {
+          "from": "main_hall",
+          "to": "waterfall"
+        }
+      ]
+    },
+    {
+      "id": "buhuan_sect",
+      "name": "不还门",
+      "map": "high-resolution-maps/buhuan-sect-map.png",
+      "routeOverlay": "route-maps/buhuan-sect-map.png",
+      "walkableMask": "walkable-masks/buhuan-sect-map.png",
+      "maskConvention": "white=recommended walkable route, black=outside route plan",
+      "coordinateSystem": "normalized 0..1, origin at top-left",
+      "nodes": [
+        {
+          "number": 1,
+          "id": "mountain_gate",
+          "name": "山门",
+          "x": 0.5,
+          "y": 0.91,
+          "radius": 0.04
+        },
+        {
+          "number": 2,
+          "id": "young_master",
+          "name": "少门主院",
+          "x": 0.25,
+          "y": 0.76,
+          "radius": 0.05
+        },
+        {
+          "number": 3,
+          "id": "master_residence",
+          "name": "门主院",
+          "x": 0.74,
+          "y": 0.75,
+          "radius": 0.05
+        },
+        {
+          "number": 4,
+          "id": "disciple_rooms",
+          "name": "弟子房",
+          "x": 0.5,
+          "y": 0.62,
+          "radius": 0.06
+        },
+        {
+          "number": 5,
+          "id": "training",
+          "name": "大型练功场",
+          "x": 0.5,
+          "y": 0.43,
+          "radius": 0.085
+        },
+        {
+          "number": 6,
+          "id": "zhengqi_hall",
+          "name": "正气堂",
+          "x": 0.24,
+          "y": 0.29,
+          "radius": 0.05
+        },
+        {
+          "number": 7,
+          "id": "library",
+          "name": "藏经阁",
+          "x": 0.78,
+          "y": 0.28,
+          "radius": 0.045
+        },
+        {
+          "number": 8,
+          "id": "main_hall",
+          "name": "门主大殿",
+          "x": 0.5,
+          "y": 0.15,
+          "radius": 0.06
+        }
+      ],
+      "edges": [
+        {
+          "from": "mountain_gate",
+          "to": "young_master"
+        },
+        {
+          "from": "mountain_gate",
+          "to": "master_residence"
+        },
+        {
+          "from": "mountain_gate",
+          "to": "disciple_rooms"
+        },
+        {
+          "from": "young_master",
+          "to": "disciple_rooms"
+        },
+        {
+          "from": "master_residence",
+          "to": "disciple_rooms"
+        },
+        {
+          "from": "disciple_rooms",
+          "to": "training"
+        },
+        {
+          "from": "training",
+          "to": "zhengqi_hall"
+        },
+        {
+          "from": "training",
+          "to": "library"
+        },
+        {
+          "from": "training",
+          "to": "main_hall"
+        }
+      ]
+    },
+    {
+      "id": "taozhi_sect",
+      "name": "桃止门",
+      "map": "high-resolution-maps/taozhi-sect-map.png",
+      "routeOverlay": "route-maps/taozhi-sect-map.png",
+      "walkableMask": "walkable-masks/taozhi-sect-map.png",
+      "maskConvention": "white=recommended walkable route, black=outside route plan",
+      "coordinateSystem": "normalized 0..1, origin at top-left",
+      "nodes": [
+        {
+          "number": 1,
+          "id": "poison_gate",
+          "name": "毒谷山门",
+          "x": 0.5,
+          "y": 0.92,
+          "radius": 0.04
+        },
+        {
+          "number": 2,
+          "id": "master_hall",
+          "name": "门主殿",
+          "x": 0.68,
+          "y": 0.74,
+          "radius": 0.05
+        },
+        {
+          "number": 3,
+          "id": "disciple_rooms",
+          "name": "弟子房",
+          "x": 0.34,
+          "y": 0.65,
+          "radius": 0.06
+        },
+        {
+          "number": 4,
+          "id": "master_room",
+          "name": "门主厢房",
+          "x": 0.69,
+          "y": 0.55,
+          "radius": 0.045
+        },
+        {
+          "number": 5,
+          "id": "poison_garden",
+          "name": "毒花园",
+          "x": 0.28,
+          "y": 0.45,
+          "radius": 0.075
+        },
+        {
+          "number": 6,
+          "id": "laboratory",
+          "name": "毒室/丹房",
+          "x": 0.73,
+          "y": 0.33,
+          "radius": 0.06
+        },
+        {
+          "number": 7,
+          "id": "testing_ground",
+          "name": "炼毒试毒场",
+          "x": 0.27,
+          "y": 0.27,
+          "radius": 0.06
+        },
+        {
+          "number": 8,
+          "id": "toxic_stream",
+          "name": "毒雾溪谷",
+          "x": 0.5,
+          "y": 0.4,
+          "radius": 0.035
+        },
+        {
+          "number": 9,
+          "id": "poison_cave",
+          "name": "毒物洞窟",
+          "x": 0.5,
+          "y": 0.1,
+          "radius": 0.04
+        }
+      ],
+      "edges": [
+        {
+          "from": "poison_gate",
+          "to": "master_hall"
+        },
+        {
+          "from": "poison_gate",
+          "to": "disciple_rooms"
+        },
+        {
+          "from": "master_hall",
+          "to": "master_room"
+        },
+        {
+          "from": "disciple_rooms",
+          "to": "poison_garden"
+        },
+        {
+          "from": "master_room",
+          "to": "toxic_stream"
+        },
+        {
+          "from": "poison_garden",
+          "to": "toxic_stream"
+        },
+        {
+          "from": "toxic_stream",
+          "to": "laboratory"
+        },
+        {
+          "from": "toxic_stream",
+          "to": "testing_ground"
+        },
+        {
+          "from": "laboratory",
+          "to": "poison_cave"
+        },
+        {
+          "from": "testing_ground",
+          "to": "poison_cave"
+        }
+      ]
+    },
+    {
+      "id": "dongjia_shen_manor",
+      "name": "东嘉沈府",
+      "map": "high-resolution-maps/dongjia-shen-manor-map.png",
+      "routeOverlay": "route-maps/dongjia-shen-manor-map.png",
+      "walkableMask": "walkable-masks/dongjia-shen-manor-map.png",
+      "maskConvention": "white=recommended walkable route, black=outside route plan",
+      "coordinateSystem": "normalized 0..1, origin at top-left",
+      "nodes": [
+        {
+          "number": 1,
+          "id": "front_gate",
+          "name": "沈府大门",
+          "x": 0.5,
+          "y": 0.91,
+          "radius": 0.038
+        },
+        {
+          "number": 2,
+          "id": "front_hall",
+          "name": "前厅",
+          "x": 0.5,
+          "y": 0.76,
+          "radius": 0.055
+        },
+        {
+          "number": 3,
+          "id": "study",
+          "name": "书房",
+          "x": 0.74,
+          "y": 0.68,
+          "radius": 0.045
+        },
+        {
+          "number": 4,
+          "id": "garden",
+          "name": "江南花园",
+          "x": 0.26,
+          "y": 0.6,
+          "radius": 0.06
+        },
+        {
+          "number": 5,
+          "id": "crane_court",
+          "name": "沈池懿院落与鹤池",
+          "x": 0.74,
+          "y": 0.58,
+          "radius": 0.06
+        },
+        {
+          "number": 6,
+          "id": "central_hall",
+          "name": "正厅/大堂",
+          "x": 0.5,
+          "y": 0.43,
+          "radius": 0.06
+        },
+        {
+          "number": 7,
+          "id": "book_room",
+          "name": "藏书楼",
+          "x": 0.74,
+          "y": 0.36,
+          "radius": 0.048
+        },
+        {
+          "number": 8,
+          "id": "service_yard",
+          "name": "后勤院",
+          "x": 0.25,
+          "y": 0.34,
+          "radius": 0.045
+        },
+        {
+          "number": 9,
+          "id": "ancestral",
+          "name": "祠堂",
+          "x": 0.5,
+          "y": 0.18,
+          "radius": 0.05
+        },
+        {
+          "number": 10,
+          "id": "pigeon_loft",
+          "name": "信鸽楼",
+          "x": 0.79,
+          "y": 0.16,
+          "radius": 0.04
+        },
+        {
+          "number": 11,
+          "id": "rear_gate",
+          "name": "后门",
+          "x": 0.24,
+          "y": 0.19,
+          "radius": 0.03
+        }
+      ],
+      "edges": [
+        {
+          "from": "front_gate",
+          "to": "front_hall"
+        },
+        {
+          "from": "front_hall",
+          "to": "study"
+        },
+        {
+          "from": "front_hall",
+          "to": "garden"
+        },
+        {
+          "from": "front_hall",
+          "to": "crane_court"
+        },
+        {
+          "from": "front_hall",
+          "to": "central_hall"
+        },
+        {
+          "from": "central_hall",
+          "to": "book_room"
+        },
+        {
+          "from": "central_hall",
+          "to": "service_yard"
+        },
+        {
+          "from": "central_hall",
+          "to": "ancestral"
+        },
+        {
+          "from": "ancestral",
+          "to": "pigeon_loft"
+        },
+        {
+          "from": "ancestral",
+          "to": "rear_gate"
+        }
+      ]
+    },
+    {
+      "id": "ren_manor",
+      "name": "任府",
+      "map": "high-resolution-maps/ren-manor-map.png",
+      "routeOverlay": "route-maps/ren-manor-map.png",
+      "walkableMask": "walkable-masks/ren-manor-map.png",
+      "maskConvention": "white=recommended walkable route, black=outside route plan",
+      "coordinateSystem": "normalized 0..1, origin at top-left",
+      "nodes": [
+        {
+          "number": 1,
+          "id": "front_gate",
+          "name": "将军府大门",
+          "x": 0.5,
+          "y": 0.9,
+          "radius": 0.04
+        },
+        {
+          "number": 2,
+          "id": "main_hall",
+          "name": "正厅",
+          "x": 0.5,
+          "y": 0.66,
+          "radius": 0.055
+        },
+        {
+          "number": 3,
+          "id": "chaoye_court",
+          "name": "任朝野院落",
+          "x": 0.25,
+          "y": 0.61,
+          "radius": 0.05
+        },
+        {
+          "number": 4,
+          "id": "armory",
+          "name": "兵器库",
+          "x": 0.74,
+          "y": 0.61,
+          "radius": 0.048
+        },
+        {
+          "number": 5,
+          "id": "training",
+          "name": "演武场",
+          "x": 0.5,
+          "y": 0.4,
+          "radius": 0.08
+        },
+        {
+          "number": 6,
+          "id": "mother_court",
+          "name": "母亲院落与枫树",
+          "x": 0.25,
+          "y": 0.29,
+          "radius": 0.055
+        },
+        {
+          "number": 7,
+          "id": "stable",
+          "name": "马厩",
+          "x": 0.75,
+          "y": 0.3,
+          "radius": 0.055
+        },
+        {
+          "number": 8,
+          "id": "ancestral",
+          "name": "任家祠堂",
+          "x": 0.5,
+          "y": 0.16,
+          "radius": 0.052
+        },
+        {
+          "number": 9,
+          "id": "side_gate",
+          "name": "侧门",
+          "x": 0.85,
+          "y": 0.64,
+          "radius": 0.028
+        }
+      ],
+      "edges": [
+        {
+          "from": "front_gate",
+          "to": "main_hall"
+        },
+        {
+          "from": "main_hall",
+          "to": "chaoye_court"
+        },
+        {
+          "from": "main_hall",
+          "to": "armory"
+        },
+        {
+          "from": "main_hall",
+          "to": "training"
+        },
+        {
+          "from": "armory",
+          "to": "side_gate"
+        },
+        {
+          "from": "training",
+          "to": "mother_court"
+        },
+        {
+          "from": "training",
+          "to": "stable"
+        },
+        {
+          "from": "training",
+          "to": "ancestral"
+        }
+      ]
+    },
+    {
+      "id": "capital_hanlin",
+      "name": "京城/翰林院",
+      "map": "high-resolution-maps/capital-hanlin-map.png",
+      "routeOverlay": "route-maps/capital-hanlin-map.png",
+      "walkableMask": "walkable-masks/capital-hanlin-map.png",
+      "maskConvention": "white=recommended walkable route, black=outside route plan",
+      "coordinateSystem": "normalized 0..1, origin at top-left",
+      "nodes": [
+        {
+          "number": 1,
+          "id": "city_gate",
+          "name": "京城城门",
+          "x": 0.5,
+          "y": 0.93,
+          "radius": 0.04
+        },
+        {
+          "number": 2,
+          "id": "south_market",
+          "name": "南市",
+          "x": 0.5,
+          "y": 0.79,
+          "radius": 0.055
+        },
+        {
+          "number": 3,
+          "id": "west_market",
+          "name": "西街市",
+          "x": 0.25,
+          "y": 0.68,
+          "radius": 0.065
+        },
+        {
+          "number": 4,
+          "id": "east_market",
+          "name": "东街市",
+          "x": 0.68,
+          "y": 0.69,
+          "radius": 0.06
+        },
+        {
+          "number": 5,
+          "id": "main_avenue",
+          "name": "御道中段",
+          "x": 0.5,
+          "y": 0.6,
+          "radius": 0.036
+        },
+        {
+          "number": 6,
+          "id": "lantern_river_south",
+          "name": "灯河下游",
+          "x": 0.82,
+          "y": 0.67,
+          "radius": 0.05
+        },
+        {
+          "number": 7,
+          "id": "lantern_bridge",
+          "name": "上元灯桥",
+          "x": 0.82,
+          "y": 0.5,
+          "radius": 0.055
+        },
+        {
+          "number": 8,
+          "id": "hanlin",
+          "name": "翰林院",
+          "x": 0.5,
+          "y": 0.42,
+          "radius": 0.07
+        },
+        {
+          "number": 9,
+          "id": "official_lane",
+          "name": "官员居所",
+          "x": 0.25,
+          "y": 0.43,
+          "radius": 0.055
+        },
+        {
+          "number": 10,
+          "id": "memorial_court",
+          "name": "科举与奏章院",
+          "x": 0.5,
+          "y": 0.32,
+          "radius": 0.05
+        },
+        {
+          "number": 11,
+          "id": "lantern_river_north",
+          "name": "灯河上游",
+          "x": 0.82,
+          "y": 0.31,
+          "radius": 0.05
+        },
+        {
+          "number": 12,
+          "id": "palace_gate",
+          "name": "宫门",
+          "x": 0.5,
+          "y": 0.24,
+          "radius": 0.042
+        },
+        {
+          "number": 13,
+          "id": "golden_hall",
+          "name": "皇宫/金銮殿",
+          "x": 0.5,
+          "y": 0.11,
+          "radius": 0.06
+        }
+      ],
+      "edges": [
+        {
+          "from": "city_gate",
+          "to": "south_market"
+        },
+        {
+          "from": "south_market",
+          "to": "west_market"
+        },
+        {
+          "from": "south_market",
+          "to": "east_market"
+        },
+        {
+          "from": "south_market",
+          "to": "main_avenue"
+        },
+        {
+          "from": "east_market",
+          "to": "lantern_river_south"
+        },
+        {
+          "from": "lantern_river_south",
+          "to": "lantern_bridge"
+        },
+        {
+          "from": "lantern_bridge",
+          "to": "lantern_river_north"
+        },
+        {
+          "from": "main_avenue",
+          "to": "hanlin"
+        },
+        {
+          "from": "hanlin",
+          "to": "official_lane"
+        },
+        {
+          "from": "hanlin",
+          "to": "memorial_court"
+        },
+        {
+          "from": "memorial_court",
+          "to": "palace_gate"
+        },
+        {
+          "from": "palace_gate",
+          "to": "golden_hall"
+        }
+      ]
+    },
+    {
+      "id": "forgetfulness_river",
+      "name": "忘川",
+      "map": "high-resolution-maps/forgetfulness-river-map.png",
+      "routeOverlay": "route-maps/forgetfulness-river-map.png",
+      "walkableMask": "walkable-masks/forgetfulness-river-map.png",
+      "maskConvention": "white=recommended walkable route, black=outside route plan",
+      "coordinateSystem": "normalized 0..1, origin at top-left",
+      "nodes": [
+        {
+          "number": 1,
+          "id": "arrival",
+          "name": "亡魂入口",
+          "x": 0.5,
+          "y": 0.92,
+          "radius": 0.035
+        },
+        {
+          "number": 2,
+          "id": "waiting_terrace",
+          "name": "亡魂等候台",
+          "x": 0.48,
+          "y": 0.78,
+          "radius": 0.055
+        },
+        {
+          "number": 3,
+          "id": "mengpo",
+          "name": "孟婆汤铺",
+          "x": 0.43,
+          "y": 0.72,
+          "radius": 0.065
+        },
+        {
+          "number": 4,
+          "id": "dark_shore",
+          "name": "执念暗岸",
+          "x": 0.2,
+          "y": 0.63,
+          "radius": 0.055
+        },
+        {
+          "number": 5,
+          "id": "naihe_bridge",
+          "name": "奈何桥",
+          "x": 0.5,
+          "y": 0.55,
+          "radius": 0.06
+        },
+        {
+          "number": 6,
+          "id": "memory_left",
+          "name": "左侧记忆灯台",
+          "x": 0.21,
+          "y": 0.47,
+          "radius": 0.05
+        },
+        {
+          "number": 7,
+          "id": "memory_right",
+          "name": "右侧记忆灯台",
+          "x": 0.78,
+          "y": 0.49,
+          "radius": 0.06
+        },
+        {
+          "number": 8,
+          "id": "choice_square",
+          "name": "三结局选择广场",
+          "x": 0.5,
+          "y": 0.34,
+          "radius": 0.07
+        },
+        {
+          "number": 9,
+          "id": "reincarnation_path",
+          "name": "往生阶",
+          "x": 0.5,
+          "y": 0.23,
+          "radius": 0.035
+        },
+        {
+          "number": 10,
+          "id": "reincarnation_gate",
+          "name": "往生之光",
+          "x": 0.5,
+          "y": 0.09,
+          "radius": 0.05
+        }
+      ],
+      "edges": [
+        {
+          "from": "arrival",
+          "to": "waiting_terrace"
+        },
+        {
+          "from": "waiting_terrace",
+          "to": "mengpo"
+        },
+        {
+          "from": "mengpo",
+          "to": "dark_shore"
+        },
+        {
+          "from": "mengpo",
+          "to": "naihe_bridge"
+        },
+        {
+          "from": "naihe_bridge",
+          "to": "memory_left"
+        },
+        {
+          "from": "naihe_bridge",
+          "to": "memory_right"
+        },
+        {
+          "from": "naihe_bridge",
+          "to": "choice_square"
+        },
+        {
+          "from": "choice_square",
+          "to": "reincarnation_path"
+        },
+        {
+          "from": "reincarnation_path",
+          "to": "reincarnation_gate"
+        }
+      ]
+    },
+    {
+      "id": "border_town",
+      "name": "边陲小镇",
+      "map": "high-resolution-maps/border-town-map.png",
+      "routeOverlay": "route-maps/border-town-map.png",
+      "walkableMask": "walkable-masks/border-town-map.png",
+      "maskConvention": "white=recommended walkable route, black=outside route plan",
+      "coordinateSystem": "normalized 0..1, origin at top-left",
+      "nodes": [
+        {
+          "number": 1,
+          "id": "south_road",
+          "name": "南侧入镇路",
+          "x": 0.45,
+          "y": 0.94,
+          "radius": 0.035
+        },
+        {
+          "number": 2,
+          "id": "farmland",
+          "name": "农田与旱河桥",
+          "x": 0.45,
+          "y": 0.81,
+          "radius": 0.06
+        },
+        {
+          "number": 3,
+          "id": "childhood_home",
+          "name": "姐妹旧居与月牙池",
+          "x": 0.22,
+          "y": 0.68,
+          "radius": 0.055
+        },
+        {
+          "number": 4,
+          "id": "caravan_yard",
+          "name": "商队货场",
+          "x": 0.73,
+          "y": 0.64,
+          "radius": 0.06
+        },
+        {
+          "number": 5,
+          "id": "residential_lane",
+          "name": "民居巷",
+          "x": 0.35,
+          "y": 0.59,
+          "radius": 0.06
+        },
+        {
+          "number": 6,
+          "id": "market",
+          "name": "中央集市",
+          "x": 0.52,
+          "y": 0.52,
+          "radius": 0.065
+        },
+        {
+          "number": 7,
+          "id": "inn_stable",
+          "name": "驿站与马厩",
+          "x": 0.77,
+          "y": 0.44,
+          "radius": 0.06
+        },
+        {
+          "number": 8,
+          "id": "blacksmith",
+          "name": "铁匠铺",
+          "x": 0.24,
+          "y": 0.43,
+          "radius": 0.05
+        },
+        {
+          "number": 9,
+          "id": "border_gate",
+          "name": "边城城门",
+          "x": 0.66,
+          "y": 0.32,
+          "radius": 0.055
+        },
+        {
+          "number": 10,
+          "id": "ruins",
+          "name": "战火废墟",
+          "x": 0.23,
+          "y": 0.29,
+          "radius": 0.065
+        },
+        {
+          "number": 11,
+          "id": "shrine",
+          "name": "小祠",
+          "x": 0.5,
+          "y": 0.24,
+          "radius": 0.045
+        },
+        {
+          "number": 12,
+          "id": "escape_trail",
+          "name": "逃生山路",
+          "x": 0.5,
+          "y": 0.1,
+          "radius": 0.04
+        }
+      ],
+      "edges": [
+        {
+          "from": "south_road",
+          "to": "farmland"
+        },
+        {
+          "from": "farmland",
+          "to": "childhood_home"
+        },
+        {
+          "from": "farmland",
+          "to": "caravan_yard"
+        },
+        {
+          "from": "farmland",
+          "to": "residential_lane"
+        },
+        {
+          "from": "residential_lane",
+          "to": "market"
+        },
+        {
+          "from": "caravan_yard",
+          "to": "market"
+        },
+        {
+          "from": "market",
+          "to": "inn_stable"
+        },
+        {
+          "from": "market",
+          "to": "blacksmith"
+        },
+        {
+          "from": "market",
+          "to": "border_gate"
+        },
+        {
+          "from": "border_gate",
+          "to": "ruins"
+        },
+        {
+          "from": "border_gate",
+          "to": "shrine"
+        },
+        {
+          "from": "ruins",
+          "to": "shrine"
+        },
+        {
+          "from": "shrine",
+          "to": "escape_trail"
+        }
+      ]
+    }
+  ],
+  "ultraResolutionScale": 4,
+  "ultraAssetDirectories": {
+    "maps": "ultra-resolution-maps-4x",
+    "routeOverlays": "ultra-route-maps-4x",
+    "walkableMasks": "ultra-walkable-masks-4x"
+  }
+}

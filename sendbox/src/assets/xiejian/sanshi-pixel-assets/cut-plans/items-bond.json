@@ -1,0 +1,214 @@
+{
+  "source": "D:\\prj\\sendbox\\taoyuan-main\\public\\assets\\sanshi-pixel-assets\\items\\atlases\\items-bond-transparent.png",
+  "padding": 8,
+  "actions": {
+    "white_jade_bracelet": {
+      "speed": 160,
+      "frames": [
+        {
+          "left": 0,
+          "top": 0,
+          "width": 313,
+          "height": 313,
+          "keepAll": true,
+          "padding": 8
+        }
+      ]
+    },
+    "crescent_jade_charm": {
+      "speed": 160,
+      "frames": [
+        {
+          "left": 313,
+          "top": 0,
+          "width": 314,
+          "height": 313,
+          "keepAll": true,
+          "padding": 8
+        }
+      ]
+    },
+    "life_saving_gold_plaque": {
+      "speed": 160,
+      "frames": [
+        {
+          "left": 627,
+          "top": 0,
+          "width": 313,
+          "height": 313,
+          "keepAll": true,
+          "padding": 8
+        }
+      ]
+    },
+    "sect_leader_token": {
+      "speed": 160,
+      "frames": [
+        {
+          "left": 940,
+          "top": 0,
+          "width": 314,
+          "height": 313,
+          "keepAll": true,
+          "padding": 8
+        }
+      ]
+    },
+    "young_sect_master_token": {
+      "speed": 160,
+      "frames": [
+        {
+          "left": 0,
+          "top": 313,
+          "width": 313,
+          "height": 314,
+          "keepAll": true,
+          "padding": 8
+        }
+      ]
+    },
+    "martial_alliance_token": {
+      "speed": 160,
+      "frames": [
+        {
+          "left": 313,
+          "top": 313,
+          "width": 314,
+          "height": 314,
+          "keepAll": true,
+          "padding": 8
+        }
+      ]
+    },
+    "three_wish_slips": {
+      "speed": 160,
+      "frames": [
+        {
+          "left": 627,
+          "top": 313,
+          "width": 313,
+          "height": 314,
+          "keepAll": true,
+          "padding": 8
+        }
+      ]
+    },
+    "graduation_wish_slip": {
+      "speed": 160,
+      "frames": [
+        {
+          "left": 940,
+          "top": 313,
+          "width": 314,
+          "height": 314,
+          "keepAll": true,
+          "padding": 8
+        }
+      ]
+    },
+    "wedding_invitation": {
+      "speed": 160,
+      "frames": [
+        {
+          "left": 0,
+          "top": 627,
+          "width": 313,
+          "height": 313,
+          "keepAll": true,
+          "padding": 8
+        }
+      ]
+    },
+    "star_moon_poetry_paper": {
+      "speed": 160,
+      "frames": [
+        {
+          "left": 313,
+          "top": 627,
+          "width": 314,
+          "height": 313,
+          "keepAll": true,
+          "padding": 8
+        }
+      ]
+    },
+    "secret_letter_pigeon": {
+      "speed": 160,
+      "frames": [
+        {
+          "left": 627,
+          "top": 627,
+          "width": 313,
+          "height": 313,
+          "keepAll": true,
+          "padding": 8
+        }
+      ]
+    },
+    "plum_blossom_seal": {
+      "speed": 160,
+      "frames": [
+        {
+          "left": 940,
+          "top": 627,
+          "width": 314,
+          "height": 313,
+          "keepAll": true,
+          "padding": 8
+        }
+      ]
+    },
+    "official_seal": {
+      "speed": 160,
+      "frames": [
+        {
+          "left": 0,
+          "top": 940,
+          "width": 313,
+          "height": 314,
+          "keepAll": true,
+          "padding": 8
+        }
+      ]
+    },
+    "memorial_scroll": {
+      "speed": 160,
+      "frames": [
+        {
+          "left": 313,
+          "top": 940,
+          "width": 314,
+          "height": 314,
+          "keepAll": true,
+          "padding": 8
+        }
+      ]
+    },
+    "fate_cards": {
+      "speed": 160,
+      "frames": [
+        {
+          "left": 627,
+          "top": 940,
+          "width": 313,
+          "height": 314,
+          "keepAll": true,
+          "padding": 8
+        }
+      ]
+    },
+    "wish_lantern": {
+      "speed": 160,
+      "frames": [
+        {
+          "left": 940,
+          "top": 940,
+          "width": 314,
+          "height": 314,
+          "keepAll": true,
+          "padding": 8
+        }
+      ]
+    }
+  }
+}

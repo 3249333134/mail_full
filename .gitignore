@@ -1,0 +1,13 @@
+screenshots/
+mailfile/剧本file/
+mailfile/mail/
+*.py
+test-*.js
+debug.js
+package.json
+package-lock.json
+README.md
+node_modules/
+.iga/
+server/data/
+server/.test-data-*/

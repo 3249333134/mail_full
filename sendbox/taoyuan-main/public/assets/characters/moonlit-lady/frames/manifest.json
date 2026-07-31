@@ -1,0 +1,43 @@
+﻿{
+    "source":  "public\\assets\\characters\\moonlit-lady\\spritesheet.png",
+    "actions":  {
+                    "idle":  {
+                                 "speed":  260,
+                                 "frames":  [
+                                                "idle/00.png",
+                                                "idle/01.png",
+                                                "idle/02.png",
+                                                "idle/03.png"
+                                            ]
+                             },
+                    "walk":  {
+                                 "speed":  140,
+                                 "frames":  [
+                                                "walk/00.png",
+                                                "walk/01.png",
+                                                "walk/02.png",
+                                                "walk/03.png"
+                                            ]
+                             },
+                    "till":  {
+                                 "speed":  180,
+                                 "frames":  [
+                                                "till/00.png",
+                                                "till/01.png",
+                                                "till/02.png",
+                                                "till/03.png"
+                                            ]
+                             },
+                    "happy":  {
+                                  "speed":  190,
+                                  "frames":  [
+                                                 "happy/00.png",
+                                                 "happy/01.png",
+                                                 "happy/02.png",
+                                                 "happy/03.png"
+                                             ],
+                                  "once":  true,
+                                  "effect":  "hearts"
+                              }
+                }
+}

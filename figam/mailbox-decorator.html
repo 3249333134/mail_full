@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>信箱装饰设置 UI</title>
+  <link rel="stylesheet" href="mailbox-decorator.css">
+  <link rel="stylesheet" href="realistic-paper-system.css">
+</head>
+<body>
+  <header class="decorator-header">
+    <div>
+      <p class="eyebrow">Mailbox Unit Designer</p>
+      <h1>信箱设置与装饰工作台</h1>
+      <p>把一个信箱作为可保存、可复用、可装饰的整体单元，而不是只改图标和主题色。</p>
+    </div>
+    <nav>
+      <a href="index.html">主流程</a>
+      <a href="page-hierarchy.html">页面层级</a>
+      <a href="next-step-design.html">下一步优化</a>
+      <a href="real-letter-generator.html">真实信件</a>
+      <a href="all-designs.html">设计总览</a>
+    </nav>
+  </header>
+
+  <main>
+    <section class="overview-panel">
+      <div>
+        <p class="eyebrow">Design Goal</p>
+        <h2>新增“信箱设置”：自由设计与装饰信箱</h2>
+        <p>当前信箱只像一个列表项或普通卡片。新的设置页把信箱抽象为 <strong>Mailbox Unit</strong>：侧栏、首页网格、详情页顶部、快速继续卡片都读取同一个装饰单元，让用户设计一次，整个产品内保持一致。</p>
+      </div>
+      <div class="rule-grid">
+        <article>
+          <span>01</span>
+          <strong>整体选中</strong>
+          <p>信箱卡、标题、角标、贴纸、背景纹理一起组成一个可拖动/保存的单元。</p>
+        </article>
+        <article>
+          <span>02</span>
+          <strong>插槽装饰</strong>
+          <p>装饰不是随便堆元素，而是落到封套、标题牌、邮戳、挂件、贴纸等固定插槽。</p>
+        </article>
+        <article>
+          <span>03</span>
+          <strong>跨页面同步</strong>
+          <p>保存后自动应用到侧栏、首页卡片、信箱详情页和新建信件默认主题。</p>
+        </article>
+      </div>
+    </section>
+
+    <section class="workspace-frame">
+      <div class="frame-label">
+        <span>Desktop / Mailbox Settings</span>
+        <strong>一级页面：我的信箱 → 四级设置抽屉</strong>
+      </div>
+
+      <div class="app-shell">
+        <aside class="sidebar">
+          <div class="brand">
+            <span>信</span>
+            <div>
+              <strong>信笺</strong>
+              <small>我的信箱</small>
+            </div>
+          </div>
+
+          <button class="new-mailbox">新增信箱</button>
+
+          <nav class="mailbox-list">
+            <button class="mailbox-row active">
+              <span class="mini-unit rose-unit"></span>
+              <span><strong>布雷诺来信</strong><small>已应用：玫瑰旧纸</small></span>
+              <em>25</em>
+            </button>
+            <button class="mailbox-row">
+              <span class="mini-unit ink-unit"></span>
+              <span><strong>大梁来信</strong><small>已应用：青墨竹纹</small></span>
+              <em>4</em>
+            </button>
+            <button class="mailbox-row">
+              <span class="mini-unit night-unit"></span>
+              <span><strong>摘星人来信</strong><small>已应用：星夜邮袋</small></span>
+              <em>15</em>
+            </button>
+            <button class="mailbox-row">
+              <span class="mini-unit leaf-unit"></span>
+              <span><strong>桃止来信</strong><small>已应用：双人藤蔓</small></span>
+              <em>11</em>
+            </button>
+          </nav>
+        </aside>
+
+        <section class="stage">
+          <div class="stage-topbar">
+            <div>
+              <p class="eyebrow">Selected Mailbox</p>
+              <h2>布雷诺来信</h2>
+              <p>当前正在编辑信箱整体单元，保存后同步到所有入口。</p>
+            </div>
+            <div class="top-actions">
+              <button>预览</button>
+              <button>复制主题</button>
+              <button class="primary">保存设置</button>
+            </div>
+          </div>
+
+          <div class="stage-grid">
+            <article class="unit-canvas">
+              <div class="canvas-toolbar">
+                <button class="active">整体单元</button>
+                <button>装饰插槽</button>
+                <button>页面预览</button>
+              </div>
+
+              <div class="mailbox-unit selected-unit" aria-label="可装饰信箱单元">
+                <span class="resize-dot lt"></span>
+                <span class="resize-dot rt"></span>
+                <span class="resize-dot lb"></span>
+                <span class="resize-dot rb"></span>
+
+                <div class="unit-bg-pattern"></div>
+                <div class="wax-stamp">缪</div>
+                <div class="postal-mark">2026<br>07.11</div>
+                <div class="tape-strip"></div>
+                <div class="hanging-charm">✦</div>
+
+                <div class="unit-main">
+                  <div class="mailbox-object">
+                    <div class="mailbox-lid"></div>
+                    <div class="mailbox-door"></div>
+                    <div class="mailbox-flag"></div>
+                  </div>
+                  <div>
+                    <span class="status">正在阅读</span>
+                    <h3>布雷诺来信</h3>
+                    <p>以撒致缪宏谟的二十五封信</p>
+                    <div class="unit-meta">
+                      <span>25 封</span>
+                      <span>47 页日记</span>
+                      <span>玫瑰 BGM</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="decor-chip chip-one">玫瑰贴纸</div>
+                <div class="decor-chip chip-two">旧邮戳</div>
+              </div>
+
+              <div class="preview-row">
+                <article class="surface-preview side-preview">
+                  <span class="mini-unit rose-unit"></span>
+                  <div><strong>侧栏条目</strong><small>缩略后仍保留封套与计数角标</small></div>
+                  <em>25</em>
+                </article>
+                <article class="surface-preview grid-preview">
+                  <span class="mini-unit rose-unit large"></span>
+                  <strong>首页卡片</strong>
+                  <small>同步背景纹理、标题牌、角标色</small>
+                </article>
+                <article class="surface-preview detail-preview">
+                  <span>信箱详情页头图</span>
+                  <strong>布雷诺来信</strong>
+                  <small>拆信舞台沿用同一主题</small>
+                </article>
+              </div>
+            </article>
+
+            <aside class="inspector">
+              <div class="inspector-head">
+                <div>
+                  <p class="eyebrow">Settings</p>
+                  <h3>信箱设置</h3>
+                </div>
+                <span class="saved-pill">自动草稿已保存</span>
+              </div>
+
+              <div class="tabs">
+                <button class="active">基础</button>
+                <button>外观</button>
+                <button>装饰</button>
+                <button>行为</button>
+              </div>
+
+              <section class="control-group">
+                <label>信箱名称</label>
+                <input value="布雷诺来信" aria-label="信箱名称">
+                <label>信箱描述</label>
+                <textarea aria-label="信箱描述">以撒致缪宏谟的二十五封信，保留旧纸、玫瑰、蜡印与日记入口。</textarea>
+              </section>
+
+              <section class="control-group">
+                <div class="group-title">
+                  <strong>整体材质</strong>
+                  <span>应用到整个单元</span>
+                </div>
+                <div class="material-grid">
+                  <button class="material active"><i class="paper"></i><span>旧纸</span></button>
+                  <button class="material"><i class="wood"></i><span>木盒</span></button>
+                  <button class="material"><i class="fabric"></i><span>布纹</span></button>
+                  <button class="material"><i class="glass"></i><span>磨砂</span></button>
+                </div>
+              </section>
+
+              <section class="control-group">
+                <div class="group-title">
+                  <strong>装饰插槽</strong>
+                  <span>可拖拽，可隐藏</span>
+                </div>
+                <div class="slot-list">
+                  <button class="slot active"><span>01</span><strong>信箱主体</strong><small>封套 / 邮箱 / 木盒</small></button>
+                  <button class="slot"><span>02</span><strong>标题牌</strong><small>纸签、铜牌、胶带</small></button>
+                  <button class="slot"><span>03</span><strong>角标计数</strong><small>未读、待寄、双人</small></button>
+                  <button class="slot"><span>04</span><strong>贴纸挂件</strong><small>玫瑰、邮戳、蜡封、照片角</small></button>
+                </div>
+              </section>
+
+              <section class="control-group">
+                <div class="group-title">
+                  <strong>贴纸库</strong>
+                  <span>点选加入单元</span>
+                </div>
+                <div class="sticker-grid">
+                  <button>🌹</button>
+                  <button>✉</button>
+                  <button>✦</button>
+                  <button>邮</button>
+                  <button>封</button>
+                  <button>蜡</button>
+                  <button>☾</button>
+                  <button>签</button>
+                </div>
+              </section>
+            </aside>
+          </div>
+        </section>
+      </div>
+    </section>
+
+    <section class="system-frame">
+      <div class="section-head">
+        <div>
+          <p class="eyebrow">Component Contract</p>
+          <h2>落到项目里的组件结构</h2>
+        </div>
+        <span>保存为一个 `mailboxTheme` 对象</span>
+      </div>
+
+      <div class="contract-grid">
+        <article>
+          <h3>数据结构</h3>
+          <pre><code>{
+  id: "mailbox-brenuo",
+  theme: {
+    unitStyle: "old-paper",
+    shell: "mailbox-object",
+    accent: "#c95f7a",
+    texture: "paper-fiber",
+    decorations: [
+      { slot: "seal", type: "wax", x: 78, y: 22 },
+      { slot: "stamp", type: "postal", x: 12, y: 18 },
+      { slot: "charm", type: "star", x: 92, y: -8 }
+    ]
+  }
+}</code></pre>
+        </article>
+        <article>
+          <h3>页面同步</h3>
+          <ul>
+            <li>首页网格卡片：读取 `unitStyle / accent / decorations`。</li>
+            <li>侧栏信箱列表：自动生成缩略版 `mini-unit`。</li>
+            <li>信箱详情页：把主题色、纹理和封面物件应用到拆信舞台。</li>
+            <li>新建信件：默认继承信箱主题，但允许单封信单独覆盖。</li>
+          </ul>
+        </article>
+        <article>
+          <h3>操作逻辑</h3>
+          <ol>
+            <li>点击信箱右上角设置，打开装饰工作台。</li>
+            <li>默认选中整体单元，可切换到单个插槽。</li>
+            <li>选择材质、布局、贴纸、角标后即时预览。</li>
+            <li>保存后写入本地存储，并刷新所有信箱入口。</li>
+          </ol>
+        </article>
+      </div>
+    </section>
+
+    <section class="mobile-frame">
+      <div class="frame-label">
+        <span>Mobile / Bottom Sheet</span>
+        <strong>移动端：底部设置面板</strong>
+      </div>
+      <div class="phone-shell">
+        <div class="phone-stage">
+          <header>
+            <button>←</button>
+            <strong>装饰信箱</strong>
+            <button>保存</button>
+          </header>
+          <div class="mobile-unit mailbox-unit">
+            <div class="unit-bg-pattern"></div>
+            <div class="wax-stamp">缪</div>
+            <div class="unit-main">
+              <div class="mailbox-object">
+                <div class="mailbox-lid"></div>
+                <div class="mailbox-door"></div>
+                <div class="mailbox-flag"></div>
+              </div>
+              <div>
+                <span class="status">正在阅读</span>
+                <h3>布雷诺来信</h3>
+                <p>25 封信 · 日记入口</p>
+              </div>
+            </div>
+          </div>
+          <div class="bottom-sheet">
+            <div class="sheet-handle"></div>
+            <div class="tabs compact">
+              <button class="active">材质</button>
+              <button>贴纸</button>
+              <button>角标</button>
+              <button>同步</button>
+            </div>
+            <div class="material-grid">
+              <button class="material active"><i class="paper"></i><span>旧纸</span></button>
+              <button class="material"><i class="wood"></i><span>木盒</span></button>
+              <button class="material"><i class="fabric"></i><span>布纹</span></button>
+              <button class="material"><i class="glass"></i><span>磨砂</span></button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+</body>
+</html>

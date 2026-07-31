@@ -1,0 +1,44 @@
+﻿{
+    "source":  "D:\\prj\\sendbox\\taoyuan-main\\public\\assets\\characters\\jingyuan\\character-02\\spritesheet-export.png",
+    "actions":  {
+                    "idle":  {
+                                 "speed":  260,
+                                 "frames":  [
+                                                "idle/00.png",
+                                                "idle/01.png",
+                                                "idle/02.png",
+                                                "idle/03.png"
+                                            ]
+                             },
+                    "walk":  {
+                                 "speed":  140,
+                                 "frames":  [
+                                                "walk/00.png",
+                                                "walk/01.png",
+                                                "walk/02.png",
+                                                "walk/03.png"
+                                            ]
+                             },
+                    "martial":  {
+                                    "speed":  110,
+                                    "frames":  [
+                                                   "martial/00.png",
+                                                   "martial/01.png",
+                                                   "martial/02.png",
+                                                   "martial/03.png"
+                                               ],
+                                    "once":  true,
+                                    "effect":  "jianghu-technique"
+                                },
+                    "etiquette":  {
+                                      "speed":  220,
+                                      "frames":  [
+                                                     "etiquette/00.png",
+                                                     "etiquette/01.png",
+                                                     "etiquette/02.png",
+                                                     "etiquette/03.png"
+                                                 ],
+                                      "once":  true
+                                  }
+                }
+}

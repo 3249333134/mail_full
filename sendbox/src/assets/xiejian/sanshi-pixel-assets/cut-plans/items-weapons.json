@@ -1,0 +1,214 @@
+{
+  "source": "D:\\prj\\sendbox\\taoyuan-main\\public\\assets\\sanshi-pixel-assets\\items\\atlases\\items-weapons-transparent.png",
+  "padding": 8,
+  "actions": {
+    "bone_fan": {
+      "speed": 160,
+      "frames": [
+        {
+          "left": 0,
+          "top": 0,
+          "width": 313,
+          "height": 313,
+          "keepAll": true,
+          "padding": 8
+        }
+      ]
+    },
+    "zunqian_sword": {
+      "speed": 160,
+      "frames": [
+        {
+          "left": 313,
+          "top": 0,
+          "width": 314,
+          "height": 313,
+          "keepAll": true,
+          "padding": 8
+        }
+      ]
+    },
+    "tang_wanchu_sword": {
+      "speed": 160,
+      "frames": [
+        {
+          "left": 627,
+          "top": 0,
+          "width": 313,
+          "height": 313,
+          "keepAll": true,
+          "padding": 8
+        }
+      ]
+    },
+    "zhou_ran_dragon_sword": {
+      "speed": 160,
+      "frames": [
+        {
+          "left": 940,
+          "top": 0,
+          "width": 314,
+          "height": 313,
+          "keepAll": true,
+          "padding": 8
+        }
+      ]
+    },
+    "peachwood_sword": {
+      "speed": 160,
+      "frames": [
+        {
+          "left": 0,
+          "top": 313,
+          "width": 313,
+          "height": 314,
+          "keepAll": true,
+          "padding": 8
+        }
+      ]
+    },
+    "scholar_defensive_sword": {
+      "speed": 160,
+      "frames": [
+        {
+          "left": 313,
+          "top": 313,
+          "width": 314,
+          "height": 314,
+          "keepAll": true,
+          "padding": 8
+        }
+      ]
+    },
+    "silver_needle_case": {
+      "speed": 160,
+      "frames": [
+        {
+          "left": 627,
+          "top": 313,
+          "width": 313,
+          "height": 314,
+          "keepAll": true,
+          "padding": 8
+        }
+      ]
+    },
+    "jade_bee_needles": {
+      "speed": 160,
+      "frames": [
+        {
+          "left": 940,
+          "top": 313,
+          "width": 314,
+          "height": 314,
+          "keepAll": true,
+          "padding": 8
+        }
+      ]
+    },
+    "twin_short_knives": {
+      "speed": 160,
+      "frames": [
+        {
+          "left": 0,
+          "top": 627,
+          "width": 313,
+          "height": 313,
+          "keepAll": true,
+          "padding": 8
+        }
+      ]
+    },
+    "taoist_whisk": {
+      "speed": 160,
+      "frames": [
+        {
+          "left": 313,
+          "top": 627,
+          "width": 314,
+          "height": 313,
+          "keepAll": true,
+          "padding": 8
+        }
+      ]
+    },
+    "white_feather_fan": {
+      "speed": 160,
+      "frames": [
+        {
+          "left": 627,
+          "top": 627,
+          "width": 313,
+          "height": 313,
+          "keepAll": true,
+          "padding": 8
+        }
+      ]
+    },
+    "peach_folding_fan": {
+      "speed": 160,
+      "frames": [
+        {
+          "left": 940,
+          "top": 627,
+          "width": 314,
+          "height": 313,
+          "keepAll": true,
+          "padding": 8
+        }
+      ]
+    },
+    "curved_saber": {
+      "speed": 160,
+      "frames": [
+        {
+          "left": 0,
+          "top": 940,
+          "width": 313,
+          "height": 314,
+          "keepAll": true,
+          "padding": 8
+        }
+      ]
+    },
+    "general_armor": {
+      "speed": 160,
+      "frames": [
+        {
+          "left": 313,
+          "top": 940,
+          "width": 314,
+          "height": 314,
+          "keepAll": true,
+          "padding": 8
+        }
+      ]
+    },
+    "training_sword_target": {
+      "speed": 160,
+      "frames": [
+        {
+          "left": 627,
+          "top": 940,
+          "width": 313,
+          "height": 314,
+          "keepAll": true,
+          "padding": 8
+        }
+      ]
+    },
+    "four_treasures": {
+      "speed": 160,
+      "frames": [
+        {
+          "left": 940,
+          "top": 940,
+          "width": 314,
+          "height": 314,
+          "keepAll": true,
+          "padding": 8
+        }
+      ]
+    }
+  }
+}

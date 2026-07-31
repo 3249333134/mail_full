@@ -1,0 +1,1031 @@
+{
+  "version": 1,
+  "style": "Q版古风像素游戏资产",
+  "counts": {
+    "locations": 16,
+    "completeLocationMaps": 11,
+    "items": 80
+  },
+  "locations": [
+    {
+      "id": "jingyuan_academy",
+      "name": "静远书院",
+      "type": "location",
+      "description": "临水书院、回廊、荷池与藏书楼",
+      "path": "locations/scenes/jingyuan_academy.png",
+      "sourceAtlas": "locations/atlases/locations-01.png"
+    },
+    {
+      "id": "daohua_temple",
+      "name": "道华观",
+      "type": "location",
+      "description": "悬山道观、长阶、云海与松柏",
+      "path": "locations/scenes/daohua_temple.png",
+      "sourceAtlas": "locations/atlases/locations-01.png"
+    },
+    {
+      "id": "tianxing_cult",
+      "name": "天行教",
+      "type": "location",
+      "description": "峭壁黑城、锁链栈道与赤红灯火",
+      "path": "locations/scenes/tianxing_cult.png",
+      "sourceAtlas": "locations/atlases/locations-01.png"
+    },
+    {
+      "id": "danxi_valley",
+      "name": "丹溪谷",
+      "type": "location",
+      "description": "竹林药谷、溪流、药圃与医庐",
+      "path": "locations/scenes/danxi_valley.png",
+      "sourceAtlas": "locations/atlases/locations-01.png"
+    },
+    {
+      "id": "buhuan_sect",
+      "name": "不还门",
+      "type": "location",
+      "description": "天下第一正派的高山剑门",
+      "path": "locations/scenes/buhuan_sect.png",
+      "sourceAtlas": "locations/atlases/locations-02.png"
+    },
+    {
+      "id": "taozhi_sect",
+      "name": "桃止门",
+      "type": "location",
+      "description": "桃林深处的邪派毒门",
+      "path": "locations/scenes/taozhi_sect.png",
+      "sourceAtlas": "locations/atlases/locations-02.png"
+    },
+    {
+      "id": "dongjia_shen_manor",
+      "name": "东嘉沈府",
+      "type": "location",
+      "description": "东嘉世家园林与深宅内院",
+      "path": "locations/scenes/dongjia_shen_manor.png",
+      "sourceAtlas": "locations/atlases/locations-02.png"
+    },
+    {
+      "id": "ren_manor",
+      "name": "任府",
+      "type": "location",
+      "description": "将门府邸、演武场与兵器架",
+      "path": "locations/scenes/ren_manor.png",
+      "sourceAtlas": "locations/atlases/locations-02.png"
+    },
+    {
+      "id": "hanlin_academy",
+      "name": "京城翰林院",
+      "type": "location",
+      "description": "京城官署、御道与文臣院落",
+      "path": "locations/scenes/hanlin_academy.png",
+      "sourceAtlas": "locations/atlases/locations-03.png"
+    },
+    {
+      "id": "forgetfulness_river",
+      "name": "忘川",
+      "type": "location",
+      "description": "幽蓝冥河、奈何桥与孟婆亭",
+      "path": "locations/scenes/forgetfulness_river.png",
+      "sourceAtlas": "locations/atlases/locations-03.png"
+    },
+    {
+      "id": "border_town",
+      "name": "边陲小镇",
+      "type": "location",
+      "description": "黄沙边城、驿站、集市与城楼",
+      "path": "locations/scenes/border_town.png",
+      "sourceAtlas": "locations/atlases/locations-03.png"
+    },
+    {
+      "id": "lantern_festival",
+      "name": "上元灯会",
+      "type": "location",
+      "description": "灯火长街、拱桥与放灯河道",
+      "path": "locations/scenes/lantern_festival.png",
+      "sourceAtlas": "locations/atlases/locations-03.png"
+    },
+    {
+      "id": "lotus_pond",
+      "name": "荷花池",
+      "type": "location",
+      "description": "月洞门、石桥、荷塘与临水亭",
+      "path": "locations/scenes/lotus_pond.png",
+      "sourceAtlas": "locations/atlases/locations-04.png"
+    },
+    {
+      "id": "back_mountain_stream",
+      "name": "后山溪流",
+      "type": "location",
+      "description": "竹林、浅溪、踏石与小木台",
+      "path": "locations/scenes/back_mountain_stream.png",
+      "sourceAtlas": "locations/atlases/locations-04.png"
+    },
+    {
+      "id": "garden_pavilion",
+      "name": "凉亭",
+      "type": "location",
+      "description": "庭院凉亭、石桌与幽静花木",
+      "path": "locations/scenes/garden_pavilion.png",
+      "sourceAtlas": "locations/atlases/locations-04.png"
+    },
+    {
+      "id": "wish_lantern_river",
+      "name": "小河许愿灯",
+      "type": "location",
+      "description": "暮色河湾、拱桥与水上愿灯",
+      "path": "locations/scenes/wish_lantern_river.png",
+      "sourceAtlas": "locations/atlases/locations-04.png"
+    }
+  ],
+  "completeLocationMaps": {
+    "manifest": "location-maps/location-map-manifest.json",
+    "overview": "location-maps/previews/all-location-maps-overview.png",
+    "directory": "location-maps/full-maps",
+    "routeGraph": "location-maps/route-graph.json",
+    "routeOverview": "location-maps/previews/all-route-maps-overview.png",
+    "highResolutionScale": 2,
+    "ultraResolutionScale": 4,
+    "ultraDirectory": "location-maps/ultra-resolution-maps-4x"
+  },
+  "items": [
+    {
+      "id": "white_jade_bracelet",
+      "name": "白玉镯",
+      "type": "item",
+      "category": "bond",
+      "path": "items/icons/white_jade_bracelet/00.png",
+      "size": {
+        "width": 257,
+        "height": 196
+      }
+    },
+    {
+      "id": "crescent_jade_charm",
+      "name": "弯月玉佩",
+      "type": "item",
+      "category": "bond",
+      "path": "items/icons/crescent_jade_charm/00.png",
+      "size": {
+        "width": 239,
+        "height": 259
+      }
+    },
+    {
+      "id": "life_saving_gold_plaque",
+      "name": "保命金牌",
+      "type": "item",
+      "category": "bond",
+      "path": "items/icons/life_saving_gold_plaque/00.png",
+      "size": {
+        "width": 249,
+        "height": 285
+      }
+    },
+    {
+      "id": "sect_leader_token",
+      "name": "掌门令",
+      "type": "item",
+      "category": "bond",
+      "path": "items/icons/sect_leader_token/00.png",
+      "size": {
+        "width": 225,
+        "height": 285
+      }
+    },
+    {
+      "id": "young_sect_master_token",
+      "name": "少门主令",
+      "type": "item",
+      "category": "bond",
+      "path": "items/icons/young_sect_master_token/00.png",
+      "size": {
+        "width": 226,
+        "height": 287
+      }
+    },
+    {
+      "id": "martial_alliance_token",
+      "name": "武林盟令",
+      "type": "item",
+      "category": "bond",
+      "path": "items/icons/martial_alliance_token/00.png",
+      "size": {
+        "width": 238,
+        "height": 294
+      }
+    },
+    {
+      "id": "three_wish_slips",
+      "name": "三愿笺",
+      "type": "item",
+      "category": "bond",
+      "path": "items/icons/three_wish_slips/00.png",
+      "size": {
+        "width": 285,
+        "height": 260
+      }
+    },
+    {
+      "id": "graduation_wish_slip",
+      "name": "结业愿笺",
+      "type": "item",
+      "category": "bond",
+      "path": "items/icons/graduation_wish_slip/00.png",
+      "size": {
+        "width": 229,
+        "height": 245
+      }
+    },
+    {
+      "id": "wedding_invitation",
+      "name": "婚帖",
+      "type": "item",
+      "category": "bond",
+      "path": "items/icons/wedding_invitation/00.png",
+      "size": {
+        "width": 222,
+        "height": 300
+      }
+    },
+    {
+      "id": "star_moon_poetry_paper",
+      "name": "星月诗笺",
+      "type": "item",
+      "category": "bond",
+      "path": "items/icons/star_moon_poetry_paper/00.png",
+      "size": {
+        "width": 239,
+        "height": 269
+      }
+    },
+    {
+      "id": "secret_letter_pigeon",
+      "name": "飞鸽密信",
+      "type": "item",
+      "category": "bond",
+      "path": "items/icons/secret_letter_pigeon/00.png",
+      "size": {
+        "width": 263,
+        "height": 248
+      }
+    },
+    {
+      "id": "plum_blossom_seal",
+      "name": "梅花私印",
+      "type": "item",
+      "category": "bond",
+      "path": "items/icons/plum_blossom_seal/00.png",
+      "size": {
+        "width": 229,
+        "height": 286
+      }
+    },
+    {
+      "id": "official_seal",
+      "name": "官印",
+      "type": "item",
+      "category": "bond",
+      "path": "items/icons/official_seal/00.png",
+      "size": {
+        "width": 229,
+        "height": 260
+      }
+    },
+    {
+      "id": "memorial_scroll",
+      "name": "奏折",
+      "type": "item",
+      "category": "bond",
+      "path": "items/icons/memorial_scroll/00.png",
+      "size": {
+        "width": 318,
+        "height": 236
+      }
+    },
+    {
+      "id": "fate_cards",
+      "name": "命数牌",
+      "type": "item",
+      "category": "bond",
+      "path": "items/icons/fate_cards/00.png",
+      "size": {
+        "width": 304,
+        "height": 221
+      }
+    },
+    {
+      "id": "wish_lantern",
+      "name": "许愿灯",
+      "type": "item",
+      "category": "bond",
+      "path": "items/icons/wish_lantern/00.png",
+      "size": {
+        "width": 191,
+        "height": 285
+      }
+    },
+    {
+      "id": "bone_fan",
+      "name": "骨扇",
+      "type": "item",
+      "category": "weapons",
+      "path": "items/icons/bone_fan/00.png",
+      "size": {
+        "width": 292,
+        "height": 271
+      }
+    },
+    {
+      "id": "zunqian_sword",
+      "name": "樽前剑",
+      "type": "item",
+      "category": "weapons",
+      "path": "items/icons/zunqian_sword/00.png",
+      "size": {
+        "width": 313,
+        "height": 301
+      }
+    },
+    {
+      "id": "tang_wanchu_sword",
+      "name": "唐挽初佩剑",
+      "type": "item",
+      "category": "weapons",
+      "path": "items/icons/tang_wanchu_sword/00.png",
+      "size": {
+        "width": 279,
+        "height": 306
+      }
+    },
+    {
+      "id": "zhou_ran_dragon_sword",
+      "name": "游龙剑",
+      "type": "item",
+      "category": "weapons",
+      "path": "items/icons/zhou_ran_dragon_sword/00.png",
+      "size": {
+        "width": 269,
+        "height": 305
+      }
+    },
+    {
+      "id": "peachwood_sword",
+      "name": "桃木剑",
+      "type": "item",
+      "category": "weapons",
+      "path": "items/icons/peachwood_sword/00.png",
+      "size": {
+        "width": 268,
+        "height": 293
+      }
+    },
+    {
+      "id": "scholar_defensive_sword",
+      "name": "书生防身剑",
+      "type": "item",
+      "category": "weapons",
+      "path": "items/icons/scholar_defensive_sword/00.png",
+      "size": {
+        "width": 285,
+        "height": 291
+      }
+    },
+    {
+      "id": "silver_needle_case",
+      "name": "银针匣",
+      "type": "item",
+      "category": "weapons",
+      "path": "items/icons/silver_needle_case/00.png",
+      "size": {
+        "width": 329,
+        "height": 247
+      }
+    },
+    {
+      "id": "jade_bee_needles",
+      "name": "玉蜂针",
+      "type": "item",
+      "category": "weapons",
+      "path": "items/icons/jade_bee_needles/00.png",
+      "size": {
+        "width": 302,
+        "height": 274
+      }
+    },
+    {
+      "id": "twin_short_knives",
+      "name": "双刃短刀",
+      "type": "item",
+      "category": "weapons",
+      "path": "items/icons/twin_short_knives/00.png",
+      "size": {
+        "width": 266,
+        "height": 269
+      }
+    },
+    {
+      "id": "taoist_whisk",
+      "name": "道家拂尘",
+      "type": "item",
+      "category": "weapons",
+      "path": "items/icons/taoist_whisk/00.png",
+      "size": {
+        "width": 266,
+        "height": 263
+      }
+    },
+    {
+      "id": "white_feather_fan",
+      "name": "白羽扇",
+      "type": "item",
+      "category": "weapons",
+      "path": "items/icons/white_feather_fan/00.png",
+      "size": {
+        "width": 313,
+        "height": 265
+      }
+    },
+    {
+      "id": "peach_folding_fan",
+      "name": "桃花折扇",
+      "type": "item",
+      "category": "weapons",
+      "path": "items/icons/peach_folding_fan/00.png",
+      "size": {
+        "width": 294,
+        "height": 294
+      }
+    },
+    {
+      "id": "curved_saber",
+      "name": "弯刀",
+      "type": "item",
+      "category": "weapons",
+      "path": "items/icons/curved_saber/00.png",
+      "size": {
+        "width": 290,
+        "height": 284
+      }
+    },
+    {
+      "id": "general_armor",
+      "name": "将门甲胄",
+      "type": "item",
+      "category": "weapons",
+      "path": "items/icons/general_armor/00.png",
+      "size": {
+        "width": 298,
+        "height": 286
+      }
+    },
+    {
+      "id": "training_sword_target",
+      "name": "练剑木桩",
+      "type": "item",
+      "category": "weapons",
+      "path": "items/icons/training_sword_target/00.png",
+      "size": {
+        "width": 329,
+        "height": 286
+      }
+    },
+    {
+      "id": "four_treasures",
+      "name": "文房四宝",
+      "type": "item",
+      "category": "weapons",
+      "path": "items/icons/four_treasures/00.png",
+      "size": {
+        "width": 305,
+        "height": 298
+      }
+    },
+    {
+      "id": "plum_fall_poison",
+      "name": "梅落毒",
+      "type": "item",
+      "category": "medicine",
+      "path": "items/icons/plum_fall_poison/00.png",
+      "size": {
+        "width": 151,
+        "height": 288
+      }
+    },
+    {
+      "id": "sleeping_drug",
+      "name": "迷香",
+      "type": "item",
+      "category": "medicine",
+      "path": "items/icons/sleeping_drug/00.png",
+      "size": {
+        "width": 175,
+        "height": 258
+      }
+    },
+    {
+      "id": "poison_powder",
+      "name": "毒粉",
+      "type": "item",
+      "category": "medicine",
+      "path": "items/icons/poison_powder/00.png",
+      "size": {
+        "width": 253,
+        "height": 209
+      }
+    },
+    {
+      "id": "antidote",
+      "name": "解毒丸",
+      "type": "item",
+      "category": "medicine",
+      "path": "items/icons/antidote/00.png",
+      "size": {
+        "width": 209,
+        "height": 251
+      }
+    },
+    {
+      "id": "poison_manual",
+      "name": "毒经",
+      "type": "item",
+      "category": "medicine",
+      "path": "items/icons/poison_manual/00.png",
+      "size": {
+        "width": 265,
+        "height": 263
+      }
+    },
+    {
+      "id": "medicine_pouch",
+      "name": "药囊",
+      "type": "item",
+      "category": "medicine",
+      "path": "items/icons/medicine_pouch/00.png",
+      "size": {
+        "width": 247,
+        "height": 269
+      }
+    },
+    {
+      "id": "physician_box",
+      "name": "医箱",
+      "type": "item",
+      "category": "medicine",
+      "path": "items/icons/physician_box/00.png",
+      "size": {
+        "width": 257,
+        "height": 269
+      }
+    },
+    {
+      "id": "rare_herbs",
+      "name": "珍稀药草",
+      "type": "item",
+      "category": "medicine",
+      "path": "items/icons/rare_herbs/00.png",
+      "size": {
+        "width": 283,
+        "height": 273
+      }
+    },
+    {
+      "id": "medicine_gourd_pills",
+      "name": "药葫芦与丹丸",
+      "type": "item",
+      "category": "medicine",
+      "path": "items/icons/medicine_gourd_pills/00.png",
+      "size": {
+        "width": 272,
+        "height": 261
+      }
+    },
+    {
+      "id": "rock_sugar_snow_pear",
+      "name": "冰糖雪梨",
+      "type": "item",
+      "category": "medicine",
+      "path": "items/icons/rock_sugar_snow_pear/00.png",
+      "size": {
+        "width": 260,
+        "height": 309
+      }
+    },
+    {
+      "id": "peach_blossom_wine",
+      "name": "桃花酒",
+      "type": "item",
+      "category": "medicine",
+      "path": "items/icons/peach_blossom_wine/00.png",
+      "size": {
+        "width": 212,
+        "height": 270
+      }
+    },
+    {
+      "id": "meng_po_soup",
+      "name": "孟婆汤",
+      "type": "item",
+      "category": "medicine",
+      "path": "items/icons/meng_po_soup/00.png",
+      "size": {
+        "width": 273,
+        "height": 279
+      }
+    },
+    {
+      "id": "alchemy_furnace",
+      "name": "炼丹炉",
+      "type": "item",
+      "category": "medicine",
+      "path": "items/icons/alchemy_furnace/00.png",
+      "size": {
+        "width": 247,
+        "height": 274
+      }
+    },
+    {
+      "id": "incense_burner",
+      "name": "香炉",
+      "type": "item",
+      "category": "medicine",
+      "path": "items/icons/incense_burner/00.png",
+      "size": {
+        "width": 281,
+        "height": 272
+      }
+    },
+    {
+      "id": "rouge_box",
+      "name": "胭脂盒",
+      "type": "item",
+      "category": "medicine",
+      "path": "items/icons/rouge_box/00.png",
+      "size": {
+        "width": 306,
+        "height": 243
+      }
+    },
+    {
+      "id": "jewelry_box",
+      "name": "首饰匣",
+      "type": "item",
+      "category": "medicine",
+      "path": "items/icons/jewelry_box/00.png",
+      "size": {
+        "width": 284,
+        "height": 292
+      }
+    },
+    {
+      "id": "bridal_robe",
+      "name": "嫁衣",
+      "type": "item",
+      "category": "clothing",
+      "path": "items/icons/bridal_robe/00.png",
+      "size": {
+        "width": 274,
+        "height": 302
+      }
+    },
+    {
+      "id": "academy_outer_robe",
+      "name": "书院外袍",
+      "type": "item",
+      "category": "clothing",
+      "path": "items/icons/academy_outer_robe/00.png",
+      "size": {
+        "width": 271,
+        "height": 271
+      }
+    },
+    {
+      "id": "taoist_robe",
+      "name": "道袍",
+      "type": "item",
+      "category": "clothing",
+      "path": "items/icons/taoist_robe/00.png",
+      "size": {
+        "width": 266,
+        "height": 279
+      }
+    },
+    {
+      "id": "tianxing_black_robe",
+      "name": "天行黑袍",
+      "type": "item",
+      "category": "clothing",
+      "path": "items/icons/tianxing_black_robe/00.png",
+      "size": {
+        "width": 283,
+        "height": 276
+      }
+    },
+    {
+      "id": "scholar_robe",
+      "name": "书生长衫",
+      "type": "item",
+      "category": "clothing",
+      "path": "items/icons/scholar_robe/00.png",
+      "size": {
+        "width": 276,
+        "height": 278
+      }
+    },
+    {
+      "id": "medical_valley_dress",
+      "name": "医谷衣裙",
+      "type": "item",
+      "category": "clothing",
+      "path": "items/icons/medical_valley_dress/00.png",
+      "size": {
+        "width": 268,
+        "height": 276
+      }
+    },
+    {
+      "id": "righteous_sect_robe",
+      "name": "正派门服",
+      "type": "item",
+      "category": "clothing",
+      "path": "items/icons/righteous_sect_robe/00.png",
+      "size": {
+        "width": 277,
+        "height": 280
+      }
+    },
+    {
+      "id": "hanlin_official_robe",
+      "name": "翰林官服",
+      "type": "item",
+      "category": "clothing",
+      "path": "items/icons/hanlin_official_robe/00.png",
+      "size": {
+        "width": 313,
+        "height": 280
+      }
+    },
+    {
+      "id": "jade_hairpin",
+      "name": "玉簪",
+      "type": "item",
+      "category": "clothing",
+      "path": "items/icons/jade_hairpin/00.png",
+      "size": {
+        "width": 199,
+        "height": 284
+      }
+    },
+    {
+      "id": "jade_pendant",
+      "name": "玉佩",
+      "type": "item",
+      "category": "clothing",
+      "path": "items/icons/jade_pendant/00.png",
+      "size": {
+        "width": 259,
+        "height": 253
+      }
+    },
+    {
+      "id": "white_crane",
+      "name": "白鹤",
+      "type": "item",
+      "category": "clothing",
+      "path": "items/icons/white_crane/00.png",
+      "size": {
+        "width": 248,
+        "height": 301
+      }
+    },
+    {
+      "id": "carrier_pigeon",
+      "name": "信鸽",
+      "type": "item",
+      "category": "clothing",
+      "path": "items/icons/carrier_pigeon/00.png",
+      "size": {
+        "width": 296,
+        "height": 267
+      }
+    },
+    {
+      "id": "crane_feathers",
+      "name": "鹤羽",
+      "type": "item",
+      "category": "clothing",
+      "path": "items/icons/crane_feathers/00.png",
+      "size": {
+        "width": 288,
+        "height": 292
+      }
+    },
+    {
+      "id": "taoist_scripture",
+      "name": "道经",
+      "type": "item",
+      "category": "clothing",
+      "path": "items/icons/taoist_scripture/00.png",
+      "size": {
+        "width": 330,
+        "height": 279
+      }
+    },
+    {
+      "id": "medical_manual",
+      "name": "医书",
+      "type": "item",
+      "category": "clothing",
+      "path": "items/icons/medical_manual/00.png",
+      "size": {
+        "width": 329,
+        "height": 282
+      }
+    },
+    {
+      "id": "scrolls_and_books",
+      "name": "书卷",
+      "type": "item",
+      "category": "clothing",
+      "path": "items/icons/scrolls_and_books/00.png",
+      "size": {
+        "width": 299,
+        "height": 273
+      }
+    },
+    {
+      "id": "revolving_horse_lantern",
+      "name": "走马灯",
+      "type": "item",
+      "category": "story",
+      "path": "items/icons/revolving_horse_lantern/00.png",
+      "size": {
+        "width": 256,
+        "height": 297
+      }
+    },
+    {
+      "id": "reincarnation_light",
+      "name": "轮回灯",
+      "type": "item",
+      "category": "story",
+      "path": "items/icons/reincarnation_light/00.png",
+      "size": {
+        "width": 239,
+        "height": 255
+      }
+    },
+    {
+      "id": "bridal_sewing_kit",
+      "name": "嫁衣针线",
+      "type": "item",
+      "category": "story",
+      "path": "items/icons/bridal_sewing_kit/00.png",
+      "size": {
+        "width": 266,
+        "height": 264
+      }
+    },
+    {
+      "id": "secret_command_scroll",
+      "name": "密令卷轴",
+      "type": "item",
+      "category": "story",
+      "path": "items/icons/secret_command_scroll/00.png",
+      "size": {
+        "width": 269,
+        "height": 254
+      }
+    },
+    {
+      "id": "sect_rules_bamboo_book",
+      "name": "门规竹简",
+      "type": "item",
+      "category": "story",
+      "path": "items/icons/sect_rules_bamboo_book/00.png",
+      "size": {
+        "width": 211,
+        "height": 262
+      }
+    },
+    {
+      "id": "academy_grade_roster",
+      "name": "书院成绩册",
+      "type": "item",
+      "category": "story",
+      "path": "items/icons/academy_grade_roster/00.png",
+      "size": {
+        "width": 271,
+        "height": 257
+      }
+    },
+    {
+      "id": "exam_and_answer_slip",
+      "name": "试卷与答笺",
+      "type": "item",
+      "category": "story",
+      "path": "items/icons/exam_and_answer_slip/00.png",
+      "size": {
+        "width": 221,
+        "height": 263
+      }
+    },
+    {
+      "id": "twig_bound_script",
+      "name": "树枝装订手稿",
+      "type": "item",
+      "category": "story",
+      "path": "items/icons/twig_bound_script/00.png",
+      "size": {
+        "width": 253,
+        "height": 272
+      }
+    },
+    {
+      "id": "ceremonial_salt_cups",
+      "name": "合卺盐杯",
+      "type": "item",
+      "category": "story",
+      "path": "items/icons/ceremonial_salt_cups/00.png",
+      "size": {
+        "width": 263,
+        "height": 220
+      }
+    },
+    {
+      "id": "crane_incense_burner",
+      "name": "鹤纹香炉",
+      "type": "item",
+      "category": "story",
+      "path": "items/icons/crane_incense_burner/00.png",
+      "size": {
+        "width": 217,
+        "height": 296
+      }
+    },
+    {
+      "id": "poisonous_peach_branch",
+      "name": "毒桃枝",
+      "type": "item",
+      "category": "story",
+      "path": "items/icons/poisonous_peach_branch/00.png",
+      "size": {
+        "width": 270,
+        "height": 267
+      }
+    },
+    {
+      "id": "preserved_white_plum",
+      "name": "白梅标本",
+      "type": "item",
+      "category": "story",
+      "path": "items/icons/preserved_white_plum/00.png",
+      "size": {
+        "width": 220,
+        "height": 258
+      }
+    },
+    {
+      "id": "folded_sky_lanterns",
+      "name": "折叠天灯",
+      "type": "item",
+      "category": "story",
+      "path": "items/icons/folded_sky_lanterns/00.png",
+      "size": {
+        "width": 256,
+        "height": 272
+      }
+    },
+    {
+      "id": "baby_name_maple_charm",
+      "name": "幼名枫叶牌",
+      "type": "item",
+      "category": "story",
+      "path": "items/icons/baby_name_maple_charm/00.png",
+      "size": {
+        "width": 255,
+        "height": 256
+      }
+    },
+    {
+      "id": "betrothal_scrolls",
+      "name": "婚约卷",
+      "type": "item",
+      "category": "story",
+      "path": "items/icons/betrothal_scrolls/00.png",
+      "size": {
+        "width": 244,
+        "height": 258
+      }
+    },
+    {
+      "id": "scarred_half_mask",
+      "name": "残痕半面具",
+      "type": "item",
+      "category": "story",
+      "path": "items/icons/scarred_half_mask/00.png",
+      "size": {
+        "width": 238,
+        "height": 264
+      }
+    }
+  ]
+}

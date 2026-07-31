@@ -1,0 +1,34 @@
+{
+  "id": "xiujing-xuanxuan-pixel-actions",
+  "style": "chibi-pixel-art",
+  "totalFrames": 50,
+  "characters": [
+    {
+      "id": "xiujing",
+      "name": "修璟",
+      "description": "立志成为天下礼圣的小哑巴书生",
+      "frameCount": 20,
+      "manifest": "xiujing/frames/manifest.json",
+      "preview": "xiujing/contact-sheet-compact.png"
+    },
+    {
+      "id": "xuanxuan",
+      "name": "宣萱",
+      "description": "谢家大小姐",
+      "frameCount": 20,
+      "manifest": "xuanxuan/frames/manifest.json",
+      "preview": "xuanxuan/contact-sheet-compact.png"
+    }
+  ],
+  "duo": {
+    "frameCount": 10,
+    "manifest": "duo/frames/manifest.json",
+    "preview": "duo/contact-sheet-compact.png"
+  },
+  "validation": {
+    "exactFrameCounts": true,
+    "transparentMargins": true,
+    "crossCellFragmentsRemoved": true,
+    "highSimilarityPairs": 0
+  }
+}

@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CSS 真实信件 UI 设计</title>
+  <link rel="stylesheet" href="realistic-letter-css-only.css">
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="all-designs.html" aria-label="返回设计总览">
+      <span class="brand-mark">信</span>
+      <span>
+        <strong>CSS 真实信件 UI</strong>
+        <span>no image assets / tactile mail templates</span>
+      </span>
+    </a>
+    <nav aria-label="页面导航">
+      <a href="#reference">真实观察</a>
+      <a href="#library">CSS 模板</a>
+      <a href="#details">落地规则</a>
+      <a href="#handoff">文件</a>
+    </nav>
+  </header>
+
+  <main class="page">
+    <section class="hero">
+      <div class="hero-copy">
+        <p class="eyebrow">Pure HTML / CSS Reconstruction</p>
+        <h1>不用图片，重做更像实物的信封与信纸</h1>
+        <p>这版把真实书信图片里最重要的视觉规律拆成 CSS 层：纸张纤维、折痕、破边、邮戳、邮票、红框、竖排线、钢笔横线、胶带、条码、蜡封和桌面阴影。每一个模板都是可编辑的 HTML 结构，不依赖本地图片或网络图片。</p>
+        <div class="actions">
+          <a class="button primary" href="#library">查看 18 个 CSS 模板</a>
+          <a class="button" href="realistic-letter-ui-v2.html">返回上一版图片母版</a>
+          <a class="button" href="real-letter-generator.html">打开原生成器</a>
+        </div>
+        <div class="criteria-grid">
+          <article>
+            <strong>真实感来自层级</strong>
+            <span>真实信件不是一张平面背景，要同时出现封套结构、纸张厚度、折痕阴影和使用痕迹。</span>
+          </article>
+          <article>
+            <strong>字体按媒介变化</strong>
+            <span>中式家书用楷体/行楷，钢笔信偏仿宋，电报和现代邮件用等宽体，赛博信使用像素化等宽。</span>
+          </article>
+          <article>
+            <strong>线格不应完美</strong>
+            <span>红栏、横线、表格线要有轻微错位、褪色和压痕，才像真实印刷和扫描。</span>
+          </article>
+          <article>
+            <strong>交互保留 UI 可用性</strong>
+            <span>模板卡片和筛选按钮满足触控尺寸，选中状态清晰，移动端无横向滚动。</span>
+          </article>
+        </div>
+      </div>
+
+      <div class="studio" aria-label="CSS 真实信件桌面场景">
+        <div class="hero-object envelope-demo">
+          <div class="specimen">
+            <div class="real-object envelope object-old-stack">
+              <span class="sheet-behind a"></span>
+              <span class="sheet-behind b"></span>
+              <span class="flap"></span>
+              <span class="seam-left"></span>
+              <span class="seam-right"></span>
+              <span class="stamp"></span>
+              <span class="postmark one">PEKING<br>1917</span>
+              <span class="postmark two">MAIL<br>8.5.28</span>
+              <span class="address-lines"></span>
+              <span class="handwriting">Miss Lin Mei<br>Shanghai Road 16<br>Shanghai</span>
+            </div>
+          </div>
+        </div>
+        <div class="hero-object paper-demo">
+          <div class="specimen">
+            <div class="real-object paper paper-red-vertical">
+              <span class="red-rules"></span>
+              <p class="vertical-writing">吾妻淑柔，展信安康。随信寄去银两，愿你眉间共赏江海万里。</p>
+              <span class="seal" style="right: 32px; bottom: 30px;">收</span>
+            </div>
+          </div>
+        </div>
+        <span class="desk-pen" aria-hidden="true"></span>
+        <span class="ink-bottle" aria-hidden="true"></span>
+        <div class="scene-note">
+          <strong>CSS 生成，不嵌图片</strong>
+          <span>信封、信纸、邮戳和书写痕迹都由 DOM 元素、渐变、边框、阴影和伪元素组成。</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel library" id="reference" aria-labelledby="reference-title">
+      <div class="section-head">
+        <div>
+          <p class="eyebrow">Visual References From Web Search</p>
+          <h2 id="reference-title">真实书信照片拆解出的 CSS 规则</h2>
+          <p>参考方向来自你给的 Bing 图片搜索结果，落地时只提炼真实结构与材质规律，不把图片作为素材引用。</p>
+        </div>
+        <div class="status-box">重点观察：旧信件常有发黄纸边、圆形邮戳、邮票齿孔、封舌折线；中文信札常见红框竖栏、竖排书写和朱色印章。</div>
+      </div>
+      <div class="source-grid">
+        <article>
+          <strong>旧信封和邮戳</strong>
+          <span>老信封需要多层叠纸、邮戳压印、销票波纹、发黄破角和明显封舌结构。</span>
+        </article>
+        <article>
+          <strong>古董手写信</strong>
+          <span>手写内容不应过于均匀，墨迹要有深浅、轻微倾斜和纸面颗粒。</span>
+        </article>
+        <article>
+          <strong>中文竖排信札</strong>
+          <span>红框、红栏、竖排密度、落款印章和泛黄折痕是中式旧信纸的关键。</span>
+        </article>
+        <article>
+          <strong>现代邮件物件</strong>
+          <span>标签、条码、透明窗口、胶带和牛皮纸箱能支撑现代模板的真实感。</span>
+        </article>
+      </div>
+      <div class="source-links" aria-label="参考链接">
+        <a href="https://www.epochtimes.com/gb/23/2/22/n13935196.htm/amp">百年旧信件</a>
+        <a href="https://www.rawpixel.com/search/old%20envelope">旧信封素材参考</a>
+        <a href="https://www.liveauctioneers.com/item/57268502_chinese-handwritten-letter-with-envelop">中文手写信札</a>
+        <a href="https://www.sohu.com/a/355912174_693322">笺素留香</a>
+        <a href="https://www.sohu.com/a/339636469_277811">写信读信回信</a>
+      </div>
+    </section>
+
+    <section class="library" id="library" aria-labelledby="library-title">
+      <div class="library-layout">
+        <aside class="side-panel">
+          <div>
+            <p class="eyebrow">Template Control</p>
+            <h2 id="library-title">18 个纯 CSS 信件模板</h2>
+            <p>左侧筛选与列表，右侧显示当前模板的放大预览。所有对象都来自 HTML/CSS。</p>
+          </div>
+          <div class="filter-tabs" role="tablist" aria-label="模板筛选">
+            <button class="active" type="button" data-filter="all">全部</button>
+            <button type="button" data-filter="envelope">信封</button>
+            <button type="button" data-filter="paper">信纸</button>
+          </div>
+          <div class="preset-list" id="presetList"></div>
+        </aside>
+
+        <section class="preview-zone">
+          <div class="preview-toolbar">
+            <div>
+              <p class="eyebrow">Selected CSS Object</p>
+              <h2 id="selectedTitle">旧邮戳叠放信封</h2>
+              <p id="selectedDesc">多封叠放、圆戳、销票波纹、发黄破角，适合旧档案入口。</p>
+            </div>
+            <div class="actions">
+              <button class="button" type="button" id="randomButton">随机查看</button>
+              <button class="button primary" type="button" id="saveButton">保存为模板</button>
+            </div>
+          </div>
+
+          <div class="stage">
+            <div class="stage-table">
+              <div id="featured" class="featured"></div>
+              <span class="desk-pen" aria-hidden="true"></span>
+              <span class="ink-bottle" aria-hidden="true"></span>
+            </div>
+            <aside class="selected-info">
+              <article class="info-card">
+                <p class="eyebrow">Material DNA</p>
+                <h3 id="selectedKind">信封结构</h3>
+                <p id="selectedNotes">重点使用封舌、折线、邮票、邮戳、叠纸阴影和地址横线。</p>
+                <div class="meta-grid">
+                  <div><strong>字体</strong><span id="selectedFont">楷体收件人 + 钢笔小字</span></div>
+                  <div><strong>页面</strong><span id="selectedPage">信箱卡片 / 阅读封面 / 模板详情</span></div>
+                  <div><strong>材质</strong><span id="selectedMaterial">旧纸黄斑、边缘磨损、邮戳压印</span></div>
+                  <div><strong>动效</strong><span id="selectedMotion">抬起后轻微展开</span></div>
+                </div>
+              </article>
+              <article class="layer-card">
+                <p class="eyebrow">Layer Strength</p>
+                <h3>真实感层级</h3>
+                <div class="layer-bars">
+                  <div><span>纸张纤维</span><span class="bar"><i style="--w:88%"></i></span><strong>88</strong></div>
+                  <div><span>折痕阴影</span><span class="bar"><i style="--w:80%"></i></span><strong>80</strong></div>
+                  <div><span>邮政信息</span><span class="bar"><i style="--w:76%"></i></span><strong>76</strong></div>
+                  <div><span>书写密度</span><span class="bar"><i style="--w:84%"></i></span><strong>84</strong></div>
+                  <div><span>桌面光影</span><span class="bar"><i style="--w:90%"></i></span><strong>90</strong></div>
+                </div>
+              </article>
+            </aside>
+          </div>
+
+          <div class="template-grid" id="templateGrid">
+            <button class="template-card active" type="button" data-type="envelope" data-title="旧邮戳叠放信封" data-desc="多封叠放、圆戳、销票波纹、发黄破角，适合旧档案入口。" data-kind="信封结构" data-notes="重点使用封舌、折线、邮票、邮戳、叠纸阴影和地址横线。" data-font="楷体收件人 + 钢笔小字" data-page="信箱卡片 / 阅读封面 / 模板详情" data-material="旧纸黄斑、边缘磨损、邮戳压印" data-motion="抬起后轻微展开">
+              <span class="template-head"><span class="num">01</span><span><strong>旧邮戳叠放信封</strong><span>圆戳、销票波纹、叠纸阴影。</span></span></span>
+              <span class="specimen-frame">
+                <span class="specimen">
+                  <span class="real-object envelope object-old-stack">
+                    <span class="sheet-behind a"></span><span class="sheet-behind b"></span><span class="flap"></span><span class="seam-left"></span><span class="seam-right"></span><span class="stamp"></span>
+                    <span class="postmark one">PEKING<br>1917</span><span class="postmark two">MAIL<br>8.5.28</span><span class="address-lines"></span><span class="handwriting">Miss Lin Mei<br>Shanghai Road 16</span>
+                  </span>
+                </span>
+              </span>
+            </button>
+
+            <button class="template-card" type="button" data-type="envelope" data-title="航邮蓝红边封" data-desc="红蓝航邮边、PAR AVION 标签、邮票和邮戳，适合跨地慢递。" data-kind="航邮信封" data-notes="斜纹边框、邮票胶痕、圆戳和英文小标签。" data-font="英文等宽 + 中文小楷" data-page="时光信箱 / 投递中状态" data-material="薄纸、红蓝斜边、邮票压痕" data-motion="投递落桌后回弹">
+              <span class="template-head"><span class="num">02</span><span><strong>航邮蓝红边封</strong><span>PAR AVION、红蓝斜边、邮戳。</span></span></span>
+              <span class="specimen-frame">
+                <span class="specimen">
+                  <span class="real-object envelope object-airmail">
+                    <span class="flap"></span><span class="seam-left"></span><span class="seam-right"></span><span class="air-label">PAR AVION</span><span class="stamp"></span><span class="postmark">AIR<br>8.5.28</span><span class="address-lines"></span><span class="handwriting">To 木生吾夫<br>Paris / Rue 12</span>
+                  </span>
+                </span>
+              </span>
+            </button>
+
+            <button class="template-card" type="button" data-type="envelope" data-title="中式牛皮纸信封" data-desc="红框地址栏、竖排题签、牛皮纸厚度，适合正式家书。" data-kind="中式封套" data-notes="牛皮纸、红色边框、竖排地址和朱色收章。" data-font="仿宋题签 + 毛笔收件人" data-page="古风信箱 / 正式信件" data-material="牛皮纸颗粒、红框褪色、角落磨损" data-motion="封套翻面展示题签">
+              <span class="template-head"><span class="num">03</span><span><strong>中式牛皮纸信封</strong><span>红框地址栏、竖排题签。</span></span></span>
+              <span class="specimen-frame">
+                <span class="specimen">
+                  <span class="real-object envelope object-kraft">
+                    <span class="red-frame"></span><span class="vertical-writing">木生吾夫亲启</span><span class="seal">寄</span>
+                  </span>
+                </span>
+              </span>
+            </button>
+
+            <button class="template-card" type="button" data-type="envelope" data-title="电报急件" data-desc="表格短句、编号、STOP 断句和急件章，适合紧急来信。" data-kind="电报表格" data-notes="机械打字、表格横线、急件标签和收发编号。" data-font="等宽打字机体" data-page="急件 / 通知 / 系统消息" data-material="低饱和纸、机器压痕、红色急件章" data-motion="盖章闪现后停留">
+              <span class="template-head"><span class="num">04</span><span><strong>电报急件</strong><span>STOP 断句、编号、收发章。</span></span></span>
+              <span class="specimen-frame">
+                <span class="specimen">
+                  <span class="real-object envelope object-telegram">
+                    <span class="label">URGENT</span><span class="type-lines">TELEGRAM / 电<br>抵达 STOP<br>月明 STOP<br>一切平安 STOP</span><span class="seal" style="right: 28px; bottom: 22px;">收</span>
+                  </span>
+                </span>
+              </span>
+            </button>
+
+            <button class="template-card" type="button" data-type="envelope" data-title="侨批红带封套" data-desc="成叠纸边、红色束带、竖写姓名和汇款字样，适合沉重家书。" data-kind="侨批封套" data-notes="红带束封、纸叠厚度、竖写姓名和汇款凭证感。" data-font="粗黑标题 + 毛笔题名" data-page="侨批主题 / 家族信箱" data-material="纸叠厚度、红带磨损、票据边缘" data-motion="红带松开后展示信封">
+              <span class="template-head"><span class="num">05</span><span><strong>侨批红带封套</strong><span>红色束带、纸叠厚度。</span></span></span>
+              <span class="specimen-frame">
+                <span class="specimen">
+                  <span class="real-object envelope object-qiaopi">
+                    <span class="vertical-writing">木生吾夫亲启</span><span class="big-title">侨批</span><span class="stamp"></span><span class="postmark" style="right: 34px; top: 76px;">汕头<br>05.20</span><span class="stack-edge"></span>
+                  </span>
+                </span>
+              </span>
+            </button>
+
+            <button class="template-card" type="button" data-type="envelope" data-title="旧票据批信" data-desc="红栏表格、印章覆盖、脆纸扫描感，适合档案和审阅类信件。" data-kind="票据批信" data-notes="双票据叠放、红栏表格、印章和脆纸褶皱。" data-font="仿宋小字 + 印章朱红" data-page="档案信 / 审阅信件" data-material="扫描噪点、折痕、表格线不均" data-motion="票据左右分开">
+              <span class="template-head"><span class="num">06</span><span><strong>旧票据批信</strong><span>红栏表格、印章覆盖。</span></span></span>
+              <span class="specimen-frame">
+                <span class="specimen">
+                  <span class="object-archive">
+                    <span class="ticket a"><strong>民国邮政汇款凭单</strong><p>木生吾夫五月一日收讫平安</p></span>
+                    <span class="ticket b"><strong>批信摘要</strong><p>吾妻展信安康勿念</p></span>
+                  </span>
+                </span>
+              </span>
+            </button>
+
+            <button class="template-card" type="button" data-type="envelope" data-title="竖排照片家书" data-desc="红色竖线、旧照片、航空边、桌面道具，接近真实家书照片。" data-kind="照片家书" data-notes="照片叠压、红栏竖写、花瓣遮挡和桌面阴影。" data-font="毛笔竖排 + 照片说明小字" data-page="阅读器 / 长信分页" data-material="照片压痕、纸面阴影、花瓣遮挡" data-motion="照片滑开，正文露出">
+              <span class="template-head"><span class="num">07</span><span><strong>竖排照片家书</strong><span>旧照片、红栏、花瓣。</span></span></span>
+              <span class="specimen-frame">
+                <span class="specimen">
+                  <span class="real-object envelope object-family">
+                    <span class="photo-card"></span><span class="vertical-writing">吾妻淑柔，展信安康。随信寄两百元，望你珍重。</span><span class="flower"></span>
+                  </span>
+                </span>
+              </span>
+            </button>
+
+            <button class="template-card" type="button" data-type="envelope" data-title="现代快递信件" data-desc="快递标签、条码、胶带、牛皮纸箱或档案袋材质。" data-kind="现代邮件" data-notes="条码、标签、胶带、透明窗口和牛皮纸色块。" data-font="系统无衬线 + 等宽条码" data-page="导出包 / 备份包 / 现代信件" data-material="标签纸、胶带、透明塑料窗口" data-motion="扫描线通过后进入预览">
+              <span class="template-head"><span class="num">08</span><span><strong>现代快递信件</strong><span>条码、标签、胶带。</span></span></span>
+              <span class="specimen-frame">
+                <span class="specimen">
+                  <span class="real-object envelope object-package">
+                    <span class="package-label"><span class="barcode"></span></span><span class="label">FRAGILE</span><span class="tape" style="right: 34px; top: 72px; transform: rotate(2deg);"></span>
+                  </span>
+                </span>
+              </span>
+            </button>
+
+            <button class="template-card" type="button" data-type="envelope" data-title="粉色蜡封旧信" data-desc="粉色旧封、封舌折线、手写地址和蜡封，适合私密情书。" data-kind="蜡封信封" data-notes="粉纸、蜡封、淡邮戳、背面封舌和手写地址。" data-font="钢笔斜体 + 楷体落款" data-page="情书 / 私密信箱 / 双人来信" data-material="蜡封高光、封舌压痕、旧粉纸" data-motion="蜡封裂开后翻盖">
+              <span class="template-head"><span class="num">09</span><span><strong>粉色蜡封旧信</strong><span>蜡封、封舌、粉色旧纸。</span></span></span>
+              <span class="specimen-frame">
+                <span class="specimen">
+                  <span class="real-object envelope object-wax" style="background-color:#e5b6ac;">
+                    <span class="flap"></span><span class="seam-left"></span><span class="seam-right"></span><span class="seal">密</span><span class="handwriting">To A-Ma<br>private letter</span><span class="postmark" style="right:30px; top:34px; opacity:.45;">LOVE<br>05.20</span>
+                  </span>
+                </span>
+              </span>
+            </button>
+
+            <button class="template-card" type="button" data-type="paper" data-title="红栏竖排长信" data-desc="红框红栏、竖排正文、落款印章和折痕，适合中式家书。" data-kind="竖排信纸" data-notes="红线错位、纸面泛黄、竖排字距和朱色印章。" data-font="行楷/楷体竖排" data-page="古风信 / 家书阅读 / 长信分页" data-material="红栏、折痕、纸纤维、印章" data-motion="从右向左翻页">
+              <span class="template-head"><span class="num">10</span><span><strong>红栏竖排长信</strong><span>红框、竖排、朱印。</span></span></span>
+              <span class="specimen-frame">
+                <span class="specimen">
+                  <span class="real-object paper paper-red-vertical">
+                    <span class="red-rules"></span><p class="vertical-writing">吾妻淑柔，展信安康。船入夜，恰江上升明月。</p><span class="seal" style="right: 32px; bottom: 32px;">收</span>
+                  </span>
+                </span>
+              </span>
+            </button>
+
+            <button class="template-card" type="button" data-type="paper" data-title="钢笔蓝墨横线纸" data-desc="蓝黑钢笔、压痕、墨水扩散、信纸页眉，适合现代私信。" data-kind="钢笔信纸" data-notes="蓝色横线、左侧红线、钢笔墨迹和轻微压痕。" data-font="仿宋 + 蓝墨手写" data-page="现代信件 / 个人信纸" data-material="墨水晕染、压痕、蓝横线" data-motion="墨迹轻微显影">
+              <span class="template-head"><span class="num">11</span><span><strong>钢笔蓝墨横线纸</strong><span>蓝线、蓝墨、压痕。</span></span></span>
+              <span class="specimen-frame">
+                <span class="specimen">
+                  <span class="real-object paper paper-blue">
+                    <p class="blue-writing">今天的云很低，我在窗边写下你的名字。墨水在纸上慢慢晕开，像一条安静的河。</p>
+                  </span>
+                </span>
+              </span>
+            </button>
+
+            <button class="template-card" type="button" data-type="paper" data-title="撕边横线短笺" data-desc="手撕痕、撕孔、横线和日期签名，适合简短留言。" data-kind="短笺便条" data-notes="撕裂上边、蓝色横线、短句留白和纸边翘起。" data-font="轻手写 + 日期小字" data-page="便笺 / 快速回复 / 草稿" data-material="撕孔、纸边翘起、短句留白" data-motion="从桌面右侧滑入">
+              <span class="template-head"><span class="num">12</span><span><strong>撕边横线短笺</strong><span>手撕边、短句、日期。</span></span></span>
+              <span class="specimen-frame">
+                <span class="specimen">
+                  <span class="real-object paper paper-torn">
+                    <p class="handwriting">小娟，秋天到了。叶子一点点变黄，隔海的日子也请好好照顾自己。</p>
+                  </span>
+                </span>
+              </span>
+            </button>
+
+            <button class="template-card" type="button" data-type="paper" data-title="宣纸毛笔信" data-desc="米色宣纸、毛笔飞白、朱印和大面积留白，适合古代书信。" data-kind="毛笔宣纸" data-notes="纤维粗、墨迹浓淡、飞白和朱色印章。" data-font="毛笔行书" data-page="古代信 / 诏书 / 长卷" data-material="宣纸纹理、墨迹颗粒、印泥" data-motion="卷轴式展开">
+              <span class="template-head"><span class="num">13</span><span><strong>宣纸毛笔信</strong><span>米色宣纸、飞白、朱印。</span></span></span>
+              <span class="specimen-frame">
+                <span class="specimen">
+                  <span class="real-object paper paper-rice">
+                    <p class="brush-writing">山长水远，见字如晤。今托鸿雁，寄此寸心。</p><span class="seal">印</span>
+                  </span>
+                </span>
+              </span>
+            </button>
+
+            <button class="template-card" type="button" data-type="paper" data-title="旧式汇款表格纸" data-desc="红栏表格、栏目字、签章和脆纸感，适合侨批内容页。" data-kind="票据表格" data-notes="表格线、栏目、印章、折痕和扫描脏点。" data-font="仿宋小字 + 签名" data-page="侨批内容 / 档案详情" data-material="红栏表格、纸面斑驳、签章" data-motion="表格压入，正文浮现">
+              <span class="template-head"><span class="num">14</span><span><strong>旧式汇款表格纸</strong><span>红栏表格、栏目、签章。</span></span></span>
+              <span class="specimen-frame">
+                <span class="specimen">
+                  <span class="real-object paper paper-form">
+                    <span class="type-lines">收件人：淑柔<br>汇款：两百元<br>备注：展信平安<br>验讫：五月二十</span><span class="seal" style="right:34px; bottom:32px;">验</span>
+                  </span>
+                </span>
+              </span>
+            </button>
+
+            <button class="template-card" type="button" data-type="paper" data-title="航空薄信纸" data-desc="半透明薄纸、红蓝边、折叠痕和跨页地址线，适合远方来信。" data-kind="航空薄纸" data-notes="红蓝航邮边、薄纸透感、折线和英文标签。" data-font="英文手写 + 中文小楷" data-page="跨国来信 / 时光慢递" data-material="半透明纸、折痕、跨页线" data-motion="折线展开成整张薄纸">
+              <span class="template-head"><span class="num">15</span><span><strong>航空薄信纸</strong><span>红蓝边、薄纸、折线。</span></span></span>
+              <span class="specimen-frame">
+                <span class="specimen">
+                  <span class="real-object paper paper-airmail">
+                    <p class="handwriting">To 木生吾夫<br>Paris / Rue 12<br>晨信安，路远见急，纸短情长。</p>
+                  </span>
+                </span>
+              </span>
+            </button>
+
+            <button class="template-card" type="button" data-type="paper" data-title="打字机公函纸" data-desc="等宽打字、表格横线、编号和收文章，适合现代档案。" data-kind="打字机纸" data-notes="等宽字符、编号、低饱和横线和红色收章。" data-font="Courier New 等宽体" data-page="公函 / 档案 / 急件" data-material="机器压痕、编号、收文章" data-motion="打字逐行出现">
+              <span class="template-head"><span class="num">16</span><span><strong>打字机公函纸</strong><span>等宽字、编号、收章。</span></span></span>
+              <span class="specimen-frame">
+                <span class="specimen">
+                  <span class="real-object paper paper-typewriter">
+                    <span class="type-lines">PRIVATE LETTER<br>NO. 064912<br><br>ARRIVED STOP<br>MOONLIGHT STOP<br>SAFE STOP</span><span class="seal" style="right:34px; bottom:32px;">收</span>
+                  </span>
+                </span>
+              </span>
+            </button>
+
+            <button class="template-card" type="button" data-type="paper" data-title="旅行明信片背面" data-desc="正反分栏、邮票、地址线、短留言和旅行地照片感。" data-kind="明信片" data-notes="左右分栏、邮票区、地址线和短手写留言。" data-font="钢笔短句 + 英文小字" data-page="旅行信 / 分享长图" data-material="卡纸厚度、邮票区、地址线" data-motion="翻面显示背面留言">
+              <span class="template-head"><span class="num">17</span><span><strong>旅行明信片背面</strong><span>分栏、邮票、地址线。</span></span></span>
+              <span class="specimen-frame">
+                <span class="specimen">
+                  <span class="real-object paper paper-postcard">
+                    <span class="divider"></span><span class="stamp"></span><span class="address-lines" style="left:58%; right:28px; bottom:34px; height:86px;"></span><p class="handwriting">旅途平安<br>见字如面</p>
+                  </span>
+                </span>
+              </span>
+            </button>
+
+            <button class="template-card" type="button" data-type="paper" data-title="赛博像素信" data-desc="像素网格、霓虹扫描线、数据封包和等宽文字，适合未来信件。" data-kind="赛博信纸" data-notes="网格、荧光边框、等宽像素字和扫描线。" data-font="等宽像素风" data-page="赛博信箱 / 未来慢递" data-material="荧光网格、扫描线、数据噪点" data-motion="扫描线扫过后解锁正文">
+              <span class="template-head"><span class="num">18</span><span><strong>赛博像素信</strong><span>网格、扫描线、像素体。</span></span></span>
+              <span class="specimen-frame">
+                <span class="specimen">
+                  <span class="real-object paper paper-cyber">
+                    <span class="pixel-lines">PKT-0520<br>TO: FUTURE<br><br>memory saved<br>signal stable<br>letter unlocked</span>
+                  </span>
+                </span>
+              </span>
+            </button>
+          </div>
+        </section>
+      </div>
+    </section>
+
+    <section class="detail-matrix" id="details" aria-labelledby="details-title">
+      <div class="section-head">
+        <div>
+          <p class="eyebrow">Implementation Rules</p>
+          <h2 id="details-title">下一步可落地到项目里的 CSS 规则</h2>
+          <p>这些规则可以从本页拆出为模板系统：模板只保存类型、颜色、文字方向和材质强度，视觉由 CSS 生成。</p>
+        </div>
+      </div>
+      <div class="detail-grid">
+        <article><strong>纸张层</strong><span>使用多重 radial-gradient 和 repeating-linear-gradient 做纤维、黄斑、压痕、水渍。</span></article>
+        <article><strong>结构层</strong><span>信封使用 flap、seam、stamp、postmark、address-lines；信纸使用 red-rules、blue-rules、seal。</span></article>
+        <article><strong>文字层</strong><span>按模板切换 writing-mode、字体族、字号、行高、墨色和轻微旋转。</span></article>
+        <article><strong>交互层</strong><span>卡片点击切换预览，按钮保持 44px 以上，减少纯 hover 依赖。</span></article>
+      </div>
+    </section>
+
+    <section class="handoff" id="handoff" aria-labelledby="handoff-title">
+      <div class="section-head">
+        <div>
+          <p class="eyebrow">Output</p>
+          <h2 id="handoff-title">本次输出文件</h2>
+          <p>保留上一版图片母版，同时新增纯 CSS 版本，方便后续直接迁入网页组件。</p>
+        </div>
+      </div>
+      <div class="handoff-grid">
+        <a href="realistic-letter-css-only.html"><strong>realistic-letter-css-only.html</strong><span>本次新增纯 HTML 页面，不使用图片。</span></a>
+        <a href="realistic-letter-css-only.css"><strong>realistic-letter-css-only.css</strong><span>信封、信纸、材质、折痕、邮戳、字体和响应式样式。</span></a>
+        <a href="realistic-letter-ui-v2.html"><strong>realistic-letter-ui-v2.html</strong><span>上一版结合本地图片素材的设计页。</span></a>
+        <a href="all-designs.html"><strong>all-designs.html</strong><span>当前 figam 文件夹的设计总览入口。</span></a>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const cards = Array.from(document.querySelectorAll(".template-card"));
+    const presetList = document.getElementById("presetList");
+    const featured = document.getElementById("featured");
+    const selectedTitle = document.getElementById("selectedTitle");
+    const selectedDesc = document.getElementById("selectedDesc");
+    const selectedKind = document.getElementById("selectedKind");
+    const selectedNotes = document.getElementById("selectedNotes");
+    const selectedFont = document.getElementById("selectedFont");
+    const selectedPage = document.getElementById("selectedPage");
+    const selectedMaterial = document.getElementById("selectedMaterial");
+    const selectedMotion = document.getElementById("selectedMotion");
+
+    let activeFilter = "all";
+
+    function selectCard(card) {
+      cards.forEach((item) => item.classList.toggle("active", item === card));
+      selectedTitle.textContent = card.dataset.title;
+      selectedDesc.textContent = card.dataset.desc;
+      selectedKind.textContent = card.dataset.kind;
+      selectedNotes.textContent = card.dataset.notes;
+      selectedFont.textContent = card.dataset.font;
+      selectedPage.textContent = card.dataset.page;
+      selectedMaterial.textContent = card.dataset.material;
+      selectedMotion.textContent = card.dataset.motion;
+      featured.innerHTML = "";
+      const clone = card.querySelector(".specimen").cloneNode(true);
+      featured.classList.toggle("paper-mode", card.dataset.type === "paper");
+      featured.appendChild(clone);
+      renderPresetList();
+    }
+
+    function renderPresetList() {
+      presetList.innerHTML = "";
+      cards
+        .filter((card) => activeFilter === "all" || card.dataset.type === activeFilter)
+        .forEach((card, index) => {
+          const button = document.createElement("button");
+          button.type = "button";
+          button.className = `preset-button${card.classList.contains("active") ? " active" : ""}`;
+          button.innerHTML = `<span class="num">${String(index + 1).padStart(2, "0")}</span><span><strong>${card.dataset.title}</strong><span>${card.dataset.desc}</span></span>`;
+          button.addEventListener("click", () => selectCard(card));
+          presetList.appendChild(button);
+        });
+    }
+
+    cards.forEach((card) => {
+      card.addEventListener("click", () => selectCard(card));
+    });
+
+    document.querySelectorAll(".filter-tabs button").forEach((button) => {
+      button.addEventListener("click", () => {
+        document.querySelectorAll(".filter-tabs button").forEach((item) => item.classList.remove("active"));
+        button.classList.add("active");
+        activeFilter = button.dataset.filter;
+        cards.forEach((card) => {
+          card.hidden = activeFilter !== "all" && card.dataset.type !== activeFilter;
+        });
+        renderPresetList();
+      });
+    });
+
+    document.getElementById("randomButton").addEventListener("click", () => {
+      const visible = cards.filter((card) => !card.hidden);
+      const next = visible[Math.floor(Math.random() * visible.length)];
+      selectCard(next);
+    });
+
+    document.getElementById("saveButton").addEventListener("click", () => {
+      const button = document.getElementById("saveButton");
+      const text = button.textContent;
+      button.textContent = "已保存";
+      window.setTimeout(() => {
+        button.textContent = text;
+      }, 1400);
+    });
+
+    selectCard(cards[0]);
+  </script>
+</body>
+</html>

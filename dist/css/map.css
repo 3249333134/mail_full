@@ -1,0 +1,626 @@
+/* ========================================
+   世界地图邮递系统 - 样式
+   ======================================== */
+
+/* 地图容器 */
+.map-view-container {
+  width: 100%;
+  height: calc(100vh - 280px);
+  min-height: 700px;
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(180deg, #f5ede0 0%, #ebe0cc 100%);
+  border-radius: 12px;
+  margin: 0 0 30px;
+  border: 1px solid #d4c4a8;
+  box-shadow: inset 0 2px 8px rgba(139, 115, 85, 0.1);
+}
+
+/* 视图切换按钮 */
+.view-toggle-group {
+  display: flex;
+  gap: 0;
+  background: var(--color-paper);
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+.view-toggle-btn {
+  padding: 8px 16px;
+  font-size: 0.85rem;
+  color: var(--color-muted);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.view-toggle-btn.active {
+  background: var(--color-accent);
+  color: #fff;
+}
+
+.view-toggle-btn:hover:not(.active) {
+  background: var(--color-mist);
+}
+
+/* 地图SVG画布 */
+.map-svg {
+  width: 100%;
+  height: 100%;
+  cursor: grab;
+  user-select: none;
+}
+
+.map-svg:active {
+  cursor: grabbing;
+}
+
+/* 地图背景 - 羊皮纸质感 */
+.map-background {
+  fill: url(#parchment-gradient);
+}
+
+/* 海洋波浪纹理 */
+.map-ocean {
+  fill: #d4c8b0;
+  opacity: 0.3;
+}
+
+/* 大陆 - 复古风格 */
+.map-continent {
+  fill: #e8dcc4;
+  stroke: #8b7355;
+  stroke-width: 0.8;
+  transition: fill 0.3s;
+}
+
+.map-continent:hover {
+  fill: #f0e6d0;
+}
+
+/* 山脉等高线 */
+.map-mountain {
+  fill: none;
+  stroke: #9c8a6e;
+  stroke-width: 0.3;
+  opacity: 0.4;
+}
+
+/* 沙漠点阵 */
+.map-desert-dots {
+  fill: #c4a87a;
+  opacity: 0.3;
+}
+
+/* 比例尺 */
+.map-scale-bar {
+  position: absolute;
+  bottom: 20px;
+  left: 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  font-size: 0.75rem;
+  color: #6b5a45;
+  font-family: Georgia, serif;
+}
+
+.scale-bar {
+  width: 120px;
+  height: 8px;
+  border: 1.5px solid #6b5a45;
+  border-top: none;
+  margin-bottom: 4px;
+  position: relative;
+}
+
+.scale-bar::before,
+.scale-bar::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  width: 1px;
+  height: 6px;
+  background: #6b5a45;
+}
+
+.scale-bar::before { left: 0; }
+.scale-bar::after { right: 0; }
+
+.scale-label {
+  letter-spacing: 0.1em;
+}
+
+/* 回到全局视图按钮 */
+.map-reset-btn {
+  position: absolute;
+  bottom: 20px;
+  right: 20px;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--color-paper);
+  border: 1px solid var(--color-line);
+  cursor: pointer;
+  font-size: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: var(--shadow-sm);
+  transition: all 0.2s;
+}
+
+.map-reset-btn:hover {
+  transform: scale(1.1);
+  border-color: var(--color-accent);
+}
+
+/* 编辑模式按钮 */
+.map-edit-btn {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  padding: 8px 16px;
+  font-size: 0.85rem;
+  color: var(--color-ink);
+  background: var(--color-paper);
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all 0.2s;
+  z-index: 10;
+}
+
+.map-edit-btn:hover {
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+}
+
+.map-edit-btn.active {
+  background: var(--color-accent);
+  color: white;
+  border-color: var(--color-accent);
+}
+
+/* 编辑模式提示 */
+.map-edit-hint {
+  position: absolute;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 8px 20px;
+  background: rgba(139, 69, 19, 0.9);
+  color: white;
+  font-size: 0.85rem;
+  border-radius: var(--radius-md);
+  z-index: 20;
+  display: none;
+}
+
+.map-edit-hint.visible {
+  display: block;
+}
+
+/* 编辑模式下的邮筒标记 */
+.map-mailbox-marker.editing .mailbox-postbox {
+  cursor: grab;
+  filter: drop-shadow(0 0 4px rgba(200, 100, 120, 0.6));
+}
+
+.map-mailbox-marker.editing:active .mailbox-postbox {
+  cursor: grabbing;
+}
+
+.map-mailbox-marker.editing .mailbox-label {
+  fill: var(--color-accent);
+  font-weight: bold;
+}
+
+/* 编辑模式下隐藏 tooltip */
+.map-view-container.editing .map-tooltip {
+  display: none !important;
+}
+
+/* 邮筒标记点 */
+.map-mailbox-marker {
+  cursor: pointer;
+}
+
+.map-mailbox-marker .hit-area {
+  pointer-events: fill;
+}
+
+.map-mailbox-marker .mailbox-postbox,
+.map-mailbox-marker .mailbox-unread-badge,
+.map-mailbox-marker .mailbox-unread-text,
+.map-mailbox-marker .mailbox-label {
+  pointer-events: none;
+}
+
+/* 非编辑模式：hover 效果用 opacity，不用 filter 避免重绘 */
+.map-mailbox-marker:hover .mailbox-postbox {
+  opacity: 0.85;
+}
+
+/* 编辑模式：完全禁用 hover 效果 */
+.map-view-container.editing .map-mailbox-marker:hover .mailbox-postbox {
+  opacity: 1;
+}
+
+.mailbox-postbox {
+  filter: drop-shadow(0 2px 3px rgba(0,0,0,0.2));
+}
+
+.mailbox-label {
+  font-size: 14px;
+  fill: #5c4a35;
+  font-family: "Noto Serif SC", Georgia, serif;
+  text-anchor: middle;
+  pointer-events: none;
+}
+
+.mailbox-unread-badge {
+  fill: var(--color-accent);
+}
+
+.mailbox-unread-text {
+  fill: white;
+  font-size: 11px;
+  font-weight: bold;
+  text-anchor: middle;
+  dominant-baseline: central;
+  pointer-events: none;
+}
+
+/* 信息卡 tooltip */
+.map-tooltip {
+  position: absolute;
+  background: var(--color-paper);
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-md);
+  padding: 12px 16px;
+  box-shadow: var(--shadow-card);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.2s;
+  z-index: 100;
+  min-width: 180px;
+}
+
+.map-tooltip.visible {
+  opacity: 1;
+}
+
+.map-tooltip h4 {
+  margin: 0 0 4px;
+  font-size: 0.9rem;
+  color: var(--color-ink);
+  font-weight: 500;
+}
+
+.map-tooltip p {
+  margin: 0 0 6px;
+  font-size: 0.75rem;
+  color: var(--color-muted);
+  line-height: 1.4;
+}
+
+.tooltip-meta {
+  display: flex;
+  gap: 12px;
+  font-size: 0.7rem;
+  color: var(--color-muted);
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--color-line);
+}
+
+.tooltip-meta span {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* 邮递中路径 */
+.delivery-path {
+  fill: none;
+  stroke-dasharray: 4 3;
+  opacity: 0.6;
+}
+
+.delivery-path-traveled {
+  fill: none;
+  stroke-dasharray: none;
+  opacity: 0.8;
+}
+
+/* 移动中的小信封 */
+.delivery-envelope {
+  cursor: pointer;
+  filter: drop-shadow(0 1px 2px rgba(0,0,0,0.2));
+}
+
+/* 邮递方式选择弹窗 */
+.delivery-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0,0,0,0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 200;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s;
+}
+
+.delivery-modal.active {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.delivery-modal-content {
+  background: var(--color-paper);
+  border-radius: var(--radius-lg);
+  padding: 24px;
+  max-width: 600px;
+  width: 90%;
+  max-height: 80vh;
+  overflow-y: auto;
+}
+
+.delivery-modal-title {
+  font-size: 1.2rem;
+  color: var(--color-ink);
+  margin: 0 0 8px;
+  text-align: center;
+}
+
+.delivery-modal-subtitle {
+  font-size: 0.85rem;
+  color: var(--color-muted);
+  text-align: center;
+  margin-bottom: 16px;
+}
+
+.delivery-mini-map {
+  width: 100%;
+  height: 120px;
+  background: var(--color-mist);
+  border-radius: var(--radius-md);
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.delivery-distance-info {
+  text-align: center;
+  font-size: 0.9rem;
+  color: var(--color-ink);
+  margin-bottom: 16px;
+}
+
+.delivery-methods-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.delivery-method-card {
+  padding: 16px;
+  background: var(--color-paper);
+  border: 2px solid var(--color-line);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all 0.2s;
+  text-align: center;
+}
+
+.delivery-method-card:hover {
+  border-color: var(--color-accent);
+  transform: translateY(-2px);
+}
+
+.delivery-method-card.selected {
+  border-color: var(--color-accent);
+  background: rgba(200, 100, 120, 0.08);
+}
+
+.delivery-method-icon {
+  font-size: 2rem;
+  margin-bottom: 8px;
+}
+
+.delivery-method-name {
+  font-size: 0.9rem;
+  color: var(--color-ink);
+  margin-bottom: 4px;
+  font-weight: 500;
+}
+
+.delivery-method-desc {
+  font-size: 0.7rem;
+  color: var(--color-muted);
+  line-height: 1.4;
+  margin-bottom: 8px;
+}
+
+.delivery-method-time {
+  font-size: 0.8rem;
+  color: var(--color-accent);
+  font-weight: 500;
+}
+
+.delivery-modal-footer {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+}
+
+.delivery-cancel-btn,
+.delivery-confirm-btn {
+  padding: 10px 24px;
+  border-radius: var(--radius-md);
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: none;
+}
+
+.delivery-cancel-btn {
+  background: var(--color-mist);
+  color: var(--color-ink);
+}
+
+.delivery-cancel-btn:hover {
+  background: #e0d8c8;
+}
+
+.delivery-confirm-btn {
+  background: var(--color-accent);
+  color: white;
+}
+
+.delivery-confirm-btn:hover {
+  opacity: 0.9;
+}
+
+.delivery-confirm-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* 在途信件列表 */
+.in-transit-section {
+  margin: 0 50px 24px;
+}
+
+.in-transit-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.in-transit-header h3 {
+  margin: 0;
+  font-size: 1rem;
+  color: var(--color-ink);
+  font-weight: 500;
+}
+
+.in-transit-count {
+  font-size: 0.8rem;
+  color: var(--color-muted);
+}
+
+.in-transit-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.in-transit-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  background: var(--color-paper);
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-md);
+}
+
+.in-transit-icon {
+  font-size: 1.5rem;
+}
+
+.in-transit-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.in-transit-title {
+  font-size: 0.9rem;
+  color: var(--color-ink);
+  margin-bottom: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.in-transit-route {
+  font-size: 0.75rem;
+  color: var(--color-muted);
+  margin-bottom: 6px;
+}
+
+.in-transit-progress-bar {
+  width: 100%;
+  height: 4px;
+  background: var(--color-mist);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.in-transit-progress-fill {
+  height: 100%;
+  background: var(--color-accent);
+  border-radius: 2px;
+  transition: width 1s linear;
+}
+
+.in-transit-time {
+  font-size: 0.75rem;
+  color: var(--color-muted);
+  text-align: right;
+  min-width: 80px;
+}
+
+/* 新信件送达提示 */
+.delivery-notification {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  padding: 16px 20px;
+  background: var(--color-paper);
+  border: 1px solid var(--color-accent);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-card);
+  z-index: 300;
+  transform: translateX(120%);
+  transition: transform 0.4s ease;
+  max-width: 320px;
+}
+
+.delivery-notification.show {
+  transform: translateX(0);
+}
+
+.delivery-notification-icon {
+  font-size: 1.5rem;
+  margin-bottom: 8px;
+}
+
+.delivery-notification-title {
+  font-size: 0.95rem;
+  color: var(--color-ink);
+  margin-bottom: 4px;
+  font-weight: 500;
+}
+
+.delivery-notification-desc {
+  font-size: 0.8rem;
+  color: var(--color-muted);
+  line-height: 1.4;
+}
+
+/* 羊皮纸渐变定义 */

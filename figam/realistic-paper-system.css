@@ -1,0 +1,412 @@
+/* Global realism layer for every letter, envelope, and paper preview. */
+:root {
+  --real-paper-base: #ead7b8;
+  --real-paper-light: #f7ecd6;
+  --real-paper-edge: #8b613c;
+  --real-paper-ink: #191510;
+  --real-red-rule: rgba(166, 46, 43, 0.5);
+  --real-blue-ink: #1d3e66;
+  --real-shadow: 0 22px 54px rgba(38, 26, 18, 0.26), 0 2px 0 rgba(255, 255, 255, 0.38) inset;
+  --real-paper-texture:
+    radial-gradient(circle at 12% 18%, rgba(108, 71, 36, 0.14), transparent 5%),
+    radial-gradient(circle at 78% 12%, rgba(117, 82, 46, 0.1), transparent 8%),
+    radial-gradient(circle at 68% 74%, rgba(95, 60, 29, 0.12), transparent 9%),
+    radial-gradient(circle at 31% 86%, rgba(170, 105, 50, 0.09), transparent 7%),
+    repeating-linear-gradient(7deg, rgba(80, 52, 30, 0.045) 0 1px, transparent 1px 5px),
+    repeating-linear-gradient(97deg, rgba(255, 255, 255, 0.09) 0 1px, transparent 1px 7px),
+    linear-gradient(145deg, rgba(255, 252, 240, 0.82), rgba(217, 181, 128, 0.5));
+}
+
+.paper-preview,
+.envelope-card,
+.letter-preview,
+.envelope-preview,
+.airmail-letter,
+.telegram-form,
+.postcard,
+.postcard-back,
+.censor-letter,
+.qiaopi-envelope,
+.archive-ticket,
+.vertical-paper,
+.real-letter-paper,
+.real-lined-paper,
+.aged-envelope,
+.receipt-paper,
+.folded-airmail,
+.mailbox-unit,
+.mini-unit,
+.surface-preview,
+.paper,
+.fountain-paper,
+.typewriter-paper,
+.sticky-paper,
+.printmail-paper,
+.red-invite,
+.invite-center,
+.scroll-body,
+.memorial-paper,
+.flower-paper,
+.black-paper,
+.fountain-envelope,
+.kraft-envelope,
+.office-envelope,
+.clear-folder,
+.data-envelope,
+.cyber-paper {
+  position: relative;
+  isolation: isolate;
+  color: var(--real-paper-ink);
+  background-color: var(--real-paper-base);
+  background-image: var(--real-paper-texture);
+  border-color: rgba(89, 58, 34, 0.24);
+  border-radius: 6px;
+  box-shadow: var(--real-shadow);
+  filter: saturate(0.94) contrast(1.03);
+}
+
+.paper-preview::after,
+.envelope-card::after,
+.letter-preview::after,
+.envelope-preview::after,
+.airmail-letter::after,
+.telegram-form::after,
+.postcard::after,
+.postcard-back::after,
+.censor-letter::after,
+.qiaopi-envelope::after,
+.archive-ticket::after,
+.vertical-paper::after,
+.real-letter-paper::after,
+.real-lined-paper::after,
+.aged-envelope::after,
+.receipt-paper::after,
+.folded-airmail::after,
+.mailbox-unit::after,
+.surface-preview::after,
+.red-invite::after,
+.scroll-body::after,
+.memorial-paper::after,
+.flower-paper::after,
+.fountain-paper::after,
+.typewriter-paper::after,
+.sticky-paper::after,
+.printmail-paper::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 8;
+  pointer-events: none;
+  border-radius: inherit;
+  background:
+    linear-gradient(90deg, rgba(92, 57, 28, 0.18), transparent 1.4%, transparent 98.4%, rgba(92, 57, 28, 0.16)),
+    linear-gradient(180deg, rgba(104, 65, 30, 0.13), transparent 2.4%, transparent 96.5%, rgba(104, 65, 30, 0.18)),
+    radial-gradient(circle at 88% 86%, rgba(85, 49, 25, 0.18), transparent 10%),
+    radial-gradient(circle at 18% 28%, rgba(255, 255, 255, 0.28), transparent 16%),
+    repeating-linear-gradient(0deg, rgba(54, 37, 22, 0.028) 0 1px, transparent 1px 6px);
+  mix-blend-mode: multiply;
+  opacity: 0.88;
+}
+
+.paper-preview::before,
+.letter-preview::before,
+.vertical-paper::before,
+.real-letter-paper::before,
+.real-lined-paper::before,
+.archive-ticket::before,
+.censor-letter::before,
+.receipt-paper::before,
+.memorial-paper::before,
+.flower-paper::before,
+.fountain-paper::before,
+.typewriter-paper::before,
+.printmail-paper::before {
+  content: "";
+  position: absolute;
+  inset: 8px 10px;
+  z-index: 1;
+  pointer-events: none;
+  background:
+    linear-gradient(90deg, transparent 49.2%, rgba(89, 58, 34, 0.12) 49.8% 50.2%, transparent 50.8%),
+    linear-gradient(180deg, transparent 49.2%, rgba(89, 58, 34, 0.11) 49.8% 50.2%, transparent 50.8%);
+  opacity: 0.45;
+}
+
+.paper-preview > *,
+.letter-preview > *,
+.envelope-preview > *,
+.telegram-form > *,
+.postcard > *,
+.postcard-back > *,
+.censor-letter > *,
+.archive-ticket > *,
+.vertical-paper > *,
+.real-letter-paper > *,
+.real-lined-paper > *,
+.aged-envelope > *,
+.receipt-paper > *,
+.folded-airmail > *,
+.mailbox-unit > *,
+.surface-preview > *,
+.red-invite > *,
+.scroll-body > *,
+.memorial-paper > *,
+.flower-paper > *,
+.fountain-paper > *,
+.typewriter-paper > *,
+.sticky-paper > *,
+.printmail-paper > * {
+  position: relative;
+  z-index: 3;
+}
+
+.paper-preview {
+  overflow: hidden;
+  background-image:
+    linear-gradient(90deg, rgba(164, 43, 46, 0.42) 0 1px, transparent 1px 38px),
+    linear-gradient(180deg, transparent 0 33px, rgba(92, 57, 28, 0.16) 34px 35px, transparent 36px),
+    var(--real-paper-texture);
+  background-size: 40px 100%, 100% 36px, auto;
+  border: 1px solid rgba(99, 58, 32, 0.22);
+}
+
+.paper-preview p,
+.letter-preview p,
+.vertical-paper p,
+.real-letter-paper p,
+.real-lined-paper p,
+.archive-ticket p,
+.censor-letter p,
+.receipt-paper p {
+  color: rgba(24, 19, 15, 0.92);
+  text-shadow: 0 0.45px 0 rgba(0, 0, 0, 0.15);
+}
+
+.envelope-card,
+.envelope-preview,
+.qiaopi-envelope,
+.aged-envelope,
+.fountain-envelope,
+.kraft-envelope,
+.office-envelope,
+.clear-folder,
+.data-envelope {
+  overflow: hidden;
+  background-image:
+    linear-gradient(28deg, transparent 0 49.4%, rgba(116, 79, 45, 0.18) 49.7% 50.3%, transparent 50.6%),
+    linear-gradient(152deg, transparent 0 49.4%, rgba(116, 79, 45, 0.16) 49.7% 50.3%, transparent 50.6%),
+    var(--real-paper-texture);
+}
+
+.envelope-card::before,
+.envelope-preview::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto;
+  z-index: 2;
+  height: 36%;
+  background:
+    linear-gradient(135deg, rgba(255, 252, 240, 0.28), transparent 52%),
+    linear-gradient(180deg, rgba(136, 82, 45, 0.32), rgba(255, 245, 224, 0.08));
+  clip-path: polygon(0 0, 50% 82%, 100% 0);
+  opacity: 0.8;
+}
+
+.envelope-card {
+  transform-origin: center 66%;
+}
+
+.envelope-card.active {
+  transform: rotate(-1.4deg) translateY(-4px);
+}
+
+.envelope-card.side {
+  filter: saturate(0.82) contrast(0.96) blur(0.15px);
+}
+
+.qiaopi-envelope {
+  border-radius: 3px;
+  background-image:
+    linear-gradient(90deg, transparent 0 41.5%, rgba(167, 42, 46, 0.74) 42% 58%, transparent 58.5%),
+    linear-gradient(180deg, rgba(255, 252, 236, 0.35), rgba(133, 86, 49, 0.2)),
+    var(--real-paper-texture);
+}
+
+.archive-ticket,
+.vertical-paper,
+.real-letter-paper,
+.real-lined-paper {
+  border-radius: 2px;
+}
+
+.archive-ticket,
+.vertical-paper,
+.real-letter-paper {
+  background-image:
+    repeating-linear-gradient(90deg, transparent 0 38px, var(--real-red-rule) 39px 40px, transparent 41px 70px),
+    linear-gradient(180deg, rgba(164, 43, 46, 0.45), rgba(164, 43, 46, 0.45)) 24px 24px / calc(100% - 48px) 2px no-repeat,
+    linear-gradient(180deg, rgba(164, 43, 46, 0.42), rgba(164, 43, 46, 0.42)) 24px calc(100% - 24px) / calc(100% - 48px) 2px no-repeat,
+    linear-gradient(90deg, rgba(164, 43, 46, 0.42), rgba(164, 43, 46, 0.42)) 24px 24px / 2px calc(100% - 48px) no-repeat,
+    linear-gradient(90deg, rgba(164, 43, 46, 0.42), rgba(164, 43, 46, 0.42)) calc(100% - 24px) 24px / 2px calc(100% - 48px) no-repeat,
+    var(--real-paper-texture);
+}
+
+.fountain-paper,
+.real-lined-paper {
+  background-image:
+    repeating-linear-gradient(180deg, transparent 0 31px, rgba(47, 82, 116, 0.28) 32px 33px),
+    linear-gradient(90deg, rgba(151, 64, 54, 0.34) 62px, transparent 63px),
+    var(--real-paper-texture);
+}
+
+.telegram-form,
+.typewriter-paper,
+.printmail-paper {
+  font-family: "Courier New", Consolas, monospace;
+  background-image:
+    repeating-linear-gradient(180deg, transparent 0 30px, rgba(39, 34, 28, 0.16) 31px 32px),
+    var(--real-paper-texture);
+  color: rgba(29, 27, 24, 0.9);
+}
+
+.airmail-letter,
+.folded-airmail {
+  background-image:
+    repeating-linear-gradient(45deg, #b13238 0 8px, #f7eee0 8px 15px, #2f6686 15px 23px, #f7eee0 23px 30px),
+    var(--real-paper-texture);
+  background-size: 100% 14px, auto;
+  background-repeat: no-repeat, repeat;
+  background-position: top left, center;
+}
+
+.airmail-letter::before,
+.folded-airmail::before {
+  content: "";
+  position: absolute;
+  inset: 16px;
+  z-index: 1;
+  border: 1px solid rgba(40, 75, 98, 0.18);
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.55), rgba(238,225,202,0.6)),
+    repeating-linear-gradient(180deg, transparent 0 34px, rgba(47,82,116,0.18) 35px 36px);
+  box-shadow: 0 0 0 1px rgba(255,255,255,0.3) inset;
+}
+
+.postcard {
+  background-image:
+    linear-gradient(90deg, rgba(43, 54, 48, 0.2) 0 45%, rgba(247, 236, 214, 0.92) 45%),
+    var(--real-paper-texture);
+}
+
+.censor-letter .blackout,
+.blackout {
+  background: rgba(20, 18, 15, 0.92);
+  box-shadow: 0 1px 1px rgba(255,255,255,0.12) inset;
+}
+
+.red-invite,
+.invite-center {
+  background-image:
+    radial-gradient(circle at 24% 18%, rgba(255, 215, 150, 0.13), transparent 18%),
+    repeating-linear-gradient(90deg, rgba(255,255,255,0.04) 0 1px, transparent 1px 4px),
+    linear-gradient(145deg, #8a1e20, #be3132 48%, #7b191b);
+  color: #f6d08a;
+  border-color: rgba(255, 207, 132, 0.28);
+}
+
+.black-paper,
+.data-envelope,
+.cyber-paper {
+  background-image:
+    linear-gradient(180deg, rgba(255,255,255,0.08), transparent 18%),
+    repeating-linear-gradient(0deg, rgba(255,255,255,0.055) 0 1px, transparent 1px 4px),
+    linear-gradient(145deg, #191612, #2b2218);
+  color: #f0d184;
+  border-color: rgba(238, 198, 109, 0.28);
+}
+
+.cyber-paper,
+.data-envelope {
+  background-image:
+    radial-gradient(circle at 24% 12%, rgba(80, 255, 210, 0.18), transparent 20%),
+    repeating-linear-gradient(0deg, rgba(92, 244, 214, 0.08) 0 1px, transparent 1px 5px),
+    repeating-linear-gradient(90deg, rgba(96, 128, 255, 0.06) 0 1px, transparent 1px 7px),
+    linear-gradient(145deg, #0a1215, #152029 54%, #081014);
+  color: #9cffdf;
+  text-shadow: 0 0 8px rgba(86, 255, 216, 0.42);
+}
+
+.sticky-paper {
+  background-image:
+    linear-gradient(180deg, rgba(255,255,255,0.52), transparent 30%),
+    repeating-linear-gradient(180deg, transparent 0 30px, rgba(125, 97, 33, 0.12) 31px 32px),
+    linear-gradient(145deg, #fff2a8, #e5c86c);
+}
+
+.desk-letter,
+.desk-scene,
+.real-desk {
+  background-image:
+    radial-gradient(circle at 18% 18%, rgba(255, 224, 166, 0.14), transparent 22%),
+    repeating-linear-gradient(90deg, rgba(255,255,255,0.035) 0 1px, transparent 1px 18px),
+    linear-gradient(135deg, #4c2b19, #7a4b2e 46%, #321b10);
+}
+
+.desk-scene::after,
+.desk-letter::after,
+.real-desk::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 72% 18%, rgba(255, 220, 150, 0.18), transparent 28%),
+    linear-gradient(180deg, rgba(0,0,0,0.05), rgba(0,0,0,0.18));
+  mix-blend-mode: soft-light;
+}
+
+.mini-unit {
+  border-radius: 6px;
+  box-shadow: 0 7px 16px rgba(55, 38, 24, 0.14);
+}
+
+.mini-unit::before {
+  background-image: var(--real-paper-texture);
+  background-color: #f1dfbf;
+}
+
+.mailbox-unit {
+  overflow: hidden;
+  border-radius: 10px;
+}
+
+.mailbox-unit .mailbox-lid,
+.mailbox-unit .mailbox-door {
+  filter: saturate(0.92) contrast(1.04);
+  box-shadow: 0 7px 18px rgba(64, 37, 24, 0.18), inset 0 1px 0 rgba(255,255,255,0.34);
+}
+
+.reference-strip figure,
+.iframe-shell img {
+  filter: saturate(0.92) contrast(1.04);
+}
+
+.photoreal-chip,
+.material-source-chip {
+  display: inline-flex;
+  align-items: center;
+  min-height: 30px;
+  padding: 0 12px;
+  color: #59351f;
+  background: rgba(247, 236, 214, 0.74);
+  border: 1px solid rgba(118, 79, 45, 0.18);
+  border-radius: 999px;
+}
+
+@media (max-width: 720px) {
+  .paper-preview,
+  .real-letter-paper,
+  .vertical-paper {
+    box-shadow: 0 14px 34px rgba(38, 26, 18, 0.22);
+  }
+}

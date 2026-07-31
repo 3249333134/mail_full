@@ -1,0 +1,44 @@
+{
+  "padding": 8,
+  "actions": {
+    "idle": {
+      "speed": 260,
+      "frames": [
+        { "left": 0, "top": 0, "width": 313, "height": 313, "keepAll": true },
+        { "left": 313, "top": 0, "width": 314, "height": 313, "keepAll": true },
+        { "left": 627, "top": 0, "width": 313, "height": 313, "keepAll": true },
+        { "left": 940, "top": 0, "width": 314, "height": 313, "keepAll": true }
+      ]
+    },
+    "walk": {
+      "speed": 140,
+      "frames": [
+        { "left": 0, "top": 320, "width": 313, "height": 280, "keepAll": true },
+        { "left": 313, "top": 320, "width": 314, "height": 280, "keepAll": true },
+        { "left": 627, "top": 320, "width": 313, "height": 280, "keepAll": true },
+        { "left": 940, "top": 320, "width": 314, "height": 280, "keepAll": true }
+      ]
+    },
+    "martial": {
+      "speed": 110,
+      "once": true,
+      "effect": "jianghu-technique",
+      "frames": [
+        { "left": 0, "top": 600, "width": 290, "height": 300, "keepAll": true },
+        { "left": 320, "top": 600, "width": 294, "height": 300, "keepAll": true },
+        { "left": 640, "top": 600, "width": 290, "height": 300, "keepAll": true },
+        { "left": 950, "top": 600, "width": 304, "height": 300, "keepAll": true }
+      ]
+    },
+    "etiquette": {
+      "speed": 220,
+      "once": true,
+      "frames": [
+        { "left": 0, "top": 900, "width": 313, "height": 354, "keepAll": true },
+        { "left": 313, "top": 900, "width": 314, "height": 354, "keepAll": true },
+        { "left": 627, "top": 900, "width": 313, "height": 354, "keepAll": true },
+        { "left": 940, "top": 900, "width": 314, "height": 354, "keepAll": true }
+      ]
+    }
+  }
+}

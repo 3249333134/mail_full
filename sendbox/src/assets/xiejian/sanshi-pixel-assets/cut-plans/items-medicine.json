@@ -1,0 +1,214 @@
+{
+  "source": "D:\\prj\\sendbox\\taoyuan-main\\public\\assets\\sanshi-pixel-assets\\items\\atlases\\items-medicine-transparent.png",
+  "padding": 8,
+  "actions": {
+    "plum_fall_poison": {
+      "speed": 160,
+      "frames": [
+        {
+          "left": 0,
+          "top": 0,
+          "width": 313,
+          "height": 313,
+          "keepAll": true,
+          "padding": 8
+        }
+      ]
+    },
+    "sleeping_drug": {
+      "speed": 160,
+      "frames": [
+        {
+          "left": 313,
+          "top": 0,
+          "width": 314,
+          "height": 313,
+          "keepAll": true,
+          "padding": 8
+        }
+      ]
+    },
+    "poison_powder": {
+      "speed": 160,
+      "frames": [
+        {
+          "left": 627,
+          "top": 0,
+          "width": 313,
+          "height": 313,
+          "keepAll": true,
+          "padding": 8
+        }
+      ]
+    },
+    "antidote": {
+      "speed": 160,
+      "frames": [
+        {
+          "left": 940,
+          "top": 0,
+          "width": 314,
+          "height": 313,
+          "keepAll": true,
+          "padding": 8
+        }
+      ]
+    },
+    "poison_manual": {
+      "speed": 160,
+      "frames": [
+        {
+          "left": 0,
+          "top": 313,
+          "width": 313,
+          "height": 314,
+          "keepAll": true,
+          "padding": 8
+        }
+      ]
+    },
+    "medicine_pouch": {
+      "speed": 160,
+      "frames": [
+        {
+          "left": 313,
+          "top": 313,
+          "width": 314,
+          "height": 314,
+          "keepAll": true,
+          "padding": 8
+        }
+      ]
+    },
+    "physician_box": {
+      "speed": 160,
+      "frames": [
+        {
+          "left": 627,
+          "top": 313,
+          "width": 313,
+          "height": 314,
+          "keepAll": true,
+          "padding": 8
+        }
+      ]
+    },
+    "rare_herbs": {
+      "speed": 160,
+      "frames": [
+        {
+          "left": 940,
+          "top": 313,
+          "width": 314,
+          "height": 314,
+          "keepAll": true,
+          "padding": 8
+        }
+      ]
+    },
+    "medicine_gourd_pills": {
+      "speed": 160,
+      "frames": [
+        {
+          "left": 0,
+          "top": 627,
+          "width": 313,
+          "height": 313,
+          "keepAll": true,
+          "padding": 8
+        }
+      ]
+    },
+    "rock_sugar_snow_pear": {
+      "speed": 160,
+      "frames": [
+        {
+          "left": 313,
+          "top": 627,
+          "width": 314,
+          "height": 313,
+          "keepAll": true,
+          "padding": 8
+        }
+      ]
+    },
+    "peach_blossom_wine": {
+      "speed": 160,
+      "frames": [
+        {
+          "left": 627,
+          "top": 627,
+          "width": 313,
+          "height": 313,
+          "keepAll": true,
+          "padding": 8
+        }
+      ]
+    },
+    "meng_po_soup": {
+      "speed": 160,
+      "frames": [
+        {
+          "left": 940,
+          "top": 627,
+          "width": 314,
+          "height": 313,
+          "keepAll": true,
+          "padding": 8
+        }
+      ]
+    },
+    "alchemy_furnace": {
+      "speed": 160,
+      "frames": [
+        {
+          "left": 0,
+          "top": 940,
+          "width": 313,
+          "height": 314,
+          "keepAll": true,
+          "padding": 8
+        }
+      ]
+    },
+    "incense_burner": {
+      "speed": 160,
+      "frames": [
+        {
+          "left": 313,
+          "top": 940,
+          "width": 314,
+          "height": 314,
+          "keepAll": true,
+          "padding": 8
+        }
+      ]
+    },
+    "rouge_box": {
+      "speed": 160,
+      "frames": [
+        {
+          "left": 627,
+          "top": 940,
+          "width": 313,
+          "height": 314,
+          "keepAll": true,
+          "padding": 8
+        }
+      ]
+    },
+    "jewelry_box": {
+      "speed": 160,
+      "frames": [
+        {
+          "left": 940,
+          "top": 940,
+          "width": 314,
+          "height": 314,
+          "keepAll": true,
+          "padding": 8
+        }
+      ]
+    }
+  }
+}

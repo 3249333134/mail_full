@@ -1,0 +1,75 @@
+﻿{
+    "source":  "public\\assets\\characters\\xiujing-xuanxuan\\duo\\spritesheet-transparent.png",
+    "actions":  {
+                    "mutual_bow":  {
+                                       "speed":  250,
+                                       "frames":  [
+                                                      "mutual_bow/00.png"
+                                                  ],
+                                       "once":  true
+                                   },
+                    "calligraphy_lesson":  {
+                                               "speed":  250,
+                                               "frames":  [
+                                                              "calligraphy_lesson/00.png"
+                                                          ],
+                                               "once":  true
+                                           },
+                    "read_writing_board":  {
+                                               "speed":  250,
+                                               "frames":  [
+                                                              "read_writing_board/00.png"
+                                                          ],
+                                               "once":  true
+                                           },
+                    "umbrella_walk":  {
+                                          "speed":  250,
+                                          "frames":  [
+                                                         "umbrella_walk/00.png"
+                                                     ],
+                                          "once":  true
+                                      },
+                    "fix_hair_crown":  {
+                                           "speed":  250,
+                                           "frames":  [
+                                                          "fix_hair_crown/00.png"
+                                                      ],
+                                           "once":  true
+                                       },
+                    "return_hairpin":  {
+                                           "speed":  250,
+                                           "frames":  [
+                                                          "return_hairpin/00.png"
+                                                      ],
+                                           "once":  true
+                                       },
+                    "exchange_scroll":  {
+                                            "speed":  250,
+                                            "frames":  [
+                                                           "exchange_scroll/00.png"
+                                                       ],
+                                            "once":  true
+                                        },
+                    "back_to_back_reading":  {
+                                                 "speed":  250,
+                                                 "frames":  [
+                                                                "back_to_back_reading/00.png"
+                                                            ],
+                                                 "once":  true
+                                             },
+                    "hand_in_hand_run":  {
+                                             "speed":  250,
+                                             "frames":  [
+                                                            "hand_in_hand_run/00.png"
+                                                        ],
+                                             "once":  true
+                                         },
+                    "tea_and_thanks":  {
+                                           "speed":  250,
+                                           "frames":  [
+                                                          "tea_and_thanks/00.png"
+                                                      ],
+                                           "once":  true
+                                       }
+                }
+}

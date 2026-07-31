@@ -1,0 +1,178 @@
+[
+  {
+    "slug": "jingyuan_academy",
+    "name": "静远书院",
+    "source": "locations-01.png",
+    "rect": {
+      "left": 0,
+      "top": 0,
+      "right": 832,
+      "bottom": 467
+    }
+  },
+  {
+    "slug": "daohua_temple",
+    "name": "道华观",
+    "source": "locations-01.png",
+    "rect": {
+      "left": 840,
+      "top": 0,
+      "right": 1672,
+      "bottom": 467
+    }
+  },
+  {
+    "slug": "tianxing_cult",
+    "name": "天行教",
+    "source": "locations-01.png",
+    "rect": {
+      "left": 0,
+      "top": 474,
+      "right": 832,
+      "bottom": 941
+    }
+  },
+  {
+    "slug": "danxi_valley",
+    "name": "丹溪谷",
+    "source": "locations-01.png",
+    "rect": {
+      "left": 840,
+      "top": 474,
+      "right": 1672,
+      "bottom": 941
+    }
+  },
+  {
+    "slug": "buhuan_sect",
+    "name": "不还门",
+    "source": "locations-02.png",
+    "rect": {
+      "left": 0,
+      "top": 0,
+      "right": 832,
+      "bottom": 467
+    }
+  },
+  {
+    "slug": "taozhi_sect",
+    "name": "桃止门",
+    "source": "locations-02.png",
+    "rect": {
+      "left": 840,
+      "top": 0,
+      "right": 1672,
+      "bottom": 467
+    }
+  },
+  {
+    "slug": "dongjia_shen_manor",
+    "name": "东嘉沈府",
+    "source": "locations-02.png",
+    "rect": {
+      "left": 0,
+      "top": 474,
+      "right": 832,
+      "bottom": 941
+    }
+  },
+  {
+    "slug": "ren_manor",
+    "name": "任府",
+    "source": "locations-02.png",
+    "rect": {
+      "left": 840,
+      "top": 474,
+      "right": 1672,
+      "bottom": 941
+    }
+  },
+  {
+    "slug": "hanlin_academy",
+    "name": "京城翰林院",
+    "source": "locations-03.png",
+    "rect": {
+      "left": 0,
+      "top": 0,
+      "right": 832,
+      "bottom": 467
+    }
+  },
+  {
+    "slug": "forgetfulness_river",
+    "name": "忘川",
+    "source": "locations-03.png",
+    "rect": {
+      "left": 840,
+      "top": 0,
+      "right": 1672,
+      "bottom": 467
+    }
+  },
+  {
+    "slug": "border_town",
+    "name": "边陲小镇",
+    "source": "locations-03.png",
+    "rect": {
+      "left": 0,
+      "top": 474,
+      "right": 832,
+      "bottom": 941
+    }
+  },
+  {
+    "slug": "lantern_festival",
+    "name": "上元灯会",
+    "source": "locations-03.png",
+    "rect": {
+      "left": 840,
+      "top": 474,
+      "right": 1672,
+      "bottom": 941
+    }
+  },
+  {
+    "slug": "lotus_pond",
+    "name": "荷花池",
+    "source": "locations-04.png",
+    "rect": {
+      "left": 0,
+      "top": 0,
+      "right": 623,
+      "bottom": 623
+    }
+  },
+  {
+    "slug": "back_mountain_stream",
+    "name": "后山溪流",
+    "source": "locations-04.png",
+    "rect": {
+      "left": 631,
+      "top": 0,
+      "right": 1254,
+      "bottom": 623
+    }
+  },
+  {
+    "slug": "garden_pavilion",
+    "name": "凉亭",
+    "source": "locations-04.png",
+    "rect": {
+      "left": 0,
+      "top": 631,
+      "right": 623,
+      "bottom": 1254
+    }
+  },
+  {
+    "slug": "wish_lantern_river",
+    "name": "小河许愿灯",
+    "source": "locations-04.png",
+    "rect": {
+      "left": 631,
+      "top": 631,
+      "right": 1254,
+      "bottom": 1254
+    }
+  }
+]

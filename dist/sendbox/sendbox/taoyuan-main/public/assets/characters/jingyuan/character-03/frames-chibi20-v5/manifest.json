@@ -1,0 +1,53 @@
+﻿{
+    "source":  "D:\\prj\\sendbox\\taoyuan-main\\public\\assets\\characters\\jingyuan\\character-03\\spritesheet-chibi20-v5.png",
+    "actions":  {
+                    "idle":  {
+                                 "speed":  260,
+                                 "frames":  [
+                                                "idle/00.png",
+                                                "idle/01.png",
+                                                "idle/02.png",
+                                                "idle/03.png"
+                                            ]
+                             },
+                    "run":  {
+                                "speed":  105,
+                                "frames":  [
+                                               "run/00.png",
+                                               "run/01.png",
+                                               "run/02.png",
+                                               "run/03.png"
+                                           ]
+                            },
+                    "etiquette":  {
+                                      "speed":  220,
+                                      "frames":  [
+                                                     "etiquette/00.png",
+                                                     "etiquette/01.png",
+                                                     "etiquette/02.png",
+                                                     "etiquette/03.png"
+                                                 ],
+                                      "once":  true
+                                  },
+                    "martial":  {
+                                    "speed":  110,
+                                    "frames":  [
+                                                   "martial/00.png",
+                                                   "martial/01.png",
+                                                   "martial/02.png",
+                                                   "martial/03.png"
+                                               ],
+                                    "once":  true
+                                },
+                    "signature":  {
+                                      "speed":  180,
+                                      "frames":  [
+                                                     "signature/00.png",
+                                                     "signature/01.png",
+                                                     "signature/02.png",
+                                                     "signature/03.png"
+                                                 ],
+                                      "once":  true
+                                  }
+                }
+}

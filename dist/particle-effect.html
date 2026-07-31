@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>粒子特效生成器</title>
+    <link rel="stylesheet" href="css/particle-effect.css">
+</head>
+<body class="theme-dark">
+    <div class="app-container">
+        <canvas id="particleCanvas"></canvas>
+        
+        <div class="control-panel">
+            <div class="panel-header">
+                <h2>参数调节面板</h2>
+            </div>
+
+            <div class="panel-section">
+                <div class="section-title">效果预设</div>
+                <div class="preset-grid">
+                    <button class="preset-btn active" data-preset="particles">
+                        <div class="preset-icon">✨</div>
+                        <div class="preset-name">粒子点阵</div>
+                    </button>
+                    <button class="preset-btn" data-preset="prismatic">
+                        <div class="preset-icon">🌈</div>
+                        <div class="preset-name">金属棱镜</div>
+                    </button>
+                    <button class="preset-btn" data-preset="terrain">
+                        <div class="preset-icon">🏔️</div>
+                        <div class="preset-name">线条地形</div>
+                    </button>
+                    <button class="preset-btn" data-preset="particle3d">
+                        <div class="preset-icon">🎲</div>
+                        <div class="preset-name">3D粒子</div>
+                    </button>
+                </div>
+            </div>
+
+            <div class="mode-tabs">
+                <button class="mode-tab active" data-mode="particles">粒子点阵</button>
+                <button class="mode-tab" data-mode="prismatic">棱镜色散</button>
+            </div>
+
+            <div class="panel-section">
+                <div class="section-title">自定义上传</div>
+                <div class="upload-area">
+                    <button id="uploadBtn" class="upload-btn">上传自定义 SVG 文件</button>
+                    <input type="file" id="fileInput" accept=".svg,.png,.jpg,.jpeg" hidden>
+                </div>
+                <button id="resetAnimBtn" class="secondary-btn">重置入场动画</button>
+                <button id="dissolveBtn" class="dissolve-btn">✨ 消散成泡沫</button>
+            </div>
+
+            <div class="panel-section particles-section">
+                <div class="section-title">基本布局参数</div>
+                
+                <div class="slider-group">
+                    <div class="slider-label">
+                        <span>Logo 缩放大小 (Scale)</span>
+                        <span class="slider-value" id="scaleValue">1.0</span>
+                    </div>
+                    <input type="range" id="scaleSlider" min="0.1" max="3" step="0.01" value="1">
+                </div>
+
+                <div class="slider-group">
+                    <div class="slider-label">
+                        <span>粒子总数 (密度)</span>
+                        <span class="slider-value" id="densityValue">10000</span>
+                    </div>
+                    <input type="range" id="densitySlider" min="100" max="30000" step="100" value="10000">
+                </div>
+
+                <div class="slider-group">
+                    <div class="slider-label">
+                        <span>粒子基础大小</span>
+                        <span class="slider-value" id="sizeValue">3.0</span>
+                    </div>
+                    <input type="range" id="sizeSlider" min="0.2" max="8" step="0.1" value="3.0">
+                </div>
+
+                <div class="slider-group">
+                    <div class="slider-label">
+                        <span>粒子亮度</span>
+                        <span class="slider-value" id="brightnessValue">2.5</span>
+                    </div>
+                    <input type="range" id="brightnessSlider" min="0.2" max="5" step="0.1" value="2.5">
+                </div>
+            </div>
+
+            <div class="panel-section particles-section">
+                <div class="section-title">动画参数</div>
+
+                <div class="slider-group">
+                    <div class="slider-label">
+                        <span>线性入场时间 (Duration)</span>
+                        <span class="slider-value" id="durationValue">3000 ms</span>
+                    </div>
+                    <input type="range" id="durationSlider" min="500" max="8000" step="100" value="3000">
+                </div>
+
+                <div class="slider-group">
+                    <div class="slider-label">
+                        <span>粒子脉冲速度</span>
+                        <span class="slider-value" id="pulseValue">0.5</span>
+                    </div>
+                    <input type="range" id="pulseSlider" min="0" max="10" step="0.1" value="0.5">
+                </div>
+
+                <div class="slider-group">
+                    <div class="slider-label">
+                        <span>微动偏移速度</span>
+                        <span class="slider-value" id="driftValue">0.1</span>
+                    </div>
+                    <input type="range" id="driftSlider" min="0" max="5" step="0.1" value="0.1">
+                </div>
+            </div>
+
+            <div class="panel-section particles-section">
+                <div class="section-title">外力场互动反馈</div>
+
+                <div class="slider-group">
+                    <div class="slider-label">
+                        <span>引力吸附半径 (Attract R)</span>
+                        <span class="slider-value" id="attractRValue">180</span>
+                    </div>
+                    <input type="range" id="attractRSlider" min="0" max="400" step="10" value="180">
+                </div>
+
+                <div class="slider-group">
+                    <div class="slider-label">
+                        <span>引力吸附强度 (Attract Str)</span>
+                        <span class="slider-value" id="attractStrValue">0.06</span>
+                    </div>
+                    <input type="range" id="attractStrSlider" min="0" max="0.5" step="0.01" value="0.06">
+                </div>
+
+                <div class="slider-group">
+                    <div class="slider-label">
+                        <span>强力斥力半径 (Repel R)</span>
+                        <span class="slider-value" id="repelRValue">100</span>
+                    </div>
+                    <input type="range" id="repelRSlider" min="0" max="300" step="10" value="100">
+                </div>
+
+                <div class="slider-group">
+                    <div class="slider-label">
+                        <span>强力斥力强度 (Repel Str)</span>
+                        <span class="slider-value" id="repelStrValue">1.2</span>
+                    </div>
+                    <input type="range" id="repelStrSlider" min="0" max="5" step="0.1" value="1.2">
+                </div>
+            </div>
+
+            <div class="panel-section prismatic-section" style="display:none;">
+                <div class="section-title">棱镜色散着色器参数</div>
+
+                <div class="slider-group">
+                    <div class="slider-label">
+                        <span>色散强度 (Dispersion)</span>
+                        <span class="slider-value" id="dispersionValue">0.1</span>
+                    </div>
+                    <input type="range" id="dispersionSlider" min="0" max="1" step="0.01" value="0.1">
+                </div>
+
+                <div class="slider-group">
+                    <div class="slider-label">
+                        <span>薄膜虹彩强度 (Iridescence)</span>
+                        <span class="slider-value" id="iridescenceValue">0.8</span>
+                    </div>
+                    <input type="range" id="iridescenceSlider" min="0" max="2" step="0.01" value="0.8">
+                </div>
+
+                <div class="slider-group">
+                    <div class="slider-label">
+                        <span>纹理粗糙度 (Roughness)</span>
+                        <span class="slider-value" id="roughnessValue">0.15</span>
+                    </div>
+                    <input type="range" id="roughnessSlider" min="0" max="1" step="0.01" value="0.15">
+                </div>
+
+                <div class="slider-group">
+                    <div class="slider-label">
+                        <span>高光系数 (Specular)</span>
+                        <span class="slider-value" id="specularValue">2.7</span>
+                    </div>
+                    <input type="range" id="specularSlider" min="0" max="5" step="0.1" value="2.7">
+                </div>
+
+                <div class="slider-group">
+                    <div class="slider-label">
+                        <span>边缘菲涅尔 (Fresnel)</span>
+                        <span class="slider-value" id="fresnelValue">0.55</span>
+                    </div>
+                    <input type="range" id="fresnelSlider" min="0" max="2" step="0.01" value="0.55">
+                </div>
+
+                <div class="slider-group">
+                    <div class="slider-label">
+                        <span>流速控制 (Flow Speed)</span>
+                        <span class="slider-value" id="flowSpeedValue">0.5</span>
+                    </div>
+                    <input type="range" id="flowSpeedSlider" min="0" max="2" step="0.01" value="0.5">
+                </div>
+
+                <div class="slider-group">
+                    <div class="slider-label">
+                        <span>形变扭曲 (Distortion)</span>
+                        <span class="slider-value" id="distortionValue">0.6</span>
+                    </div>
+                    <input type="range" id="distortionSlider" min="0" max="2" step="0.01" value="0.6">
+                </div>
+
+                <div class="slider-group">
+                    <div class="slider-label">
+                        <span>拉丝夹角 (Brush Angle)</span>
+                        <span class="slider-value" id="brushAngleValue">2.2</span>
+                    </div>
+                    <input type="range" id="brushAngleSlider" min="0" max="6.28" step="0.01" value="2.2">
+                </div>
+            </div>
+
+            <div class="panel-section">
+                <div class="section-title">主题模式</div>
+                <select id="themeSelect" class="theme-select">
+                    <option value="dark">深色 (Dark)</option>
+                    <option value="light">浅色 (Light)</option>
+                    <option value="cyberpunk">赛博朋克</option>
+                    <option value="sunset">日落黄昏</option>
+                </select>
+            </div>
+
+            <div class="panel-section">
+                <button id="resetBtn" class="reset-btn">↻ 恢复默认值</button>
+            </div>
+        </div>
+
+        <div class="nav-buttons">
+            <button class="nav-btn" id="prevPreset">▲</button>
+            <button class="nav-btn" id="nextPreset">▼</button>
+        </div>
+
+        <a href="index.html" class="back-link">← 返回</a>
+    </div>
+
+    <script src="js/particle-effect.js"></script>
+</body>
+</html>

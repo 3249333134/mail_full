@@ -1,0 +1,716 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>信笺 Figma 文件 HTML 导出</title>
+  <style>
+    :root {
+      --ink: #211c18;
+      --text: #66584c;
+      --muted: #96897d;
+      --paper: #fbf1df;
+      --paper-2: #eadbc3;
+      --card: rgba(255, 251, 242, 0.82);
+      --line: rgba(72, 50, 32, 0.14);
+      --rose: #b44d63;
+      --green: #456d5b;
+      --blue: #354e68;
+      --shadow: 0 24px 70px rgba(42, 28, 18, 0.15);
+      --small-shadow: 0 12px 32px rgba(42, 28, 18, 0.1);
+      font-family: "Noto Serif SC", "Songti SC", "SimSun", Georgia, serif;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      margin: 0;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at 12% 0%, rgba(180, 77, 99, 0.14), transparent 30%),
+        radial-gradient(circle at 86% 8%, rgba(69, 109, 91, 0.12), transparent 28%),
+        linear-gradient(90deg, rgba(64, 42, 28, 0.04) 1px, transparent 1px),
+        linear-gradient(rgba(64, 42, 28, 0.04) 1px, transparent 1px),
+        #ebe3d6;
+      background-size: auto, auto, 32px 32px, 32px 32px, auto;
+    }
+
+    a {
+      color: inherit;
+      text-decoration: none;
+    }
+
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 18px;
+      padding: 18px 28px;
+      background: rgba(255, 251, 242, 0.9);
+      border-bottom: 1px solid var(--line);
+      backdrop-filter: blur(18px);
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .brand-mark,
+    .index {
+      display: grid;
+      place-items: center;
+      color: #fffaf0;
+      background: #24211f;
+      border-radius: 10px;
+      font: 700 13px/1 Arial, sans-serif;
+    }
+
+    .brand-mark {
+      width: 40px;
+      height: 40px;
+    }
+
+    .brand strong {
+      display: block;
+      font-size: 20px;
+    }
+
+    .brand span span {
+      display: block;
+      margin-top: 3px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    nav {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+      gap: 8px;
+    }
+
+    nav a,
+    .button,
+    .tag {
+      display: inline-flex;
+      align-items: center;
+      min-height: 36px;
+      padding: 0 13px;
+      color: var(--text);
+      background: rgba(255,255,255,0.68);
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      font-size: 13px;
+    }
+
+    nav a:hover,
+    .button:hover {
+      color: #fffaf0;
+      background: var(--rose);
+      border-color: var(--rose);
+    }
+
+    main {
+      display: grid;
+      gap: 28px;
+      width: min(1520px, calc(100% - 40px));
+      margin: 30px auto 80px;
+    }
+
+    .hero,
+    .embed-panel,
+    .frame-card,
+    .handoff {
+      background: var(--card);
+      border: 1px solid rgba(255,255,255,0.72);
+      border-radius: 24px;
+      box-shadow: var(--shadow);
+    }
+
+    .hero {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 420px;
+      gap: 24px;
+      padding: 28px;
+    }
+
+    .eyebrow {
+      margin: 0 0 9px;
+      color: var(--rose);
+      font: 700 11px/1.2 Arial, sans-serif;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+
+    h1,
+    h2,
+    h3,
+    p {
+      margin-top: 0;
+    }
+
+    h1 {
+      max-width: 860px;
+      margin-bottom: 16px;
+      font-size: clamp(38px, 5vw, 74px);
+      line-height: 1.04;
+      letter-spacing: 0;
+    }
+
+    h2 {
+      margin-bottom: 10px;
+      font-size: clamp(26px, 2.6vw, 42px);
+      line-height: 1.18;
+      letter-spacing: 0;
+    }
+
+    .hero p,
+    .frame-copy p,
+    .handoff p,
+    .figma-meta {
+      color: var(--text);
+      line-height: 1.82;
+    }
+
+    .hero-actions,
+    .frame-actions,
+    .tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .summary-card {
+      display: grid;
+      align-content: space-between;
+      gap: 16px;
+      min-height: 280px;
+      padding: 20px;
+      background:
+        linear-gradient(135deg, rgba(255,255,255,0.78), rgba(244,232,213,0.7)),
+        var(--paper);
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      box-shadow: var(--small-shadow);
+    }
+
+    .summary-card dl {
+      display: grid;
+      gap: 12px;
+      margin: 0;
+    }
+
+    .summary-card div {
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+      padding-bottom: 10px;
+      border-bottom: 1px dashed rgba(72,50,32,0.17);
+    }
+
+    .summary-card dt {
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .summary-card dd {
+      margin: 0;
+      text-align: right;
+      font-size: 13px;
+    }
+
+    .embed-panel {
+      padding: 20px;
+    }
+
+    .embed-head {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 18px;
+      margin-bottom: 16px;
+    }
+
+    .figma-embed {
+      width: 100%;
+      height: min(72vh, 760px);
+      min-height: 520px;
+      overflow: hidden;
+      background: #f2e7d6;
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      box-shadow: inset 0 1px rgba(255,255,255,0.76);
+    }
+
+    .figma-embed iframe {
+      display: block;
+      width: 100%;
+      height: 100%;
+      border: 0;
+    }
+
+    .frame-list {
+      display: grid;
+      gap: 24px;
+    }
+
+    .frame-card {
+      display: grid;
+      grid-template-columns: 330px minmax(0, 1fr);
+      gap: 18px;
+      padding: 20px;
+    }
+
+    .frame-copy {
+      display: grid;
+      align-content: start;
+      gap: 14px;
+      padding: 8px;
+    }
+
+    .frame-title {
+      display: flex;
+      align-items: flex-start;
+      gap: 14px;
+    }
+
+    .index {
+      flex: 0 0 auto;
+      width: 54px;
+      height: 44px;
+      margin-top: 3px;
+    }
+
+    .frame-title h3 {
+      margin-bottom: 6px;
+      font-size: 28px;
+      line-height: 1.22;
+    }
+
+    .preview {
+      position: relative;
+      min-height: 560px;
+      overflow: hidden;
+      background:
+        linear-gradient(90deg, rgba(64,42,28,0.04) 1px, transparent 1px),
+        linear-gradient(rgba(64,42,28,0.04) 1px, transparent 1px),
+        #f4ead9;
+      background-size: 26px 26px;
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      box-shadow: inset 0 1px rgba(255,255,255,0.75);
+    }
+
+    .preview.tall {
+      min-height: 720px;
+    }
+
+    .preview img {
+      position: absolute;
+      top: 22px;
+      left: 50%;
+      display: block;
+      width: min(1020px, calc(100% - 40px));
+      max-width: none;
+      border-radius: 16px;
+      box-shadow: 0 18px 46px rgba(42, 28, 18, 0.18);
+      transform: translateX(-50%);
+      transform-origin: top center;
+    }
+
+    .preview.photo img {
+      width: min(900px, calc(100% - 40px));
+    }
+
+    .note-preview {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 14px;
+      padding: 18px;
+    }
+
+    .note-preview article {
+      min-height: 210px;
+      padding: 18px;
+      background:
+        radial-gradient(circle at 20% 18%, rgba(117, 74, 38, 0.14), transparent 26%),
+        linear-gradient(145deg, rgba(255,250,237,0.9), rgba(229,207,174,0.74));
+      border: 1px solid rgba(72,50,32,0.16);
+      border-radius: 14px;
+      box-shadow: var(--small-shadow);
+    }
+
+    .note-preview strong {
+      display: block;
+      margin-bottom: 10px;
+      color: var(--ink);
+      font-size: 18px;
+    }
+
+    .note-preview span {
+      display: block;
+      color: var(--text);
+      line-height: 1.72;
+      font-size: 14px;
+    }
+
+    .handoff {
+      padding: 24px;
+    }
+
+    .handoff-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 14px;
+      margin-top: 18px;
+    }
+
+    .handoff-grid a {
+      display: grid;
+      gap: 8px;
+      min-height: 112px;
+      padding: 16px;
+      background: rgba(255,255,255,0.7);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      box-shadow: var(--small-shadow);
+    }
+
+    .handoff-grid span {
+      color: var(--text);
+      line-height: 1.62;
+      font-size: 14px;
+    }
+
+    @media (max-width: 1120px) {
+      .hero,
+      .frame-card {
+        grid-template-columns: 1fr;
+      }
+
+      .handoff-grid,
+      .note-preview {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+
+    @media (max-width: 720px) {
+      .topbar {
+        align-items: flex-start;
+        flex-direction: column;
+        padding: 16px;
+      }
+
+      main {
+        width: min(100% - 20px, 1520px);
+        margin-top: 16px;
+      }
+
+      .hero,
+      .embed-panel,
+      .frame-card,
+      .handoff {
+        padding: 14px;
+        border-radius: 18px;
+      }
+
+      .embed-head {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+
+      .figma-embed {
+        min-height: 460px;
+      }
+
+      .preview,
+      .preview.tall {
+        min-height: 520px;
+      }
+
+      .preview img {
+        top: 14px;
+        width: calc(100% - 22px);
+      }
+
+      .handoff-grid,
+      .note-preview {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="https://www.figma.com/design/5O05AZHQOEO8jr1YqNg3zm/%E4%BF%A1%E7%AC%BA-UI-%E7%9C%9F%E5%AE%9E%E4%BF%A1%E7%BA%B8%E8%B4%A8%E6%84%9F%E8%AE%BE%E8%AE%A1?node-id=0-1&p=f&t=5JKoeIeONpFOh28e-0">
+      <span class="brand-mark">Fig</span>
+      <span><strong>信笺 Figma 文件 HTML 导出</strong><span>from Figma file / static HTML package</span></span>
+    </a>
+    <nav aria-label="页面导航">
+      <a href="#figma-live">Figma 嵌入</a>
+      <a href="#frames">画板导出</a>
+      <a href="figma-web-export.html">网页总览</a>
+      <a href="all-designs.html">本地总览</a>
+    </nav>
+  </header>
+
+  <main>
+    <section class="hero">
+      <div>
+        <p class="eyebrow">Figma File To HTML</p>
+        <h1>把 Figma 里面的设计导出成 HTML</h1>
+        <p>这份文件按你给的 Figma 文件整理：上方保留 Figma 原文件嵌入预览，下方把当前文件里的 01-09 画板转换成可浏览的 HTML 展示结构。由于 Figma MCP 当前触发 Starter 调用上限，静态导出版使用已同步到本地的画板截图、页面 HTML 和设计说明重建。</p>
+        <div class="hero-actions">
+          <a class="button" href="#figma-live">查看 Figma 嵌入</a>
+          <a class="button" href="#frames">查看 HTML 导出</a>
+          <a class="button" href="https://www.figma.com/design/5O05AZHQOEO8jr1YqNg3zm/%E4%BF%A1%E7%AC%BA-UI-%E7%9C%9F%E5%AE%9E%E4%BF%A1%E7%BA%B8%E8%B4%A8%E6%84%9F%E8%AE%BE%E8%AE%A1?node-id=0-1&p=f&t=5JKoeIeONpFOh28e-0">打开 Figma</a>
+        </div>
+      </div>
+
+      <aside class="summary-card">
+        <dl>
+          <div><dt>Figma 文件</dt><dd>信笺 UI 真实信纸质感设计</dd></div>
+          <div><dt>File key</dt><dd>5O05AZHQOEO8jr1YqNg3zm</dd></div>
+          <div><dt>Root node</dt><dd>0:1</dd></div>
+          <div><dt>HTML frames</dt><dd>9 个画板</dd></div>
+        </dl>
+        <div class="tags">
+          <span class="tag">真实信纸</span>
+          <span class="tag">信封模板</span>
+          <span class="tag">信箱装饰</span>
+          <span class="tag">材质母版</span>
+        </div>
+      </aside>
+    </section>
+
+    <section class="embed-panel" id="figma-live">
+      <div class="embed-head">
+        <div>
+          <p class="eyebrow">Live Figma Embed</p>
+          <h2>Figma 原文件嵌入预览</h2>
+          <p class="figma-meta">如果你的浏览器已登录并有权限，这里会直接显示 Figma 文件内容；如果没有权限，点击下方按钮打开 Figma 源文件。</p>
+        </div>
+        <a class="button" href="https://www.figma.com/design/5O05AZHQOEO8jr1YqNg3zm/%E4%BF%A1%E7%AC%BA-UI-%E7%9C%9F%E5%AE%9E%E4%BF%A1%E7%BA%B8%E8%B4%A8%E6%84%9F%E8%AE%BE%E8%AE%A1?node-id=0-1&p=f&t=5JKoeIeONpFOh28e-0">打开源文件</a>
+      </div>
+      <div class="figma-embed">
+        <iframe
+          title="信笺 UI 真实信纸质感设计 - Figma"
+          src="https://www.figma.com/embed?embed_host=share&url=https%3A%2F%2Fwww.figma.com%2Fdesign%2F5O05AZHQOEO8jr1YqNg3zm%2F%25E4%25BF%25A1%25E7%25AC%25BA-UI-%25E7%259C%259F%25E5%25AE%259E%25E4%25BF%25A1%25E7%25BA%25B8%25E8%25B4%25A8%25E6%2584%259F%25E8%25AE%25BE%25E8%25AE%25A1%3Fnode-id%3D0-1%26p%3Df%26t%3D5JKoeIeONpFOh28e-0"
+          allowfullscreen>
+        </iframe>
+      </div>
+    </section>
+
+    <section class="frame-list" id="frames" aria-label="Figma 画板 HTML 导出">
+      <article class="frame-card">
+        <div class="frame-copy">
+          <div class="frame-title">
+            <span class="index">01</span>
+            <div>
+              <h3>Figam Design Hub - polished overview</h3>
+              <p>当前 Figma 文件的总览画板，集中展示主流程、页面层级、下一步优化、真实信件生成器、信箱装饰和材质母版。</p>
+            </div>
+          </div>
+          <div class="frame-actions">
+            <a class="button" href="all-designs.html">打开 HTML</a>
+            <a class="button" href="preview-all-designs-desktop.png">查看截图</a>
+          </div>
+        </div>
+        <div class="preview tall">
+          <img src="preview-all-designs-desktop.png" alt="Figma 总览画板导出预览">
+        </div>
+      </article>
+
+      <article class="frame-card">
+        <div class="frame-copy">
+          <div class="frame-title">
+            <span class="index">02</span>
+            <div>
+              <h3>Real Letter Generator UI</h3>
+              <p>真实信件生成器：18 种信封与信纸模板、P5-P8 参考图、真实化参数和导出逻辑。</p>
+            </div>
+          </div>
+          <div class="frame-actions">
+            <a class="button" href="real-letter-generator.html">打开 HTML</a>
+            <a class="button" href="preview-real-letter-desktop.png">查看截图</a>
+          </div>
+        </div>
+        <div class="preview tall">
+          <img src="preview-real-letter-desktop.png" alt="真实信件生成器 Figma 画板导出预览">
+        </div>
+      </article>
+
+      <article class="frame-card">
+        <div class="frame-copy">
+          <div class="frame-title">
+            <span class="index">03</span>
+            <div>
+              <h3>Realistic Paper Templates</h3>
+              <p>真实信纸模板组件集合：红栏、横线、旧纸、航空薄信纸、打字机纸、便利贴与赛博像素信。</p>
+            </div>
+          </div>
+          <div class="frame-actions">
+            <a class="button" href="real-letter-generator.html#templates">打开模板区</a>
+            <a class="button" href="realistic-paper-system.css">查看材质 CSS</a>
+          </div>
+        </div>
+        <div class="preview">
+          <div class="note-preview">
+            <article><strong>红色竖栏信纸</strong><span>泛黄纸面、红线错位、竖排毛笔字、边缘破损和折痕。</span></article>
+            <article><strong>横线扫描稿纸</strong><span>蓝黑钢笔字、横线、孔洞、扫描阴影和轻微污渍。</span></article>
+            <article><strong>旧票据批信</strong><span>红栏表格、印章、凭证栏、修订痕迹和档案纸感。</span></article>
+            <article><strong>赛博像素信</strong><span>像素字体、网格屏幕、光栅噪点和未来数据封包。</span></article>
+          </div>
+        </div>
+      </article>
+
+      <article class="frame-card">
+        <div class="frame-copy">
+          <div class="frame-title">
+            <span class="index">04</span>
+            <div>
+              <h3>Mailbox Unit Decorator UI</h3>
+              <p>信箱装饰设置工作台：把信箱作为整体单元，可编辑材质、贴纸、角标、挂件并跨页面同步。</p>
+            </div>
+          </div>
+          <div class="frame-actions">
+            <a class="button" href="mailbox-decorator.html">打开 HTML</a>
+            <a class="button" href="preview-mailbox-decorator-desktop.png">查看截图</a>
+          </div>
+        </div>
+        <div class="preview tall">
+          <img src="preview-mailbox-decorator-desktop.png" alt="信箱装饰 Figma 画板导出预览">
+        </div>
+      </article>
+
+      <article class="frame-card">
+        <div class="frame-copy">
+          <div class="frame-title">
+            <span class="index">05</span>
+            <div>
+              <h3>Mobile Real Letter + Mailbox Settings</h3>
+              <p>移动端信件与信箱设置：底部属性面板、全屏信纸、触屏编辑和移动端信箱装饰预览。</p>
+            </div>
+          </div>
+          <div class="frame-actions">
+            <a class="button" href="preview-real-letter-mobile.png">真实信件移动截图</a>
+            <a class="button" href="preview-mailbox-decorator-mobile.png">信箱设置移动截图</a>
+          </div>
+        </div>
+        <div class="preview tall">
+          <img src="preview-mailbox-decorator-mobile.png" alt="移动端信箱设置 Figma 画板导出预览">
+        </div>
+      </article>
+
+      <article class="frame-card">
+        <div class="frame-copy">
+          <div class="frame-title">
+            <span class="index">06</span>
+            <div>
+              <h3>Photo-real Target Board</h3>
+              <p>超真实参考目标：暖光桌面、墨水瓶、钢笔、横线稿纸、博物馆旧信和红栏毛笔近景。</p>
+            </div>
+          </div>
+          <div class="frame-actions">
+            <a class="button" href="photoreal-letter-material-board.html">打开 HTML</a>
+            <a class="button" href="photoreal-letter-material-board.png">查看母版图</a>
+          </div>
+        </div>
+        <div class="preview tall photo">
+          <img src="preview-photoreal-letter-material-board-desktop.png" alt="超真实材质目标 Figma 画板导出预览">
+        </div>
+      </article>
+
+      <article class="frame-card">
+        <div class="frame-copy">
+          <div class="frame-title">
+            <span class="index">07</span>
+            <div>
+              <h3>Web Researched Real Mail Templates</h3>
+              <p>网络真实书信参考后的模板库：侨批、航空邮简、电报、明信片、审阅家书、红柬、票据和现代邮件。</p>
+            </div>
+          </div>
+          <div class="frame-actions">
+            <a class="button" href="bing-realism-upgrade-notes.md">查看说明</a>
+            <a class="button" href="real-letter-generator.html#templates">打开模板</a>
+          </div>
+        </div>
+        <div class="preview">
+          <div class="note-preview">
+            <article><strong>旧邮戳信封叠件</strong><span>多封旧信封叠放、圆形邮戳、销票波纹、发黄破角。</span></article>
+            <article><strong>航空蓝红边封</strong><span>PAR AVION 标签、红蓝斜边、邮票区、地址线和邮戳压线。</span></article>
+            <article><strong>电报 / 急件纸</strong><span>表格、编号、STOP 断句、急件红章、旧纸扫描感。</span></article>
+            <article><strong>现代邮件材质</strong><span>快递标签、条码、透明窗口、铁皮与木盒信箱材质。</span></article>
+          </div>
+        </div>
+      </article>
+
+      <article class="frame-card">
+        <div class="frame-copy">
+          <div class="frame-title">
+            <span class="index">08</span>
+            <div>
+              <h3>Bing Reference Realism Upgrade</h3>
+              <p>按 Bing 真实信件图片拆解出的高真实度方向：纸张层、邮政层、内容层和场景层。</p>
+            </div>
+          </div>
+          <div class="frame-actions">
+            <a class="button" href="bing-realism-upgrade-notes.md">查看升级说明</a>
+            <a class="button" href="material-effect-generator.html">材质生成样板</a>
+          </div>
+        </div>
+        <div class="preview">
+          <div class="note-preview">
+            <article><strong>纸张层</strong><span>发黄、折痕、破角、污渍、纸纤维和边缘厚度。</span></article>
+            <article><strong>邮政层</strong><span>邮票、邮戳、销票波纹、地址线、航空边和收发章。</span></article>
+            <article><strong>内容层</strong><span>高密度手写、竖排栏线、墨色深浅、票据式表格。</span></article>
+            <article><strong>场景层</strong><span>桌面、布面、木纹、扫描床、实物阴影和倾斜视角。</span></article>
+          </div>
+        </div>
+      </article>
+
+      <article class="frame-card">
+        <div class="frame-copy">
+          <div class="frame-title">
+            <span class="index">09</span>
+            <div>
+              <h3>Realistic Letter Paper Texture Upgrade</h3>
+              <p>真实信纸本体升级：纤维、黄斑、水渍、折痕、压痕、破边、横线/红栏/空白三模式。</p>
+            </div>
+          </div>
+          <div class="frame-actions">
+            <a class="button" href="real-letter-paper-upgrade-notes.md">查看说明</a>
+            <a class="button" href="material-effect-generator.html">打开样板</a>
+          </div>
+        </div>
+        <div class="preview tall">
+          <img src="preview-material-effect-desktop.png" alt="真实信纸材质升级 Figma 画板导出预览">
+        </div>
+      </article>
+    </section>
+
+    <section class="handoff">
+      <p class="eyebrow">Export Files</p>
+      <h2>HTML 导出文件</h2>
+      <p>这份文件是 Figma 文件导出的 HTML 总入口；同时保留上一版网页化总览和每个画板的独立 HTML。</p>
+      <div class="handoff-grid">
+        <a href="figma-file-html-export.html"><strong>figma-file-html-export.html</strong><span>当前 Figma 文件级 HTML 导出</span></a>
+        <a href="figma-web-export.html"><strong>figma-web-export.html</strong><span>6 个核心画板的网页化输出</span></a>
+        <a href="all-designs.html"><strong>all-designs.html</strong><span>本地设计总览入口</span></a>
+        <a href="realistic-paper-system.css"><strong>realistic-paper-system.css</strong><span>真实纸张与信封材质系统</span></a>
+      </div>
+    </section>
+  </main>
+</body>
+</html>

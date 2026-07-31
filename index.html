@@ -1,0 +1,1412 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>信笺 — 一封有温度的数字书信</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Ma+Shan+Zheng&family=Noto+Serif+SC:wght@400;500;700&family=ZCOOL+KuaiLe&family=ZCOOL+QingKe+HuangYou&family=ZCOOL+XiaoWei&family=Noto+Sans+SC:wght@400;500;700&family=Long+Cang&family=Liu+Jian+Mao+Cao&family=ZCOOL+KuaiLe&family=ZCOOL+XiaoWei&family=Ma+Shan+Zheng&family=Noto+Serif+SC&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/main.css?v=20260731b">
+  <link rel="stylesheet" href="css/envelopes.css?v=20260710">
+  <link rel="stylesheet" href="css/paper.css?v=20260735">
+  <link rel="stylesheet" href="css/editor.css?v=20260732">
+  <link rel="stylesheet" href="css/modules/editor-widgets-year.css?v=20260710">
+  <link rel="stylesheet" href="css/modules/editor-widgets-month.css?v=20260710">
+  <link rel="stylesheet" href="css/modules/editor-widgets-week.css?v=20260710">
+  <link rel="stylesheet" href="css/modules/editor-widgets-daily.css?v=20260710">
+  <link rel="stylesheet" href="css/features.css?v=20260710">
+  <link rel="stylesheet" href="css/map.css?v=20260718">
+</head>
+<body>
+  <!-- 登录视图 -->
+  <div id="login-view" class="view active">
+    <div class="login-container">
+      <div class="login-card">
+        <div class="login-decor">
+          <div class="decor-envelope">✉️</div>
+          <div class="decor-feather">🪶</div>
+        </div>
+        
+        <h1 class="login-title">信笺</h1>
+        <p class="login-subtitle">一封有温度的数字书信</p>
+        
+        <!-- 登录表单 -->
+        <form class="auth-form" id="login-form">
+          <div class="form-group">
+            <label for="login-username">用户名</label>
+            <input type="text" id="login-username" placeholder="请输入用户名">
+          </div>
+          <div class="form-group">
+            <label for="login-password">密码</label>
+            <input type="password" id="login-password" placeholder="请输入密码">
+          </div>
+          <div class="auth-error" id="login-error" style="display:none;"></div>
+          <button type="button" class="auth-btn primary" id="login-btn">开启信笺</button>
+        </form>
+        
+        <div class="auth-switch">
+          <span>还没有账号？</span>
+          <a href="javascript:void(0)" id="switch-to-register">立即注册</a>
+        </div>
+        
+        <div class="preset-accounts">
+          <div class="preset-divider">
+            <span>快速登录</span>
+          </div>
+          <div class="preset-buttons">
+            <button type="button" class="preset-btn" data-username="修璟">修璟</button>
+            <button type="button" class="preset-btn" data-username="萱宣">萱宣</button>
+          </div>
+        </div>
+        
+        <div class="guest-mode">
+          <button type="button" class="guest-btn" id="guest-mode-btn">访客模式 · 随便看看</button>
+        </div>
+        
+        <!-- 注册表单 -->
+        <form class="auth-form" id="register-form" style="display:none;">
+          <div class="form-group">
+            <label for="register-username">用户名</label>
+            <input type="text" id="register-username" placeholder="请输入用户名">
+          </div>
+          <div class="form-group">
+            <label for="register-password">密码</label>
+            <input type="password" id="register-password" placeholder="请输入密码">
+          </div>
+          <div class="form-group">
+            <label for="register-password2">确认密码</label>
+            <input type="password" id="register-password2" placeholder="请再次输入密码">
+          </div>
+          <div class="auth-error" id="register-error" style="display:none;"></div>
+          <button type="button" class="auth-btn primary" id="register-btn">注册并登录</button>
+        </form>
+        
+        <div class="auth-switch" id="register-switch" style="display:none;">
+          <span>已有账号？</span>
+          <a href="javascript:void(0)" id="switch-to-login">返回登录</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 主页：信箱列表（左右分栏） -->
+  <div id="home-view" class="view">
+    <div class="home-layout">
+      <!-- 移动端菜单按钮 -->
+      <button class="mobile-menu-toggle" id="home-menu-toggle" aria-label="菜单">☰</button>
+      
+      <!-- 移动端遮罩层 -->
+      <div class="sidebar-overlay" id="home-sidebar-overlay"></div>
+      
+      <!-- 左侧信箱列表 -->
+      <aside class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+          <button class="mobile-close-btn" id="home-close-sidebar" aria-label="关闭">✕</button>
+          <h1 class="sidebar-title">信笺</h1>
+          <p class="sidebar-subtitle">我的信箱</p>
+        </div>
+        <nav class="sidebar-nav" id="sidebar-nav"></nav>
+        <div class="sidebar-footer">
+          <button class="new-letter-btn sidebar-new-btn" id="home-new-mailbox-btn">📫 新增信箱</button>
+        </div>
+        <div class="sidebar-user-info" id="sidebar-user-info">
+          <div class="user-info-main">
+            <div class="user-avatar" id="user-avatar">👤</div>
+            <div class="user-details">
+              <div class="user-name" id="user-name">访客</div>
+              <div class="user-role" id="user-role">访客模式</div>
+            </div>
+          </div>
+          <button class="switch-account-btn" id="switch-account-btn" style="display:none;">
+            <span class="switch-icon">🔄</span>
+            <span class="switch-text">切换账号</span>
+          </button>
+          <button class="switch-account-btn guest-login-btn" id="guest-login-btn" style="display:none;">
+            <span class="switch-icon">🔐</span>
+            <span class="switch-text">切换到登录</span>
+          </button>
+          <button class="logout-btn" id="logout-btn" style="display:none;">退出登录</button>
+        </div>
+      </aside>
+
+      <!-- 右侧信件展示区 -->
+      <main class="gallery-main">
+        <div class="gallery-header">
+          <div>
+            <h2 class="gallery-title" id="gallery-title">我的信箱</h2>
+            <p class="gallery-desc" id="gallery-desc">点选信箱进入浏览，或继续上次的阅读</p>
+          </div>
+          <div class="bgm-control" id="home-bgm-control">
+            <button class="bgm-toggle-btn" id="home-bgm-toggle" title="播放/暂停BGM">🎵</button>
+            <div class="bgm-dropdown" id="home-bgm-dropdown">
+              <button class="bgm-dropdown-toggle" id="home-bgm-dropdown-toggle">🔄</button>
+              <div class="bgm-dropdown-menu" id="home-bgm-dropdown-menu"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 正在阅读 / 快速继续 -->
+        <div class="hero-grid" id="hero-grid">
+          <article class="feature-mailbox" id="feature-mailbox">
+            <div class="feature-copy">
+              <p class="eyebrow">正在阅读</p>
+              <h3 id="feature-mailbox-name">—</h3>
+              <p id="feature-mailbox-desc"></p>
+              <div class="meta-row" id="feature-mailbox-meta"></div>
+            </div>
+            <div class="feature-preview" id="feature-mailbox-preview"></div>
+          </article>
+          <aside class="insight-panel">
+            <h3>快速继续</h3>
+            <div class="continue-card" id="continue-card">
+              <span id="continue-letter-title">暂无记录</span>
+              <strong id="continue-mailbox-name"></strong>
+              <small id="continue-hint">开始阅读一封信吧</small>
+            </div>
+            <div class="mini-stats" id="mini-stats"></div>
+          </aside>
+        </div>
+
+        <!-- 我的手账 -->
+        <div class="section-head">
+          <div>
+            <h3>我的手账</h3>
+            <p>记录生活，规划未来</p>
+          </div>
+          <button class="section-action-btn" id="new-diary-btn">✏️ 新手账</button>
+        </div>
+        <div class="diary-grid" id="diary-grid">
+          <article class="diary-card diary-empty" id="diary-empty">
+            <div class="diary-empty-icon">📓</div>
+            <p>还没有手账<br>点击上方按钮创建你的第一本手账</p>
+          </article>
+        </div>
+
+        <!-- 所有信箱 -->
+        <div class="section-head">
+          <div>
+            <h3>所有信箱</h3>
+            <p>用网格信息提高浏览效率</p>
+          </div>
+          <div class="view-toggle-group" id="view-toggle-group">
+            <button class="view-toggle-btn active" data-view="grid">🗂️ 卡片</button>
+            <button class="view-toggle-btn" data-view="map">🗺️ 地图</button>
+          </div>
+        </div>
+
+        <!-- 信箱卡片网格视图 -->
+        <div class="mailbox-grid" id="mailbox-grid"></div>
+
+        <!-- 地图视图 -->
+        <div class="map-view-container" id="map-view-container" style="display:none;">
+          <button class="map-edit-btn" id="map-edit-btn">✏️ 编辑位置</button>
+          <div class="map-edit-hint" id="map-edit-hint">拖动邮筒图标调整位置，点击保存</div>
+          <svg class="map-svg" id="map-svg" viewBox="0 0 1000 500" preserveAspectRatio="xMidYMid meet">
+            <defs>
+              <linearGradient id="parchment-gradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                <stop offset="0%" style="stop-color:#f5ede0"/>
+                <stop offset="50%" style="stop-color:#ebe0cc"/>
+                <stop offset="100%" style="stop-color:#e0d4ba"/>
+              </linearGradient>
+              <filter id="paper-texture">
+                <feTurbulence type="fractalNoise" baseFrequency="0.04" numOctaves="5" result="noise"/>
+                <feDiffuseLighting in="noise" lighting-color="#f5ede0" surfaceScale="2" result="light">
+                  <feDistantLight azimuth="45" elevation="60"/>
+                </feDiffuseLighting>
+              </filter>
+            </defs>
+            <rect width="100%" height="100%" class="map-background"/>
+            <g id="map-continents"></g>
+            <g id="map-mountains"></g>
+            <g id="map-deserts"></g>
+            <g id="map-delivery-paths"></g>
+            <g id="map-mailbox-markers"></g>
+          </svg>
+          <div class="map-scale-bar">
+            <div class="scale-bar"></div>
+            <span class="scale-label">2000 km</span>
+          </div>
+          <button class="map-reset-btn" id="map-reset-btn" title="回到全局视图">🔍</button>
+          <div class="map-tooltip" id="map-tooltip"></div>
+        </div>
+
+        <!-- 兼容旧版画廊（隐藏） -->
+        <div class="gallery-wrapper" style="display:none;">
+          <div class="gallery-track" id="gallery-track"></div>
+        </div>
+        <div class="gallery-indicators" id="gallery-indicators" style="display:none;"></div>
+        <div class="gallery-nav-btns" style="display:none;">
+          <button class="gallery-btn prev-btn" id="gallery-prev">&#8592;</button>
+          <button class="gallery-btn next-btn" id="gallery-next">&#8594;</button>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <!-- 信箱详情：信件列表（左右分栏） -->
+  <div id="mailbox-view" class="view">
+    <div class="mailbox-layout">
+      <!-- 移动端菜单按钮 -->
+      <button class="mobile-menu-toggle" id="mailbox-menu-toggle" aria-label="菜单">☰</button>
+      
+      <!-- 移动端遮罩层 -->
+      <div class="sidebar-overlay" id="mailbox-sidebar-overlay"></div>
+      
+      <!-- 左侧信箱列表 -->
+      <aside class="sidebar" id="mailbox-sidebar">
+        <div class="sidebar-header">
+          <button class="mobile-close-btn" id="mailbox-close-sidebar" aria-label="关闭">✕</button>
+          <button class="back-btn sidebar-back-btn" id="back-to-home">
+            <span class="back-logo-title">信笺</span>
+            <span class="back-logo-subtitle">我的信箱</span>
+          </button>
+        </div>
+        <nav class="sidebar-nav" id="mailbox-sidebar-nav"></nav>
+        <div class="sidebar-footer">
+          <button class="new-letter-btn sidebar-new-btn" id="new-letter-btn">✉ 新建信件</button>
+        </div>
+        <div class="sidebar-user-info" id="mailbox-sidebar-user-info">
+          <div class="user-info-main">
+            <div class="user-avatar" id="mailbox-user-avatar">👤</div>
+            <div class="user-details">
+              <div class="user-name" id="mailbox-user-name">访客</div>
+              <div class="user-role" id="mailbox-user-role">访客模式</div>
+            </div>
+          </div>
+          <button class="switch-account-btn" id="mailbox-switch-account-btn" style="display:none;">
+            <span class="switch-icon">🔄</span>
+            <span class="switch-text">切换账号</span>
+          </button>
+          <button class="switch-account-btn guest-login-btn" id="mailbox-guest-login-btn" style="display:none;">
+            <span class="switch-icon">🔐</span>
+            <span class="switch-text">切换到登录</span>
+          </button>
+          <button class="logout-btn" id="mailbox-logout-btn" style="display:none;">退出登录</button>
+        </div>
+      </aside>
+
+      <!-- 右侧信件画廊 -->
+      <main class="gallery-main">
+        <div class="gallery-header">
+          <div>
+            <h2 class="gallery-title" id="mailbox-title"></h2>
+            <p class="gallery-desc" id="mailbox-desc">左右滑动浏览信件</p>
+          </div>
+          <div class="bgm-control" id="mailbox-bgm-control">
+            <button class="bgm-toggle-btn" id="mailbox-bgm-toggle" title="播放/暂停BGM">🎵</button>
+            <div class="bgm-dropdown" id="mailbox-bgm-dropdown">
+              <button class="bgm-dropdown-toggle" id="mailbox-bgm-dropdown-toggle">🔄</button>
+              <div class="bgm-dropdown-menu" id="mailbox-bgm-dropdown-menu"></div>
+            </div>
+            <button class="mailbox-action-btn" id="mailbox-edit-btn" title="编辑信箱">✎</button>
+            <button class="mailbox-action-btn" id="mailbox-delete-btn" title="删除信箱">🗑</button>
+          </div>
+        </div>
+        <div class="mail-folder-tabs" id="mail-folder-tabs" role="tablist" aria-label="信件分类">
+          <button class="mail-folder-tab active" type="button" role="tab" data-folder="timeline" aria-selected="true">时间线</button>
+          <button class="mail-folder-tab" type="button" role="tab" data-folder="inbox" aria-selected="false">收件</button>
+          <button class="mail-folder-tab" type="button" role="tab" data-folder="sent" aria-selected="false">已发送</button>
+          <button class="mail-folder-tab" type="button" role="tab" data-folder="draft" aria-selected="false">草稿</button>
+        </div>
+        <div class="gallery-wrapper">
+          <div class="letters-gallery-track" id="letter-list"></div>
+        </div>
+        <div class="gallery-indicators" id="letters-indicators"></div>
+        <div class="gallery-nav-btns">
+          <button class="gallery-btn prev-btn" id="letters-prev">&#8592;</button>
+          <button class="gallery-btn next-btn" id="letters-next">&#8594;</button>
+        </div>
+
+        <!-- 地图模式背景 -->
+        <div class="mailbox-map-view" id="mailbox-map-view">
+          <canvas class="game-map-canvas" id="game-map-canvas"></canvas>
+          
+          <!-- 在线玩家列表 -->
+          <div class="online-players-panel" id="online-players-panel">
+            <div class="online-players-title">在线成员</div>
+            <div class="online-players-list" id="online-players-list"></div>
+          </div>
+          
+          <!-- 角色选择器（可折叠） -->
+          <div class="character-selector" id="character-selector">
+            <button class="char-toggle-btn" id="char-toggle-btn">👤</button>
+            <div class="char-panel">
+              <!-- 登录用户：当前角色信息 -->
+              <div class="current-character-section" id="current-character-section" style="display:none;">
+                <div class="current-char-info">
+                  <div class="current-char-avatar" id="current-char-avatar">🎭</div>
+                  <div class="current-char-details">
+                    <div class="current-char-name" id="current-char-name">角色名</div>
+                    <div class="current-char-sect" id="current-char-sect">门派</div>
+                  </div>
+                </div>
+                <div class="action-section">
+                  <div class="action-label">单人动作</div>
+                  <div class="action-buttons">
+                    <button class="action-btn" data-action="personality">待机</button>
+                    <button class="action-btn" data-action="etiquette">礼仪 (E)</button>
+                    <button class="action-btn" data-action="martial">武艺 (Q)</button>
+                    <button class="action-btn" data-action="signature">招牌 (F)</button>
+                    <button class="action-btn" data-action="run">奔跑</button>
+                    <button class="action-btn" data-action="read_book">看书</button>
+                    <button class="action-btn" data-action="recite">诵读</button>
+                    <button class="action-btn" data-action="arrange_tablets">排典</button>
+                    <button class="action-btn" data-action="kneeling_rite">跪拜</button>
+                    <button class="action-btn" data-action="meditate_books">阅典</button>
+                    <button class="action-btn" data-action="mute_writing_board">默书</button>
+                    <button class="action-btn" data-action="offer_incense">上香</button>
+                    <button class="action-btn" data-action="offer_scroll">献卷</button>
+                    <button class="action-btn" data-action="pick_page">翻页</button>
+                    <button class="action-btn" data-action="protect_manuscript">护稿</button>
+                    <button class="action-btn" data-action="silent_thanks">谢礼</button>
+                    <button class="action-btn" data-action="study_long_scroll">研卷</button>
+                    <button class="action-btn" data-action="teach_etiquette">授礼</button>
+                    <button class="action-btn" data-action="think_brush">思笔</button>
+                    <button class="action-btn" data-action="walk_bamboo_slips">行简</button>
+                  </div>
+                </div>
+              </div>
+              
+              <!-- 访客用户：完整角色选择 -->
+              <div class="guest-character-section" id="guest-character-section">
+                <div class="char-category-tabs">
+                  <button class="char-tab active" data-category="jingyuan">🎭 静远七人</button>
+                  <button class="char-tab" data-category="hanmen">🏮 寒门</button>
+                  <button class="char-tab" data-category="xiejian">⚔️ 挟剑</button>
+                  <button class="char-tab" data-category="main">🦸 主角</button>
+                </div>
+                <div class="character-grid" id="character-grid">
+                </div>
+                <div class="partner-section">
+                  <div class="partner-label">搭档角色</div>
+                  <div class="partner-select" id="partner-select">
+                    <button class="partner-btn partner-none active" data-partner="none">无搭档</button>
+                  </div>
+                </div>
+                <div class="action-section">
+                  <div class="action-label">单人动作</div>
+                  <div class="action-buttons">
+                    <button class="action-btn" data-action="personality">待机</button>
+                    <button class="action-btn" data-action="etiquette">礼仪 (E)</button>
+                    <button class="action-btn" data-action="martial">武艺 (Q)</button>
+                    <button class="action-btn" data-action="signature">招牌 (F)</button>
+                    <button class="action-btn" data-action="run">奔跑</button>
+                    <button class="action-btn" data-action="read_book">看书</button>
+                    <button class="action-btn" data-action="recite">诵读</button>
+                    <button class="action-btn" data-action="arrange_tablets">排典</button>
+                    <button class="action-btn" data-action="kneeling_rite">跪拜</button>
+                    <button class="action-btn" data-action="meditate_books">阅典</button>
+                    <button class="action-btn" data-action="mute_writing_board">默书</button>
+                    <button class="action-btn" data-action="offer_incense">上香</button>
+                    <button class="action-btn" data-action="offer_scroll">献卷</button>
+                    <button class="action-btn" data-action="pick_page">翻页</button>
+                    <button class="action-btn" data-action="protect_manuscript">护稿</button>
+                    <button class="action-btn" data-action="silent_thanks">谢礼</button>
+                    <button class="action-btn" data-action="study_long_scroll">研卷</button>
+                    <button class="action-btn" data-action="teach_etiquette">授礼</button>
+                    <button class="action-btn" data-action="think_brush">思笔</button>
+                    <button class="action-btn" data-action="walk_bamboo_slips">行简</button>
+                  </div>
+                </div>
+                <div class="duet-section" id="duet-section" style="display:none;">
+                  <div class="duet-label">双人动作</div>
+                  <div class="duet-select" id="duet-select">
+                    <button class="duet-btn active" data-duet="0">行礼</button>
+                    <button class="duet-btn" data-duet="1">书画</button>
+                    <button class="duet-btn" data-duet="2">赏画</button>
+                    <button class="duet-btn" data-duet="3">撑伞</button>
+                    <button class="duet-btn" data-duet="4">簪花</button>
+                    <button class="duet-btn" data-duet="5">赠礼</button>
+                    <button class="duet-btn" data-duet="6">共读</button>
+                    <button class="duet-btn" data-duet="7">奔跑</button>
+                    <button class="duet-btn" data-duet="8">品茶</button>
+                    <button class="duet-btn" data-duet="9">舞剑</button>
+                  </div>
+                  <button class="duet-toggle-btn" id="duet-toggle-btn">退出双人模式</button>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <!-- 地图切换按钮 -->
+          <div class="map-controls">
+            <button class="map-control-btn map-list-btn" id="xiejian-map-picker-btn" type="button" title="地图列表" hidden>🗺</button>
+            <button class="map-control-btn" id="map-prev" title="上一张地图">←</button>
+            <button class="map-control-btn" id="map-next" title="下一张地图">→</button>
+          </div>
+          
+          <!-- 地图名称 -->
+          <div class="map-hud">
+            <span class="map-name" id="map-name">村庄</span>
+          </div>
+
+          <div class="xiejian-interact-prompt" id="xiejian-interact-prompt" hidden>
+            <img id="xiejian-interact-icon" src="sendbox/src/assets/xiejian/sanshi-pixel-assets/items/icons/academy_outer_robe/00.png" alt="">
+            <span id="xiejian-interact-text">拾取</span>
+            <kbd>空格</kbd>
+          </div>
+
+          <section class="xiejian-target-hud" id="xiejian-target-hud" hidden aria-live="polite">
+            <div>
+              <strong id="xiejian-target-name">未锁定目标</strong>
+              <div class="xiejian-target-health"><span id="xiejian-target-health-bar"></span></div>
+            </div>
+            <button id="xiejian-attack-btn" type="button">攻击 <kbd>R</kbd></button>
+          </section>
+
+          <aside class="xiejian-inventory-drawer" id="xiejian-inventory-drawer" aria-hidden="true">
+            <header class="xiejian-inventory-header">
+              <div>
+                <h2>行囊</h2>
+                <p id="xiejian-inventory-owner">挟剑角色背包</p>
+              </div>
+              <button id="xiejian-inventory-close" type="button" aria-label="关闭背包">×</button>
+            </header>
+            <div class="xiejian-combat-summary">
+              <img id="xiejian-inventory-portrait" src="sendbox/fill/jingyuan-chibi20-delivery-20260719/01-周然/frames/personality/00.png" alt="挟剑角色">
+              <div class="xiejian-combat-vitals">
+                <div class="xiejian-hp-row"><span>体力</span><strong id="xiejian-hp-text">100 / 100</strong></div>
+                <div class="xiejian-hp-track"><span id="xiejian-hp-bar"></span></div>
+                <div class="xiejian-stat-row">
+                  <span>武力 <strong id="xiejian-martial-stat">0</strong></span>
+                  <span>攻击 <strong id="xiejian-attack-stat">0</strong></span>
+                  <span>防御 <strong id="xiejian-defense-stat">4</strong></span>
+                </div>
+                <p class="xiejian-status-line" id="xiejian-status-line">状态安定</p>
+              </div>
+            </div>
+            <div class="xiejian-equipment-slots" id="xiejian-equipment-slots">
+              <button type="button" data-slot="weapon"><span>武器</span><strong>未装备</strong></button>
+              <button type="button" data-slot="clothing"><span>服饰</span><strong>未装备</strong></button>
+              <button type="button" data-slot="accessory"><span>配饰</span><strong>未装备</strong></button>
+            </div>
+            <nav class="xiejian-inventory-tabs" aria-label="背包分类">
+              <button class="active" type="button" data-inventory-filter="all">全部</button>
+              <button type="button" data-inventory-filter="equipment">装备</button>
+              <button type="button" data-inventory-filter="medicine">药品</button>
+              <button type="button" data-inventory-filter="bond">信物</button>
+              <button type="button" data-inventory-filter="story">故事物品</button>
+            </nav>
+            <div class="xiejian-inventory-content">
+              <div class="xiejian-item-grid" id="xiejian-item-grid"></div>
+              <section class="xiejian-item-detail" id="xiejian-item-detail">
+                <p>选择一件物品查看用途。</p>
+              </section>
+            </div>
+            <footer class="xiejian-quickbar">
+              <span>快捷使用</span>
+              <div id="xiejian-quick-slots">
+                <button type="button" data-quick-slot="0">1</button>
+                <button type="button" data-quick-slot="1">2</button>
+                <button type="button" data-quick-slot="2">3</button>
+                <button type="button" data-quick-slot="3">4</button>
+              </div>
+            </footer>
+          </aside>
+          
+          <!-- 多人连接设置 -->
+          <div class="multiplayer-settings-btn" id="multiplayer-settings-btn" title="多人连接设置">🔗</div>
+          <div class="multiplayer-settings-panel" id="multiplayer-settings-panel" style="display:none;">
+            <div class="mp-panel-header">
+              <span>多人连接设置</span>
+              <button class="mp-close-btn" id="mp-close-btn">×</button>
+            </div>
+            <div class="mp-panel-body">
+              <div class="mp-field">
+                <label>服务器地址</label>
+                <input type="text" id="mp-server-url" placeholder="ws://IP:端口 (如 ws://192.168.1.100:3000)" />
+              </div>
+              <div class="mp-field">
+                <label>房间号</label>
+                <input type="text" id="mp-room-id" placeholder="输入相同房间号即可同步" />
+              </div>
+              <div class="mp-status" id="mp-status">未连接</div>
+              <div class="mp-actions">
+                <button class="mp-btn mp-connect-btn" id="mp-connect-btn">连接</button>
+                <button class="mp-btn mp-disconnect-btn" id="mp-disconnect-btn" style="display:none;">断开</button>
+              </div>
+              <div class="mp-tip">提示：不同设备/端口输入相同的服务器地址和房间号即可实时同步</div>
+            </div>
+          </div>
+          
+          <!-- 移动端虚拟摇杆 -->
+          <div class="mobile-controls mobile-only">
+            <div class="joystick" id="joystick">
+              <div class="joystick-base">
+                <div class="joystick-handle" id="joystick-handle"></div>
+              </div>
+            </div>
+          </div>
+          
+          <!-- 移动端动作按钮开关 -->
+          <button class="mobile-actions-toggle mobile-only" id="mobile-actions-toggle" title="展开动作">⚡</button>
+          
+          <!-- 移动端动作按钮 -->
+          <div class="mobile-actions mobile-only" id="mobile-actions">
+            <button class="action-btn" data-action="personality" title="待机">待机</button>
+            <button class="action-btn" data-action="etiquette" title="礼仪">礼仪</button>
+            <button class="action-btn" data-action="martial" title="武艺">武艺</button>
+            <button class="action-btn" data-action="signature" title="招牌">招牌</button>
+            <button class="action-btn" data-action="run" title="奔跑">奔跑</button>
+            <button class="action-btn" data-action="read_book" title="看书">看书</button>
+            <button class="action-btn" data-action="recite" title="诵读">诵读</button>
+            <button class="action-btn" data-action="arrange_tablets" title="排典">排典</button>
+            <button class="action-btn" data-action="kneeling_rite" title="跪拜">跪拜</button>
+            <button class="action-btn" data-action="meditate_books" title="阅典">阅典</button>
+            <button class="action-btn" data-action="mute_writing_board" title="默书">默书</button>
+            <button class="action-btn" data-action="offer_incense" title="上香">上香</button>
+            <button class="action-btn" data-action="offer_scroll" title="献卷">献卷</button>
+            <button class="action-btn" data-action="pick_page" title="翻页">翻页</button>
+            <button class="action-btn" data-action="protect_manuscript" title="护稿">护稿</button>
+            <button class="action-btn" data-action="silent_thanks" title="谢礼">谢礼</button>
+            <button class="action-btn" data-action="study_long_scroll" title="研卷">研卷</button>
+            <button class="action-btn" data-action="teach_etiquette" title="授礼">授礼</button>
+            <button class="action-btn" data-action="think_brush" title="思笔">思笔</button>
+            <button class="action-btn" data-action="walk_bamboo_slips" title="行简">行简</button>
+          </div>
+
+          <!-- 聊天输入框 -->
+          <div class="chat-input-container" id="chat-input-container" style="display:none;">
+            <button id="chat-history-btn" class="chat-history-btn" title="聊天记录">💬</button>
+            <input type="text" id="chat-input" placeholder="输入对话..." maxlength="50" />
+            <button id="chat-send-btn" title="发送">发送</button>
+          </div>
+
+          <!-- 聊天记录面板 -->
+          <div class="chat-history-panel" id="chat-history-panel" style="display:none;">
+            <div class="chat-history-header">
+              <span class="chat-history-title">聊天记录</span>
+              <button class="chat-history-close" id="chat-history-close">×</button>
+            </div>
+            <div class="chat-history-list" id="chat-history-list">
+            </div>
+          </div>
+
+          <!-- 双人动作面板 -->
+          <div class="duet-action-panel" id="duet-action-panel" style="display:none;">
+            <div class="duet-action-title">双人动作</div>
+            <div class="duet-action-buttons">
+              <button class="duet-action-btn" data-action="etiquette">行礼</button>
+              <button class="duet-action-btn" data-action="martial">武艺</button>
+              <button class="duet-action-btn" data-action="signature">招牌</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 视角切换按钮组 -->
+        <div class="view-switch" id="view-switch">
+          <button class="view-btn view-letters active" data-view="letters" title="信件模式">
+            <span class="view-icon">✉️</span>
+            <span class="view-label">信件</span>
+          </button>
+          <button class="view-btn view-diary" data-view="diary" title="日记模式">
+            <span class="view-icon">📓</span>
+            <span class="view-label">日记</span>
+          </button>
+          <button class="view-btn view-map" data-view="map" title="地图模式">
+            <span class="view-icon">🗺️</span>
+            <span class="view-label">地图</span>
+          </button>
+          <button class="view-btn view-backpack" id="xiejian-backpack-btn" type="button" title="打开背包" hidden>
+            <span class="view-icon">🎒</span>
+            <span class="view-label">背包</span>
+          </button>
+        </div>
+
+        <!-- 移动端快捷操作按钮 -->
+        <div class="mobile-quick-actions mobile-only" id="mobile-quick-actions">
+          <button class="mobile-quick-btn mobile-new-letter-btn" id="mobile-new-letter-btn" title="新建信件">
+            <span class="quick-icon">✉</span>
+          </button>
+          <button class="mobile-quick-btn mobile-send-btn" id="mobile-send-btn" title="发送信件">
+            <span class="quick-icon">➤</span>
+          </button>
+        </div>
+
+        <!-- 双人视角切换 -->
+        <div class="perspective-switch" id="perspective-switch" style="display:none;">
+          <button class="perspective-btn active" data-perspective="a" id="perspective-a-btn">
+            <span class="perspective-avatar">🌸</span>
+            <span class="perspective-name">A的视角</span>
+          </button>
+          <div class="perspective-divider"></div>
+          <button class="perspective-btn" data-perspective="b" id="perspective-b-btn">
+            <span class="perspective-avatar">🍃</span>
+            <span class="perspective-name">B的视角</span>
+          </button>
+        </div>
+
+        <!-- 待寄信件入口 -->
+        <div class="scheduled-entry" id="scheduled-entry" style="display:none;">
+          <div class="scheduled-envelope">
+            <span class="scheduled-icon">🕰️</span>
+            <span class="scheduled-label">待寄信件</span>
+            <span class="scheduled-count" id="scheduled-count">0</span>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <!-- 编辑器视图 -->
+  <div id="editor-view" class="view">
+    <header class="view-header">
+      <button class="back-btn" id="back-to-mailbox">
+        <span class="back-logo-title">信笺</span>
+        <span class="back-logo-subtitle">我的信箱</span>
+      </button>
+      <h2 class="view-title" id="editor-title">新建信件</h2>
+      <div class="editor-actions">
+        <button class="attachment-btn" id="letter-item-attachments-btn" type="button" aria-label="打开随信物品">🎁 随信物品 0/8</button>
+        <button class="save-btn" id="save-letter-btn">💾 保存草稿</button>
+        <button class="read-btn" id="read-letter-btn">📖 阅读</button>
+        <button class="send-letter-btn" id="send-letter-btn">✉ 发送</button>
+      </div>
+    </header>
+    <div class="editor-layout">
+      <!-- 左侧工具栏 -->
+      <aside class="toolbar" id="toolbar">
+        <div class="toolbar-section pages-section">
+          <div class="pages-header">
+            <h3>信纸页面</h3>
+            <button class="add-page-btn" id="add-page-btn" title="添加一页">+</button>
+          </div>
+          <div class="pages-list" id="pages-list"></div>
+        </div>
+        <div class="toolbar-section">
+          <h3>工具</h3>
+          <button class="tool-btn" data-tool="text" title="添加文字">T</button>
+          <button class="tool-btn" data-tool="image" title="上传图片">🖼</button>
+          <button class="tool-btn" data-tool="voice" title="录制语音">🎤</button>
+          <button class="tool-btn" data-tool="video" title="上传视频">🎬</button>
+          <button class="tool-btn" data-tool="stamp" title="贴图">✂</button>
+        </div>
+        <div class="toolbar-section">
+          <h3>功能组件</h3>
+          <div class="widget-grid" id="widget-grid">
+            <div class="widget-item" data-widget="date" title="日期组件">
+              <span class="widget-icon">📅</span>
+              <span class="widget-name">日期</span>
+            </div>
+            <div class="widget-item" data-widget="time-weekday" title="时间星期组合">
+              <span class="widget-icon">⏱️</span>
+              <span class="widget-name">时间星期</span>
+            </div>
+            <div class="widget-item" data-widget="recipient" title="收信人组件">
+              <span class="widget-icon">👤</span>
+              <span class="widget-name">收信人</span>
+            </div>
+            <div class="widget-item" data-widget="signature" title="写信人签名组合">
+              <span class="widget-icon">✍️</span>
+              <span class="widget-name">签名</span>
+            </div>
+            <div class="widget-item" data-widget="title" title="信件标题组件">
+              <span class="widget-icon">📄</span>
+              <span class="widget-name">标题</span>
+            </div>
+            <div class="widget-item" data-widget="location" title="地点组件">
+              <span class="widget-icon">📍</span>
+              <span class="widget-name">地点</span>
+            </div>
+          </div>
+        </div>
+        <div class="toolbar-section">
+          <h3>BGM</h3>
+          <button class="tool-btn" data-tool="bgm" title="设置背景音乐">🎵</button>
+          <div id="bgm-player" class="bgm-player" style="display:none;">
+            <audio id="bgm-audio" controls></audio>
+            <button class="remove-bgm-btn" id="remove-bgm-btn">移除</button>
+          </div>
+        </div>
+        <div class="toolbar-section sticker-section">
+          <h3>贴纸</h3>
+          <div class="stamp-grid" id="stamp-grid"></div>
+        </div>
+        <div class="toolbar-section">
+          <h3>信纸风格</h3>
+          <div class="paper-style-grid" id="paper-style-grid"></div>
+        </div>
+        <div class="toolbar-section">
+          <h3>信封样式</h3>
+          <div class="envelope-style-row" id="toolbar-envelope-grid"></div>
+        </div>
+        <div class="toolbar-section envelope-large-section">
+          <div class="envelope-large-preview" id="envelope-large-preview">
+            <div class="meta-envelope env-vintage-stamp" id="toolbar-large-envelope">
+              <div class="env-stamp"></div>
+              <div class="env-postmark"></div>
+              <div class="env-address">
+                <span class="line">Miss Lin Mei</span>
+                <span class="line">Hengshan Rd 18</span>
+                <span class="line">Shanghai</span>
+              </div>
+              <div class="env-wavy-lines">
+                <span></span>
+                <span></span>
+                <span></span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </aside>
+
+      <!-- 中间信纸区域 -->
+      <section class="paper-area" id="paper-area">
+        <div class="paper-canvas" id="paper-canvas"></div>
+      </section>
+
+      <!-- 右侧属性面板 -->
+      <aside class="property-panel" id="property-panel">
+        <h3>属性</h3>
+        <!-- 编辑模式切换 -->
+        <div class="prop-group edit-mode-tabs">
+          <button class="mode-tab active" data-mode="content" title="编辑信纸内容">📝 信纸</button>
+          <button class="mode-tab" data-mode="cover" title="编辑信封封面">✉ 封面</button>
+        </div>
+        <!-- 撤销/重做 -->
+        <div class="prop-group action-group">
+          <button class="action-btn" id="undo-btn" title="撤销 (Ctrl+Z)">↩ 撤销</button>
+          <button class="action-btn" id="redo-btn" title="重做 (Ctrl+Y)">↪ 重做</button>
+        </div>
+        <!-- 对齐操作 -->
+        <div class="prop-group action-group align-actions" id="align-actions" style="display:none;">
+          <div style="font-size:0.75rem;color:var(--color-muted);margin-bottom:4px;">对齐</div>
+          <div class="align-btns">
+            <button class="align-btn" data-align="left" title="左对齐">⬅ 左</button>
+            <button class="align-btn" data-align="center" title="水平居中">↔ 中</button>
+            <button class="align-btn" data-align="right" title="右对齐">➡ 右</button>
+          </div>
+        </div>
+        <!-- 层级操作 -->
+        <div class="prop-group action-group layer-actions" id="layer-actions" style="display:none;">
+          <div style="font-size:0.75rem;color:#888;margin-bottom:4px;">层级</div>
+          <div class="layer-btns">
+            <button class="layer-btn" data-layer="bring-to-front" title="置顶">⬆️ 置顶</button>
+            <button class="layer-btn" data-layer="bring-forward" title="上移一层">⬆ 上移</button>
+            <button class="layer-btn" data-layer="send-backward" title="下移一层">⬇ 下移</button>
+            <button class="layer-btn" data-layer="send-to-back" title="置底">⬇️ 置底</button>
+          </div>
+        </div>
+        <!-- 字体风格选择 -->
+        <div class="prop-group font-style-group">
+          <div style="font-size:0.75rem;color:#888;margin-bottom:6px;">字体风格</div>
+          <div class="font-style-grid" id="font-style-grid"></div>
+        </div>
+        
+        <div id="property-content">
+          <p class="hint">选择信纸上的元素以编辑属性</p>
+        </div>
+        <!-- 元素列表（图层面板） -->
+        <div class="prop-group layers-panel">
+          <div class="panel-header">
+            <span>元素列表</span>
+            <span class="elem-count" id="elem-count">0</span>
+          </div>
+          <div class="layers-list" id="layers-list"></div>
+        </div>
+        <!-- 草稿与备份 -->
+        <div class="prop-group draft-section">
+          <div class="draft-status" id="draft-status">自动保存：就绪</div>
+          <div class="draft-btns">
+            <button class="draft-btn" id="export-backup-btn" title="导出信件备份">📦 导出备份</button>
+            <button class="draft-btn" id="import-backup-btn" title="导入信件备份">📥 导入备份</button>
+          </div>
+        </div>
+      </aside>
+    </div>
+  </div>
+  <aside class="letter-item-drawer" id="letter-item-drawer" aria-hidden="true">
+    <header class="letter-item-drawer-header">
+      <div>
+        <h3>随信物品</h3>
+        <p>最多选择 8 件。草稿不会锁定物品，发送时统一验证。</p>
+      </div>
+      <button id="letter-item-drawer-close" type="button" aria-label="关闭随信物品">×</button>
+    </header>
+    <div class="letter-item-drawer-status" id="letter-item-drawer-status" role="status" aria-live="polite"></div>
+    <div class="letter-item-grid" id="letter-item-grid"></div>
+  </aside>
+
+  <!-- 信纸风格选择 -->
+  <div id="style-select-view" class="view">
+    <header class="view-header">
+      <button class="back-btn" id="back-from-style">
+        <span class="back-logo-title">信笺</span>
+        <span class="back-logo-subtitle">我的信箱</span>
+      </button>
+      <h2 class="view-title">选择信纸风格</h2>
+    </header>
+    <main class="style-grid" id="style-grid"></main>
+  </div>
+
+  <!-- 信封开启动画层 -->
+  <div id="xiejian-entry-overlay" class="xiejian-entry-overlay" aria-hidden="true">
+    <section class="xiejian-entry-panel" role="dialog" aria-modal="true" aria-labelledby="xiejian-entry-title">
+      <header class="xiejian-entry-header">
+        <div>
+          <h2 id="xiejian-entry-title">进入挟剑</h2>
+          <p id="xiejian-entry-subtitle">先选择一位尚未被占用的角色</p>
+        </div>
+        <span class="xiejian-entry-capacity" id="xiejian-entry-capacity">0 / 11 在线</span>
+      </header>
+      <div class="xiejian-entry-status" id="xiejian-entry-status" role="status" aria-live="polite"></div>
+      <div class="xiejian-entry-step active" id="xiejian-character-step">
+        <div class="xiejian-character-grid" id="xiejian-character-grid"></div>
+        <p class="xiejian-reserved-note">当前开放 7 位角色，另有 4 个角色位待后续资源补齐。</p>
+      </div>
+      <div class="xiejian-entry-step" id="xiejian-map-step">
+        <div class="xiejian-map-grid" id="xiejian-map-grid"></div>
+      </div>
+      <footer class="xiejian-entry-footer">
+        <button class="xiejian-secondary-btn" id="xiejian-back-to-character" type="button" hidden>返回选人</button>
+        <button class="xiejian-secondary-btn" id="xiejian-map-settings-btn" type="button" hidden>连接设置</button>
+        <button class="xiejian-primary-btn" id="xiejian-enter-map" type="button" disabled>进入地图</button>
+      </footer>
+    </section>
+  </div>
+
+  <div id="recipient-picker-overlay" class="recipient-picker-overlay" aria-hidden="true">
+    <section class="recipient-picker-panel" role="dialog" aria-modal="true" aria-labelledby="recipient-picker-title">
+      <header class="recipient-picker-header">
+        <div>
+          <h2 id="recipient-picker-title">这封信写给谁？</h2>
+          <p>请选择当前信箱中的收信人</p>
+        </div>
+        <button class="recipient-picker-close" id="recipient-picker-close" type="button" aria-label="关闭">×</button>
+      </header>
+      <div class="recipient-picker-status" id="recipient-picker-status" role="status" aria-live="polite"></div>
+      <div class="recipient-picker-list" id="recipient-picker-list"></div>
+    </section>
+  </div>
+
+  <div id="envelope-overlay" class="envelope-overlay">
+    <div class="envelope-wrapper">
+      <div class="envelope" id="envelope">
+        <div class="envelope-flap"></div>
+        <div class="envelope-body">
+          <div class="envelope-seal">✉</div>
+        </div>
+        <div class="envelope-letter">
+          <div class="letter-preview">
+            <div class="letter-preview-line line-1"></div>
+            <div class="letter-preview-line line-2"></div>
+            <div class="letter-preview-line line-3"></div>
+            <div class="letter-preview-line line-4"></div>
+            <div class="letter-preview-line line-5"></div>
+          </div>
+        </div>
+      </div>
+      <p class="envelope-hint">点击信封打开</p>
+    </div>
+  </div>
+
+  <!-- 阅读模式 -->
+  <div id="reader-view" class="view">
+    <header class="view-header">
+      <button class="back-btn" id="back-from-reader">
+        <span class="back-logo-title">信笺</span>
+        <span class="back-logo-subtitle">我的信箱</span>
+      </button>
+      <h2 class="view-title" id="reader-title">阅读信件</h2>
+    </header>
+    <main class="reader-content" id="reader-content"></main>
+    <div class="reader-controls">
+      <button class="record-btn" id="record-btn">🎤 录音</button>
+      <button class="reply-btn" id="reply-btn">✉️ 回信</button>
+      <button class="edit-letter-btn" id="edit-letter-btn">✎ 编辑信件</button>
+      <button class="export-btn" id="export-btn">📥 导出为图片</button>
+    </div>
+    <div class="record-player" id="record-player" style="display:none;">
+      <div class="record-waveform" id="record-waveform">
+        <span></span><span></span><span></span><span></span><span></span>
+      </div>
+      <span class="record-duration" id="record-duration">00:00</span>
+      <button class="record-play-btn" id="record-play-btn">▶</button>
+      <button class="record-rerecord-btn" id="record-rerecord-btn" title="重新录音">🔄</button>
+    </div>
+  </div>
+
+  <!-- 以撒的日记弹窗 -->
+  <div id="diary-modal" class="diary-modal">
+    <div class="diary-modal-overlay"></div>
+    <div class="diary-modal-content">
+      <button class="diary-close" id="diary-close">&times;</button>
+      <div class="diary-header">
+        <h3>以撒的日记</h3>
+        <span class="diary-page-num" id="diary-page-num">1 / 47</span>
+      </div>
+      <div class="diary-viewer" id="diary-viewer">
+        <div class="diary-book" id="diary-book">
+          <div class="diary-page diary-page-left">
+            <div class="diary-page-content" id="diary-left-page"></div>
+          </div>
+          <div class="diary-page diary-page-right">
+            <div class="diary-page-content" id="diary-right-page"></div>
+          </div>
+          <div class="diary-page diary-page-flipper" id="diary-flipper">
+            <div class="diary-page-flipper-front">
+              <div class="diary-page-content" id="diary-flipper-front"></div>
+            </div>
+            <div class="diary-page-flipper-back">
+              <div class="diary-page-content" id="diary-flipper-back"></div>
+            </div>
+          </div>
+        </div>
+        <button class="diary-nav diary-prev" id="diary-prev">&#8592;</button>
+        <button class="diary-nav diary-next" id="diary-next">&#8594;</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 信箱编辑/新增弹窗 -->
+  <div id="mailbox-modal" class="mailbox-modal">
+    <div class="mailbox-modal-overlay"></div>
+    <div class="mailbox-modal-content">
+      <button class="mailbox-modal-close" id="mailbox-modal-close">&times;</button>
+      <h3 id="mailbox-modal-title">新增信箱</h3>
+      <div class="mailbox-form">
+        <div class="form-group">
+          <label>信箱名称</label>
+          <input type="text" id="mailbox-form-name" placeholder="请输入信箱名称" maxlength="20">
+        </div>
+        <div class="form-group">
+          <label>信箱描述</label>
+          <input type="text" id="mailbox-form-desc" placeholder="请输入描述（可选）" maxlength="50">
+        </div>
+        <div class="form-group">
+          <label>信箱类型</label>
+          <div class="mailbox-type-select">
+            <div class="type-option active" data-type="normal">
+              <span class="type-icon">📫</span>
+              <span class="type-name">普通信箱</span>
+            </div>
+            <div class="type-option" data-type="dual">
+              <span class="type-icon">💌</span>
+              <span class="type-name">双人信箱</span>
+            </div>
+          </div>
+        </div>
+        <div class="form-group" id="dual-mailbox-settings" style="display:none;">
+          <label>双人设置</label>
+          <div class="dual-settings">
+            <div class="dual-person">
+              <span class="dual-label">A方</span>
+              <input type="text" id="dual-person-a" placeholder="名字，如：以撒" maxlength="10">
+              <div class="dual-icon-select">
+                <span class="dual-icon-option active" data-icon="🌸">🌸</span>
+                <span class="dual-icon-option" data-icon="🌹">🌹</span>
+                <span class="dual-icon-option" data-icon="🦋">🦋</span>
+                <span class="dual-icon-option" data-icon="🌙">🌙</span>
+              </div>
+            </div>
+            <div class="dual-person">
+              <span class="dual-label">B方</span>
+              <input type="text" id="dual-person-b" placeholder="名字，如：缪宏谟" maxlength="10">
+              <div class="dual-icon-select">
+                <span class="dual-icon-option" data-icon="🍃">🍃</span>
+                <span class="dual-icon-option" data-icon="🌿">🌿</span>
+                <span class="dual-icon-option" data-icon="⭐">⭐</span>
+                <span class="dual-icon-option" data-icon="🕊️">🕊️</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="form-group" id="mailbox-members-group">
+          <label>成员管理</label>
+          <div class="members-list" id="members-list"></div>
+          <div class="member-invite-row">
+            <input type="text" id="member-invite-input" placeholder="输入用户名邀请成员" maxlength="20">
+            <button type="button" class="invite-btn" id="member-invite-btn">邀请</button>
+          </div>
+          <p class="member-hint">输入用户名邀请成员加入共享信箱</p>
+        </div>
+        <div class="form-group">
+          <label>图标</label>
+          <div class="icon-grid" id="mailbox-icon-grid">
+            <span data-icon="📜">📜</span>
+            <span data-icon="🏮">🏮</span>
+            <span data-icon="📫">📫</span>
+            <span data-icon="✉️">✉️</span>
+            <span data-icon="📮">📮</span>
+            <span data-icon="🕊️">🕊️</span>
+            <span data-icon="🦋">🦋</span>
+            <span data-icon="🌙">🌙</span>
+            <span data-icon="🌸">🌸</span>
+            <span data-icon="❄️">❄️</span>
+            <span data-icon="🍂">🍂</span>
+            <span data-icon="🌲">🌲</span>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>主题色</label>
+          <div class="color-grid" id="mailbox-color-grid">
+            <span data-color="#8b4513" style="background:#8b4513"></span>
+            <span data-color="#a0522d" style="background:#a0522d"></span>
+            <span data-color="#6a9bb5" style="background:#6a9bb5"></span>
+            <span data-color="#8b6914" style="background:#8b6914"></span>
+            <span data-color="#6b5b7a" style="background:#6b5b7a"></span>
+            <span data-color="#5a7a5a" style="background:#5a7a5a"></span>
+            <span data-color="#b86b3d" style="background:#b86b3d"></span>
+            <span data-color="#8b5a3e" style="background:#8b5a3e"></span>
+            <span data-color="#c99" style="background:#c99"></span>
+            <span data-color="#7ab8d4" style="background:#7ab8d4"></span>
+            <span data-color="#b8860b" style="background:#b8860b"></span>
+            <span data-color="#8b7baa" style="background:#8b7baa"></span>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>背景风格</label>
+          <div class="bg-grid" id="mailbox-bg-grid">
+            <div class="bg-option active" data-bg="warm" data-gradient="linear-gradient(135deg, #faf5f0, #f5efe5)">
+              <div class="bg-preview" style="background:linear-gradient(135deg, #faf5f0, #f5efe5)"></div>
+              <span>暖白</span>
+            </div>
+            <div class="bg-option" data-bg="pink" data-gradient="linear-gradient(135deg, #fdf2f8, #fce7f3)">
+              <div class="bg-preview" style="background:linear-gradient(135deg, #fdf2f8, #fce7f3)"></div>
+              <span>粉色</span>
+            </div>
+            <div class="bg-option" data-bg="blue" data-gradient="linear-gradient(135deg, #edf5fa, #e3eff7)">
+              <div class="bg-preview" style="background:linear-gradient(135deg, #edf5fa, #e3eff7)"></div>
+              <span>淡蓝</span>
+            </div>
+            <div class="bg-option" data-bg="green" data-gradient="linear-gradient(135deg, #f0f5f0, #e5f0e5)">
+              <div class="bg-preview" style="background:linear-gradient(135deg, #f0f5f0, #e5f0e5)"></div>
+              <span>薄荷</span>
+            </div>
+            <div class="bg-option" data-bg="purple" data-gradient="linear-gradient(135deg, #f5f0fa, #ede5f5)">
+              <div class="bg-preview" style="background:linear-gradient(135deg, #f5f0fa, #ede5f5)"></div>
+              <span>淡紫</span>
+            </div>
+            <div class="bg-option" data-bg="yellow" data-gradient="linear-gradient(135deg, #fef9ef, #fdf3e0)">
+              <div class="bg-preview" style="background:linear-gradient(135deg, #fef9ef, #fdf3e0)"></div>
+              <span>暖黄</span>
+            </div>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>地图背景</label>
+          <div class="map-bg-grid" id="mailbox-map-bg-grid">
+            <div class="map-bg-option active" data-map-bg="null">
+              <div class="map-bg-preview map-bg-pixel">
+                <span class="pixel-icon">🎮</span>
+              </div>
+              <span>无背景</span>
+            </div>
+            <div class="map-bg-option" data-map-bg="hanmen">
+              <div class="map-bg-preview">
+                <img src="sendbox/src/assets/maps/hanmen-bg.png" alt="寒门雪景">
+              </div>
+              <span>寒门雪景</span>
+            </div>
+            <div class="map-bg-option" data-map-bg="village">
+              <div class="map-bg-preview">
+                <img src="sendbox/src/assets/maps/bg-village.png" alt="村庄">
+              </div>
+              <span>村庄</span>
+            </div>
+            <div class="map-bg-option" data-map-bg="desert">
+              <div class="map-bg-preview">
+                <img src="sendbox/src/assets/maps/bg-desert.png" alt="沙漠">
+              </div>
+              <span>沙漠</span>
+            </div>
+            <div class="map-bg-option" data-map-bg="forest">
+              <div class="map-bg-preview">
+                <img src="sendbox/src/assets/maps/bg-forest.png" alt="森林">
+              </div>
+              <span>森林</span>
+            </div>
+            <div class="map-bg-option" data-map-bg="farm">
+              <div class="map-bg-preview">
+                <img src="sendbox/src/assets/maps/bg-farm.png" alt="农场">
+              </div>
+              <span>农场</span>
+            </div>
+            <div class="map-bg-option" data-map-bg="mine">
+              <div class="map-bg-preview">
+                <img src="sendbox/src/assets/maps/bg-mine.png" alt="矿洞">
+              </div>
+              <span>矿洞</span>
+            </div>
+            <div class="map-bg-option" data-map-bg="xj-jingyuan">
+              <div class="map-bg-preview">
+                <img src="sendbox/src/assets/xiejian/sanshi-pixel-assets/location-maps/full-maps/jingyuan-academy-map.png" alt="静远书院">
+              </div>
+              <span>静远书院</span>
+            </div>
+            <div class="map-bg-option" data-map-bg="xj-daohua">
+              <div class="map-bg-preview">
+                <img src="sendbox/src/assets/xiejian/sanshi-pixel-assets/location-maps/full-maps/daohua-temple-map.png" alt="道华观">
+              </div>
+              <span>道华观</span>
+            </div>
+            <div class="map-bg-option" data-map-bg="xj-tianxing">
+              <div class="map-bg-preview">
+                <img src="sendbox/src/assets/xiejian/sanshi-pixel-assets/location-maps/full-maps/tianxing-cult-map.png" alt="天行教">
+              </div>
+              <span>天行教</span>
+            </div>
+            <div class="map-bg-option" data-map-bg="xj-danxi">
+              <div class="map-bg-preview">
+                <img src="sendbox/src/assets/xiejian/sanshi-pixel-assets/location-maps/full-maps/danxi-valley-map.png" alt="丹溪谷">
+              </div>
+              <span>丹溪谷</span>
+            </div>
+            <div class="map-bg-option" data-map-bg="xj-buhuan">
+              <div class="map-bg-preview">
+                <img src="sendbox/src/assets/xiejian/sanshi-pixel-assets/location-maps/full-maps/buhuan-sect-map.png" alt="不还门">
+              </div>
+              <span>不还门</span>
+            </div>
+            <div class="map-bg-option" data-map-bg="xj-taozhi">
+              <div class="map-bg-preview">
+                <img src="sendbox/src/assets/xiejian/sanshi-pixel-assets/location-maps/full-maps/taozhi-sect-map.png" alt="桃止门">
+              </div>
+              <span>桃止门</span>
+            </div>
+            <div class="map-bg-option" data-map-bg="xj-dongjia">
+              <div class="map-bg-preview">
+                <img src="sendbox/src/assets/xiejian/sanshi-pixel-assets/location-maps/full-maps/dongjia-shen-manor-map.png" alt="东嘉沈府">
+              </div>
+              <span>东嘉沈府</span>
+            </div>
+            <div class="map-bg-option" data-map-bg="xj-ren">
+              <div class="map-bg-preview">
+                <img src="sendbox/src/assets/xiejian/sanshi-pixel-assets/location-maps/full-maps/ren-manor-map.png" alt="任府">
+              </div>
+              <span>任府</span>
+            </div>
+            <div class="map-bg-option" data-map-bg="xj-capital">
+              <div class="map-bg-preview">
+                <img src="sendbox/src/assets/xiejian/sanshi-pixel-assets/location-maps/full-maps/capital-hanlin-map.png" alt="京城翰林院">
+              </div>
+              <span>京城翰林院</span>
+            </div>
+            <div class="map-bg-option" data-map-bg="xj-forgetfulness">
+              <div class="map-bg-preview">
+                <img src="sendbox/src/assets/xiejian/sanshi-pixel-assets/location-maps/full-maps/forgetfulness-river-map.png" alt="忘川">
+              </div>
+              <span>忘川</span>
+            </div>
+            <div class="map-bg-option" data-map-bg="xj-border">
+              <div class="map-bg-preview">
+                <img src="sendbox/src/assets/xiejian/sanshi-pixel-assets/location-maps/full-maps/border-town-map.png" alt="边陲小镇">
+              </div>
+              <span>边陲小镇</span>
+            </div>
+          </div>
+        </div>
+        <div class="form-group" id="mailbox-letters-group" style="display:none;">
+          <label>信件管理</label>
+          <div class="mailbox-letters-list" id="mailbox-letters-list"></div>
+        </div>
+        <div class="form-actions">
+          <button class="form-btn form-btn-secondary" id="mailbox-form-cancel">取消</button>
+          <button class="form-btn form-btn-primary" id="mailbox-form-save">保存</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 手账主视图（年/月/日视图） -->
+  <div id="journal-view" class="view">
+    <header class="view-header">
+      <button class="back-btn" id="back-from-journal">
+        <span class="back-logo-title">信笺</span>
+        <span class="back-logo-subtitle">我的信箱</span>
+      </button>
+      <h2 class="view-title" id="journal-title">2026 手账</h2>
+      <div class="editor-actions">
+        <button class="save-btn" id="journal-today-btn">📍 今天</button>
+      </div>
+    </header>
+    <main class="journal-main">
+      <!-- 视图切换标签 -->
+      <div class="journal-view-tabs">
+        <button class="journal-view-tab active" data-view="year">📅 年视图</button>
+        <button class="journal-view-tab" data-view="month">📆 月视图</button>
+        <button class="journal-view-tab" data-view="day">📝 日视图</button>
+        <button class="journal-view-tab" data-view="templates">📋 模板</button>
+      </div>
+
+      <!-- 年视图 -->
+      <div class="journal-year-view journal-subview active" id="journal-year-view">
+        <div class="year-calendar" id="year-calendar"></div>
+      </div>
+
+      <!-- 月视图 -->
+      <div class="journal-month-view journal-subview" id="journal-month-view">
+        <div class="month-header">
+          <button class="month-nav-btn" id="prev-month-btn">&#8592;</button>
+          <h3 class="month-title" id="month-title">2026年1月</h3>
+          <button class="month-nav-btn" id="next-month-btn">&#8594;</button>
+        </div>
+        <div class="month-calendar" id="month-calendar"></div>
+      </div>
+
+      <!-- 日视图 -->
+      <div class="journal-day-view journal-subview" id="journal-day-view">
+        <div class="day-header">
+          <button class="day-nav-btn" id="prev-day-btn">&#8592;</button>
+          <div class="day-info">
+            <h3 class="day-date" id="day-date">1月30日</h3>
+            <p class="day-weekday" id="day-weekday">星期五</p>
+          </div>
+          <button class="day-nav-btn" id="next-day-btn">&#8594;</button>
+        </div>
+        <div class="day-editor-layout">
+          <!-- 左侧工具栏 -->
+          <div class="day-toolbar" id="day-toolbar">
+            <div class="toolbar-section">
+              <h4>工具</h4>
+              <button class="day-tool-btn" data-tool="text">✏️ 文字</button>
+              <button class="day-tool-btn" data-tool="sticker">🎨 贴纸</button>
+              <button class="day-tool-btn" data-tool="template">📋 模板</button>
+              <button class="day-tool-btn" data-tool="image">🖼️ 图片</button>
+            </div>
+            <div class="toolbar-section" id="sticker-section" style="display:none;">
+              <h4>贴纸分类</h4>
+              <div class="sticker-cats">
+                <button class="sticker-cat-btn active" data-cat="cute">🐰 可爱</button>
+                <button class="sticker-cat-btn" data-cat="nature">🌸 自然</button>
+                <button class="sticker-cat-btn" data-cat="life">☕ 生活</button>
+                <button class="sticker-cat-btn" data-cat="deco">✨ 装饰</button>
+                <button class="sticker-cat-btn" data-cat="tape">📏 胶带</button>
+              </div>
+              <div class="sticker-picker" id="sticker-picker"></div>
+            </div>
+            <div class="toolbar-section" id="text-style-section" style="display:none;">
+              <h4>文字样式</h4>
+              <div class="style-row">
+                <label>字号</label>
+                <input type="range" id="day-font-size" min="12" max="72" value="16">
+              </div>
+              <div class="style-row">
+                <label>颜色</label>
+                <input type="color" id="day-font-color" value="#5c4033">
+              </div>
+              <div class="style-row">
+                <label>字体</label>
+                <select id="day-font-family">
+                  <option value="'Ma Shan Zheng', cursive">手写体</option>
+                  <option value="'ZCOOL XiaoWei', serif">小薇体</option>
+                  <option value="'Noto Serif SC', serif">宋体</option>
+                  <option value="system-ui, sans-serif">默认</option>
+                </select>
+              </div>
+              <button class="delete-element-btn" id="delete-element-btn">🗑️ 删除元素</button>
+            </div>
+          </div>
+          <!-- 右侧画布区域 -->
+          <div class="day-canvas-wrapper">
+            <div class="day-canvas" id="day-canvas">
+              <div class="day-canvas-paper" id="day-canvas-paper"></div>
+            </div>
+            <div class="day-canvas-actions">
+              <button class="day-action-btn" id="day-edit-toggle">✎ 编辑模式</button>
+              <button class="day-action-btn primary" id="day-save-btn">💾 保存</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 模板视图 -->
+      <div class="journal-templates-view journal-subview" id="journal-templates-view">
+        <p class="templates-hint">选择一个模板应用到今日手账</p>
+        <div class="templates-grid" id="templates-grid"></div>
+      </div>
+    </main>
+  </div>
+
+  <!-- 手账模板选择模态框 -->
+  <div id="journal-template-modal" class="modal">
+    <div class="modal-overlay" onclick="Journal.closeTemplateModal()"></div>
+    <div class="modal-content template-modal-content">
+      <div class="modal-header">
+        <h3>选择手账模板</h3>
+        <button class="modal-close" id="close-template-modal" onclick="Journal.closeTemplateModal()">&times;</button>
+      </div>
+      <div class="template-grid" id="template-modal-grid"></div>
+    </div>
+  </div>
+
+  <!-- 待寄信件视图 -->
+  <div id="scheduled-view" class="view">
+    <header class="view-header">
+      <button class="back-btn" id="back-from-scheduled">
+        <span class="back-logo-title">信笺</span>
+        <span class="back-logo-subtitle">我的信箱</span>
+      </button>
+      <h2 class="view-title">待寄信件</h2>
+    </header>
+    <main class="scheduled-main">
+      <div class="scheduled-list" id="scheduled-list">
+        <div class="scheduled-empty">
+          <div class="scheduled-empty-icon">🕰️</div>
+          <p>暂无待寄信件</p>
+          <p class="scheduled-empty-hint">写信时可以选择定时发送哦</p>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- 定时发送弹窗 -->
+  <div id="schedule-modal" class="schedule-modal">
+    <div class="schedule-modal-overlay"></div>
+    <div class="schedule-modal-content">
+      <button class="schedule-modal-close" id="schedule-modal-close">&times;</button>
+      <h3>定时发送</h3>
+      <div class="schedule-form">
+        <div class="form-group">
+          <label>发送时间</label>
+          <input type="datetime-local" id="schedule-datetime">
+        </div>
+        <div class="schedule-presets">
+          <button class="preset-btn" data-preset="tomorrow">明天早上</button>
+          <button class="preset-btn" data-preset="week">一周后</button>
+          <button class="preset-btn" data-preset="month">一个月后</button>
+          <button class="preset-btn" data-preset="year">一年后</button>
+        </div>
+        <div class="form-actions">
+          <button class="form-btn form-btn-secondary" id="schedule-cancel-btn">取消</button>
+          <button class="form-btn form-btn-primary" id="schedule-confirm-btn">确认定时</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 账号切换提示 -->
+  <div id="account-switch-toast" class="account-switch-toast">
+    <div class="toast-content">
+      <span class="toast-icon">✨</span>
+      <span class="toast-text" id="switch-toast-text">正在切换账号...</span>
+    </div>
+  </div>
+
+  <script src="js/auth.js?v=20260710"></script>
+  <script src="js/storage.js?v=20260710"></script>
+  <script src="js/mailService.js?v=20260731b"></script>
+  <script src="js/multiplayerSync.js?v=20260731a"></script>
+  <script src="js/media.js?v=20260710"></script>
+  <script src="js/imageFrames.js?v=20260731b"></script>
+  <script src="js/mailbox.js?v=20260730h"></script>
+  <script src="js/modules/mailbox-letters.js?v=20260710"></script>
+  <script src="js/app.js?v=20260731b"></script>
+  <script src="js/modules/app-reader.js?v=20260731b"></script>
+  <script src="js/modules/app-bgm.js?v=20260710"></script>
+  <script src="js/modules/app-voice.js?v=20260710"></script>
+  <script src="js/modules/app-mailbox-modal.js?v=20260710"></script>
+  <script src="js/modules/app-diary.js?v=20260724"></script>
+  <script src="js/modules/app-features.js?v=20260710"></script>
+  <script src="js/editor.js?v=20260731b"></script>
+  <script src="js/modules/editor-widgets-year.js?v=20260710"></script>
+  <script src="js/modules/editor-widgets-month.js?v=20260710"></script>
+  <script src="js/modules/editor-widgets-week.js?v=20260710"></script>
+  <script src="js/modules/editor-widgets-daily.js?v=20260710"></script>
+  <script src="js/journal.js?v=20260710"></script>
+  <script src="js/diary.js?v=20260710"></script>
+  <script src="js/map.js?v=20260718"></script>
+  <script type="module" src="js/gameMapRenderer.js?v=20260730h"></script>
+</body>
+</html>

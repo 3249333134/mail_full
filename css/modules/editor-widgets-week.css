@@ -1,0 +1,356 @@
+/* ========================================
+   Week Planner Widget Styles
+   ======================================== */
+
+/* === 周计划组件 === */
+.weekly-planner-widget {
+  background: rgba(255, 252, 245, 0.9);
+  border-radius: 8px;
+  padding: 18px 16px;
+  box-shadow: 0 2px 12px rgba(92, 80, 69, 0.08);
+  font-family: inherit;
+  color: #5c5045;
+}
+
+.weekly-planner-inner {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+  height: 100%;
+}
+
+/* 顶部 tab */
+.wp-top-tabs {
+  display: flex;
+  justify-content: center;
+  gap: 24px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid rgba(92, 80, 69, 0.08);
+  position: relative;
+}
+
+.wp-top-tab {
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  color: #a89a8a;
+  cursor: pointer;
+  position: relative;
+  transition: all 0.2s ease;
+  user-select: none;
+}
+
+.wp-top-tab:hover {
+  color: #7a6b5d;
+}
+
+.wp-top-tab.active {
+  font-weight: 700;
+}
+
+.wp-top-tab.active::after {
+  content: '';
+  position: absolute;
+  bottom: -11px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 24px;
+  height: 2px;
+  background: currentColor;
+  border-radius: 1px;
+}
+
+/* 月份数字行 */
+.wp-month-nums-row {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 7px;
+}
+
+.wp-month-num {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 1.5px solid transparent;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.62rem;
+  font-weight: 500;
+  color: #a89a8a;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  background: transparent;
+}
+
+.wp-month-num:hover {
+  color: #5c5045;
+  background: rgba(92, 80, 69, 0.06);
+}
+
+.wp-month-num.active {
+  color: #fff;
+  font-weight: 600;
+  transform: scale(1.05);
+}
+
+/* 周标题栏 */
+.wp-week-header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 4px 0;
+}
+
+.wp-nav-btn {
+  background: none;
+  border: none;
+  font-size: 0.7rem;
+  color: #8a7d6f;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+  font-family: inherit;
+}
+
+.wp-nav-btn:hover {
+  background: rgba(92, 80, 69, 0.06);
+  color: #5c5045;
+}
+
+.wp-week-title {
+  text-align: center;
+  cursor: pointer;
+}
+
+.wp-month-name {
+  font-size: 0.95rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  color: #5c5045;
+}
+
+.wp-week-sub {
+  font-size: 0.58rem;
+  color: #a89a8a;
+  margin-top: 2px;
+  letter-spacing: 0.05em;
+}
+
+/* 七日容器 */
+.wp-days-container {
+  display: flex;
+  flex-direction: column;
+  border-top: 1px solid rgba(92, 80, 69, 0.08);
+  flex: 1;
+  min-height: 0;
+}
+
+.wp-day-row {
+  display: flex;
+  gap: 12px;
+  padding: 8px 4px;
+  border-bottom: 1px solid rgba(92, 80, 69, 0.06);
+  flex: 1;
+  min-height: 0;
+}
+
+.wp-day-info {
+  width: 46px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: flex-start;
+  padding-top: 2px;
+}
+
+.wp-day-name {
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+
+.wp-day-date {
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: #5c5045;
+  line-height: 1.2;
+  margin-top: 1px;
+}
+
+.wp-day-lunar {
+  font-size: 0.52rem;
+  color: #b8a99a;
+  margin-top: 2px;
+}
+
+.wp-day-right {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  min-width: 0;
+}
+
+.wp-day-content {
+  width: 100%;
+  min-height: 30px;
+  font-size: 0.7rem;
+  color: #5c5045;
+  line-height: 1.5;
+  outline: none;
+  cursor: text;
+  word-break: break-word;
+}
+
+.wp-day-content:empty::before {
+  content: '';
+  color: #ccc;
+}
+
+/* 时间轴 */
+.wp-timeline-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  gap: 2px;
+}
+
+.wp-tl-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  border: 1.5px solid #d9cfc2;
+  background: transparent;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.wp-tl-dot:hover {
+  border-color: #a89a8a;
+  transform: scale(1.15);
+}
+
+.wp-tl-dot.marked {
+  transform: scale(1.1);
+}
+
+/* 底部迷你月历 */
+.wp-mini-cals {
+  display: flex;
+  gap: 12px;
+  padding-top: 6px;
+  border-top: 1px solid rgba(92, 80, 69, 0.06);
+}
+
+.wp-mini-cal {
+  flex: 1;
+  font-size: 0.5rem;
+}
+
+.wp-mini-title {
+  text-align: center;
+  font-size: 0.55rem;
+  font-weight: 600;
+  color: #8a7d6f;
+  margin-bottom: 4px;
+  letter-spacing: 0.05em;
+}
+
+.wp-mini-week-row {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  margin-bottom: 2px;
+}
+
+.wp-mini-week-label {
+  text-align: center;
+  font-size: 0.48rem;
+  font-weight: 600;
+}
+
+.wp-mini-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 1px;
+}
+
+.wp-mini-cell {
+  aspect-ratio: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.48rem;
+  color: #8a7d6f;
+  border-radius: 2px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.wp-mini-cell:hover {
+  background: rgba(92, 80, 69, 0.08);
+}
+
+.wp-mini-cell.empty {
+  cursor: default;
+  background: transparent;
+}
+
+.wp-mini-cell.in-week {
+  font-weight: 600;
+  color: #5c5045;
+  border-radius: 2px;
+}
+
+.wp-mini-cell.today {
+  font-weight: 700;
+  text-decoration: underline;
+}
+
+/* 底部栏 */
+.wp-bottom-bar {
+  display: flex;
+  justify-content: center;
+  padding-top: 8px;
+  border-top: 1px solid rgba(92, 80, 69, 0.06);
+}
+
+.wp-layout-switch {
+  background: rgba(255, 255, 255, 0.6);
+  border: 1px solid rgba(92, 80, 69, 0.12);
+  color: #8a7d6f;
+  font-size: 0.62rem;
+  padding: 4px 14px;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-family: inherit;
+}
+
+.wp-layout-switch:hover {
+  background: rgba(255, 255, 255, 0.9);
+  border-color: rgba(92, 80, 69, 0.2);
+  color: #5c5045;
+}
+
+/* 周计划 pointer-events */
+.paper-element.element-widget-weekly .weekly-planner-inner {
+  pointer-events: auto;
+}
+
+.paper-element.element-widget-weekly .weekly-planner-inner * {
+  user-select: auto;
+  pointer-events: auto;
+}
+
+.paper-element.element-widget-weekly .resize-handle,
+.paper-element.element-widget-weekly .rotate-handle {
+  pointer-events: none;
+}
+

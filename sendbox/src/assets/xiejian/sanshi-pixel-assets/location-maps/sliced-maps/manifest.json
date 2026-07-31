@@ -1,0 +1,228 @@
+{
+  "actions": {
+    "jingyuan_academy": {
+      "name": "静远书院",
+      "className": "location-map",
+      "speed": 160,
+      "frames": [
+        "jingyuan_academy/00.png"
+      ],
+      "features": [
+        "书院山门",
+        "大殿/正殿与武林大会主会场",
+        "藏书阁",
+        "练功房与练剑场",
+        "先生厢房",
+        "七间弟子厢房",
+        "面具人厢房",
+        "食堂/膳房",
+        "观鹤楼",
+        "放鹤楼",
+        "荷花池",
+        "后山溪流",
+        "凉亭",
+        "小花园",
+        "鹤院",
+        "小河许愿灯台"
+      ]
+    },
+    "daohua_temple": {
+      "name": "道华观",
+      "className": "location-map",
+      "speed": 160,
+      "frames": [
+        "daohua_temple/00.png"
+      ],
+      "features": [
+        "山脚制婚服阿婆小屋",
+        "登山长石阶",
+        "道观山门",
+        "三清殿/正殿",
+        "丹房",
+        "藏经阁",
+        "练功场",
+        "观主厢房",
+        "弟子房",
+        "灵堂",
+        "古松云海",
+        "鹤院与观景台"
+      ]
+    },
+    "tianxing_cult": {
+      "name": "天行教",
+      "className": "location-map",
+      "speed": 160,
+      "frames": [
+        "tianxing_cult/00.png"
+      ],
+      "features": [
+        "险要山门",
+        "教主大殿",
+        "左护法殿",
+        "练功场",
+        "地牢/水牢",
+        "议事厅",
+        "教众营房",
+        "密室入口",
+        "仪式广场",
+        "锁链栈桥与瞭望塔"
+      ]
+    },
+    "danxi_valley": {
+      "name": "丹溪谷",
+      "className": "location-map",
+      "speed": 160,
+      "frames": [
+        "danxi_valley/00.png"
+      ],
+      "features": [
+        "谷口牌楼",
+        "谷主殿/正殿",
+        "药房",
+        "丹房",
+        "梯田药田",
+        "诊堂",
+        "藏书阁",
+        "谷主厢房",
+        "弟子房",
+        "晒药场",
+        "竹林",
+        "溪流与瀑布"
+      ]
+    },
+    "buhuan_sect": {
+      "name": "不还门",
+      "className": "location-map",
+      "speed": 160,
+      "frames": [
+        "buhuan_sect/00.png"
+      ],
+      "features": [
+        "山门",
+        "门主大殿",
+        "正气堂",
+        "大型练功场",
+        "少门主院",
+        "门主院",
+        "弟子房",
+        "藏经阁",
+        "瀑布与云海"
+      ]
+    },
+    "taozhi_sect": {
+      "name": "桃止门",
+      "className": "location-map",
+      "speed": 160,
+      "frames": [
+        "taozhi_sect/00.png"
+      ],
+      "features": [
+        "毒谷山门",
+        "门主殿",
+        "毒室/丹房",
+        "毒花园",
+        "炼毒试毒场",
+        "门主厢房",
+        "弟子房",
+        "毒物洞窟",
+        "桃林",
+        "毒雾溪谷"
+      ]
+    },
+    "dongjia_shen_manor": {
+      "name": "东嘉沈府",
+      "className": "location-map",
+      "speed": 160,
+      "frames": [
+        "dongjia_shen_manor/00.png"
+      ],
+      "features": [
+        "沈府大门",
+        "正厅/大堂",
+        "书房",
+        "沈池懿院落",
+        "仙鹤池与鹤舍",
+        "江南花园",
+        "祠堂",
+        "信鸽楼",
+        "后门"
+      ]
+    },
+    "ren_manor": {
+      "name": "任府",
+      "className": "location-map",
+      "speed": 160,
+      "frames": [
+        "ren_manor/00.png"
+      ],
+      "features": [
+        "将军府大门",
+        "正厅",
+        "演武场",
+        "任朝野院落",
+        "母亲院落与枫树",
+        "任家祠堂",
+        "兵器库",
+        "马厩",
+        "侧门"
+      ]
+    },
+    "capital_hanlin": {
+      "name": "京城/翰林院",
+      "className": "location-map",
+      "speed": 160,
+      "frames": [
+        "capital_hanlin/00.png"
+      ],
+      "features": [
+        "京城城门",
+        "京城街市",
+        "翰林院",
+        "科举与奏章院落",
+        "官员居所",
+        "皇宫/金銮殿",
+        "上元灯会街区",
+        "灯河与拱桥"
+      ]
+    },
+    "forgetfulness_river": {
+      "name": "忘川",
+      "className": "location-map",
+      "speed": 160,
+      "frames": [
+        "forgetfulness_river/00.png"
+      ],
+      "features": [
+        "忘川河",
+        "奈何桥",
+        "孟婆汤铺",
+        "亡魂等候台",
+        "七座记忆灯台",
+        "三结局选择广场",
+        "往生之光",
+        "执念暗岸"
+      ]
+    },
+    "border_town": {
+      "name": "边陲小镇",
+      "className": "location-map",
+      "speed": 160,
+      "frames": [
+        "border_town/00.png"
+      ],
+      "features": [
+        "边城城门与瞭望塔",
+        "中央集市",
+        "民居巷",
+        "姐妹旧居与月牙池",
+        "驿站与马厩",
+        "铁匠铺",
+        "商队货场",
+        "小祠",
+        "农田与旱河桥",
+        "战火废墟",
+        "逃生山路"
+      ]
+    }
+  }
+}

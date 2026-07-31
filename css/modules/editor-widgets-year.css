@@ -1,0 +1,1230 @@
+/* ========================================
+   Year Planner Widget Styles
+   ======================================== */
+
+.year-planner-widget {
+  width: 650px;
+  min-height: 800px;
+  background: #faf6ee;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+  color: #5c5045;
+  box-sizing: border-box;
+  position: relative;
+  overflow: hidden;
+}
+
+.year-planner-inner {
+  padding: 20px 25px;
+}
+
+.year-planner-inner [contenteditable="true"] {
+  outline: none;
+  cursor: text;
+  user-select: text;
+  -webkit-user-select: text;
+}
+
+.year-planner-inner [contenteditable="true"]:focus {
+  background: rgba(255, 255, 255, 0.5);
+}
+
+/* === 标签栏 === */
+.yp-tabs {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 15px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid rgba(92, 80, 69, 0.12);
+}
+
+.yp-tab {
+  padding: 6px 18px;
+  font-size: 0.72rem;
+  letter-spacing: 0.12em;
+  color: #8a7d6f;
+  cursor: pointer;
+  border-radius: 20px;
+  transition: all 0.25s ease;
+  border: 1px solid transparent;
+  text-transform: uppercase;
+  font-weight: 500;
+  background: transparent;
+  font-family: inherit;
+}
+
+.yp-tab:hover {
+  color: #5c5045;
+  background: rgba(92, 80, 69, 0.05);
+}
+
+.yp-tab.active {
+  color: #5c5045;
+  border-color: rgba(92, 80, 69, 0.25);
+  background: rgba(255, 255, 255, 0.6);
+}
+
+/* === 月份条 === */
+.yp-months-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+  padding: 0 4px;
+}
+
+.yp-month-item {
+  font-size: 0.62rem;
+  color: #a89a8a;
+  text-align: center;
+  flex: 1;
+  font-weight: 500;
+  letter-spacing: 0.05em;
+}
+
+/* === 分类色圆点 === */
+.yp-cat-dots {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  margin-bottom: 18px;
+}
+
+.yp-cat-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+}
+
+/* === 内容区 === */
+.yp-content {
+  position: relative;
+}
+
+.yp-tab-content {
+  display: none;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.yp-tab-content.active {
+  display: block;
+  opacity: 1;
+}
+
+/* === 通用按钮 === */
+.yp-add-btn {
+  padding: 4px 12px;
+  font-size: 0.7rem;
+  color: #8a7d6f;
+  background: rgba(255, 255, 255, 0.5);
+  border: 1px solid rgba(92, 80, 69, 0.15);
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-family: inherit;
+}
+
+.yp-add-btn:hover {
+  border-color: rgba(92, 80, 69, 0.3);
+  color: #5c5045;
+  background: rgba(255, 255, 255, 0.8);
+}
+
+/* === 版式切换 === */
+.yp-layout-switch {
+  display: flex;
+  justify-content: flex-end;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.yp-layout-btn {
+  padding: 4px 12px;
+  font-size: 0.7rem;
+  color: #8a7d6f;
+  background: transparent;
+  border: 1px solid rgba(92, 80, 69, 0.15);
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-family: inherit;
+}
+
+.yp-layout-btn:hover {
+  border-color: rgba(92, 80, 69, 0.3);
+  color: #5c5045;
+}
+
+.yp-layout-btn.active {
+  background: #5c5045;
+  color: #faf6ee;
+  border-color: #5c5045;
+}
+
+/* === 任务打卡版 === */
+.yp-task-layout {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.yp-task-list-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.yp-header-title {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #5c5045;
+  letter-spacing: 0.05em;
+}
+
+.yp-tasks-container {
+  overflow-x: auto;
+  position: relative;
+}
+
+.yp-calendar-header {
+  position: sticky;
+  top: 0;
+  background: #faf6ee;
+  z-index: 2;
+}
+
+.yp-cal-grid {
+  display: grid;
+  grid-template-columns: 170px repeat(372, 10px);
+  gap: 0;
+  min-width: min-content;
+}
+
+.yp-cal-spacer {
+  grid-row: 1;
+  grid-column: 1;
+}
+
+.yp-month-row {
+  margin-bottom: 2px;
+}
+
+.yp-month-header {
+  font-size: 0.6rem;
+  text-align: center;
+  color: #8a7d6f;
+  padding: 3px 0;
+  font-weight: 500;
+  border-bottom: 1px solid rgba(92, 80, 69, 0.12);
+}
+
+.yp-day-row {
+  margin-bottom: 4px;
+}
+
+.yp-day-header {
+  font-size: 0.5rem;
+  text-align: center;
+  color: #b8a99a;
+  padding: 1px 0;
+}
+
+.yp-task-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.yp-task-grid-row {
+  display: grid;
+  grid-template-columns: 170px repeat(372, 10px);
+  gap: 0;
+  min-width: min-content;
+  align-items: center;
+}
+
+.yp-task-info {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px 4px 4px;
+  font-size: 0.75rem;
+  color: #6b5f52;
+  border-bottom: 1px dashed rgba(92, 80, 69, 0.08);
+  height: 22px;
+  box-sizing: border-box;
+  background: #faf6ee;
+  position: sticky;
+  left: 0;
+  z-index: 1;
+}
+
+.yp-task-category {
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  flex-shrink: 0;
+  cursor: pointer;
+  transition: transform 0.15s ease;
+}
+
+.yp-task-category:hover {
+  transform: scale(1.2);
+}
+
+.yp-task-text {
+  flex: 1;
+  line-height: 1.2;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.yp-task-text.completed {
+  text-decoration: line-through;
+  color: #b8a99a;
+}
+
+.yp-task-toggle {
+  width: 14px;
+  height: 14px;
+  border-radius: 3px;
+  border: 1.5px solid #c4b8a8;
+  background: transparent;
+  flex-shrink: 0;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.6rem;
+  color: #faf6ee;
+  padding: 0;
+  transition: all 0.2s ease;
+}
+
+.yp-task-toggle.checked {
+  background: #a5b89a;
+  border-color: #a5b89a;
+}
+
+.yp-task-toggle:hover {
+  border-color: #a5b89a;
+}
+
+.yp-task-delete {
+  width: 16px;
+  height: 16px;
+  border: none;
+  background: transparent;
+  color: #c4b8a8;
+  cursor: pointer;
+  font-size: 0.9rem;
+  line-height: 1;
+  padding: 0;
+  flex-shrink: 0;
+  border-radius: 50%;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.yp-task-delete:hover {
+  background: rgba(212, 165, 165, 0.2);
+  color: #d4a5a5;
+}
+
+.yp-mark-cell {
+  width: 100%;
+  height: 18px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  box-sizing: border-box;
+  border: 1px solid transparent;
+  border-radius: 1px;
+}
+
+.yp-mark-cell:hover {
+  opacity: 0.75;
+  transform: scale(0.9);
+}
+
+.yp-mark-cell.marked {
+  opacity: 1;
+}
+
+/* === 目标拆解版 === */
+.yp-goal-layout {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.yp-goals-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+
+.yp-goal-card {
+  background: rgba(255, 255, 255, 0.5);
+  border: 1px solid rgba(92, 80, 69, 0.1);
+  border-left-width: 4px;
+  border-radius: 6px;
+  padding: 12px;
+  position: relative;
+  overflow: hidden;
+}
+
+.yp-goal-category {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-bottom: 6px;
+  cursor: pointer;
+  transition: transform 0.15s ease;
+}
+
+.yp-goal-category:hover {
+  transform: scale(1.3);
+}
+
+.yp-goal-title {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #5c5045;
+  line-height: 1.4;
+  min-height: 1.2em;
+}
+
+.yp-sections-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.yp-section {
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 6px;
+  padding: 12px;
+  border: 1px solid rgba(92, 80, 69, 0.06);
+}
+
+.yp-section-title {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #5c5045;
+  margin-bottom: 8px;
+  padding-bottom: 5px;
+  border-bottom: 1px solid rgba(92, 80, 69, 0.1);
+  letter-spacing: 0.05em;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.yp-section-text {
+  font-size: 0.75rem;
+  color: #6b5f52;
+  line-height: 1.5;
+  min-height: 3em;
+  white-space: pre-wrap;
+}
+
+/* === 笔记页 === */
+.yp-note-container {
+  width: 100%;
+}
+
+.yp-note-area {
+  padding: 10px 8px;
+  min-height: 550px;
+  font-size: 0.82rem;
+  line-height: 1.8;
+  color: #5c5045;
+  background-image: repeating-linear-gradient(
+    transparent,
+    transparent 27px,
+    rgba(92, 80, 69, 0.08) 27px,
+    rgba(92, 80, 69, 0.08) 28px
+  );
+  background-position: 0 8px;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+/* === 清单页 === */
+.yp-list-container {
+  padding: 2px 0;
+}
+
+.yp-list-tabs {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 15px;
+  border-bottom: 1px solid rgba(92, 80, 69, 0.1);
+  padding-bottom: 10px;
+  flex-wrap: wrap;
+}
+
+.yp-list-tab {
+  padding: 5px 14px;
+  font-size: 0.72rem;
+  color: #8a7d6f;
+  border-radius: 14px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: 1px solid transparent;
+  background: transparent;
+  font-family: inherit;
+}
+
+.yp-list-tab:hover {
+  color: #5c5045;
+  background: rgba(92, 80, 69, 0.05);
+}
+
+.yp-list-tab.active {
+  color: #5c5045;
+  background: rgba(255, 255, 255, 0.6);
+  border-color: rgba(92, 80, 69, 0.2);
+}
+
+.yp-list-content {
+  margin-top: 10px;
+}
+
+.yp-list-header {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 10px;
+}
+
+.yp-list-items {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.yp-list-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px;
+  font-size: 0.78rem;
+  color: #6b5f52;
+  border-bottom: 1px dashed rgba(92, 80, 69, 0.08);
+  transition: background 0.2s ease;
+  border-radius: 4px;
+}
+
+.yp-list-item:hover {
+  background: rgba(92, 80, 69, 0.03);
+}
+
+.yp-list-item.completed .yp-list-item-text {
+  text-decoration: line-through;
+  color: #b8a99a;
+}
+
+.yp-list-checkbox {
+  width: 16px;
+  height: 16px;
+  border-radius: 4px;
+  border: 1.5px solid #c4b8a8;
+  flex-shrink: 0;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  background: transparent;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.65rem;
+  color: #faf6ee;
+  padding: 0;
+}
+
+.yp-list-checkbox:hover {
+  border-color: #a5b89a;
+}
+
+.yp-list-item-text {
+  flex: 1;
+  line-height: 1.4;
+  min-width: 0;
+}
+
+.yp-list-delete {
+  width: 18px;
+  height: 18px;
+  border: none;
+  background: transparent;
+  color: #c4b8a8;
+  cursor: pointer;
+  font-size: 1rem;
+  line-height: 1;
+  padding: 0;
+  flex-shrink: 0;
+  border-radius: 50%;
+  transition: all 0.2s ease;
+}
+
+.yp-list-delete:hover {
+  background: rgba(212, 165, 165, 0.2);
+  color: #d4a5a5;
+}
+
+/* === 密码页 === */
+.yp-password-container {
+  padding: 2px 0;
+}
+
+.yp-pwd-header {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 12px;
+}
+
+.yp-password-list {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.yp-password-card {
+  background: rgba(255, 255, 255, 0.5);
+  border: 1px solid rgba(92, 80, 69, 0.1);
+  border-radius: 8px;
+  padding: 14px;
+  position: relative;
+  transition: all 0.2s ease;
+}
+
+.yp-password-card:hover {
+  box-shadow: 0 2px 8px rgba(92, 80, 69, 0.08);
+}
+
+.yp-pwd-field {
+  margin-bottom: 10px;
+}
+
+.yp-pwd-field label {
+  display: block;
+  font-size: 0.65rem;
+  color: #8a7d6f;
+  margin-bottom: 4px;
+  letter-spacing: 0.05em;
+}
+
+.yp-pwd-field input {
+  width: 100%;
+  padding: 6px 8px;
+  font-size: 0.75rem;
+  border: 1px solid rgba(92, 80, 69, 0.12);
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.6);
+  color: #5c5045;
+  font-family: inherit;
+  box-sizing: border-box;
+  transition: border-color 0.2s ease;
+}
+
+.yp-pwd-field input:focus {
+  outline: none;
+  border-color: rgba(92, 80, 69, 0.3);
+}
+
+.yp-pwd-input-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.yp-pwd-input-wrap input {
+  flex: 1;
+  padding-right: 30px;
+}
+
+.yp-pwd-toggle {
+  position: absolute;
+  right: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 22px;
+  height: 22px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-size: 0.8rem;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: background 0.2s ease;
+}
+
+.yp-pwd-toggle:hover {
+  background: rgba(92, 80, 69, 0.06);
+}
+
+.yp-pwd-delete {
+  margin-top: 8px;
+  padding: 4px 10px;
+  font-size: 0.68rem;
+  color: #d4a5a5;
+  background: rgba(212, 165, 165, 0.1);
+  border: 1px solid rgba(212, 165, 165, 0.2);
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-family: inherit;
+}
+
+.yp-pwd-delete:hover {
+  background: rgba(212, 165, 165, 0.2);
+}
+
+/* === 年历概览版 === */
+.yp-calendar-layout {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 10px 5px;
+}
+
+.yp-cal-stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 15px;
+  margin-bottom: 10px;
+}
+
+.yp-cal-stat-item {
+  text-align: center;
+  padding: 15px 10px;
+  background: rgba(255, 255, 255, 0.5);
+  border-radius: 8px;
+  border: 1px solid rgba(92, 80, 69, 0.08);
+}
+
+.yp-cal-stat-number {
+  font-size: 1.6rem;
+  font-weight: 600;
+  line-height: 1;
+  margin-bottom: 6px;
+}
+
+.yp-cal-stat-label {
+  font-size: 0.7rem;
+  color: #8a7d6f;
+  letter-spacing: 0.05em;
+}
+
+.yp-cal-quarters {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+
+.yp-cal-quarter {
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 8px;
+  padding: 15px;
+  border: 1px solid rgba(92, 80, 69, 0.06);
+}
+
+.yp-cal-quarter-title {
+  font-size: 0.8rem;
+  font-weight: 600;
+  margin-bottom: 12px;
+  letter-spacing: 0.1em;
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(92, 80, 69, 0.08);
+}
+
+.yp-cal-quarter-months {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.yp-cal-month-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 6px 8px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.yp-cal-month-item:hover {
+  background: rgba(92, 80, 69, 0.05);
+}
+
+.yp-cal-month-name {
+  font-size: 0.78rem;
+  font-weight: 500;
+  width: 45px;
+  flex-shrink: 0;
+}
+
+.yp-cal-month-progress {
+  flex: 1;
+  height: 6px;
+  background: rgba(92, 80, 69, 0.08);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.yp-cal-month-progress-bar {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.3s ease;
+}
+
+/* === 分类圆点（可点击切换） === */
+.yp-cat-dots-deco {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  margin-bottom: 18px;
+}
+
+/* === 新分类圆点样式 === */
+.yp-cat-dots-full {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  margin-bottom: 18px;
+}
+
+.yp-cat-dots-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.yp-cat-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  opacity: 0.7;
+}
+
+.yp-cat-dot:hover {
+  opacity: 1;
+  transform: scale(1.15);
+}
+
+.yp-cat-dot.active {
+  width: 14px;
+  height: 14px;
+  opacity: 1;
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.8), 0 0 0 4px rgba(92, 80, 69, 0.15);
+}
+
+/* === 月份数字样式 === */
+.yp-month-num {
+  font-size: 0.7rem;
+  color: #a89a8a;
+  text-align: center;
+  flex: 1;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  padding: 2px 0;
+  border-radius: 4px;
+}
+
+.yp-month-num:hover {
+  color: #5c5045;
+  background: rgba(92, 80, 69, 0.05);
+}
+
+.yp-month-num.active {
+  font-weight: 700;
+  transform: scale(1.15);
+}
+
+/* === 版式标题行 === */
+.yp-layout-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 15px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid rgba(92, 80, 69, 0.1);
+}
+
+.yp-layout-title {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #5c5045;
+  letter-spacing: 0.1em;
+}
+
+/* === PLAN 季度概览版 === */
+.yp-plan-layout {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.yp-plan-quarter-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+
+.yp-plan-month-card {
+  border: 1px solid rgba(92, 80, 69, 0.12);
+  border-radius: 8px;
+  padding: 12px;
+  min-height: 100px;
+  background: rgba(255, 255, 255, 0.4);
+  cursor: pointer;
+  transition: all 0.25s ease;
+  display: flex;
+  flex-direction: column;
+}
+
+.yp-plan-month-card:hover {
+  background: rgba(255, 255, 255, 0.7);
+  border-color: rgba(92, 80, 69, 0.2);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(92, 80, 69, 0.06);
+}
+
+.yp-plan-month-card.active {
+  background: rgba(255, 255, 255, 0.85);
+  border-width: 2px;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(92, 80, 69, 0.1);
+}
+
+.yp-plan-month-name {
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  margin-bottom: 8px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid rgba(92, 80, 69, 0.06);
+}
+
+.yp-plan-month-content {
+  flex: 1;
+  font-size: 0.75rem;
+  color: #6b5f52;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-break: break-word;
+  min-height: 60px;
+}
+
+/* === TASK 任务打卡版 V2 === */
+.yp-task-layout-v2 {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.yp-task-header-row {
+  display: grid;
+  grid-template-columns: 24px 1fr 180px 40px;
+  gap: 8px;
+  align-items: center;
+  padding: 6px 4px;
+  border-bottom: 2px solid rgba(92, 80, 69, 0.12);
+  margin-bottom: 4px;
+}
+
+.yp-task-checkbox-col {
+  width: 24px;
+}
+
+.yp-task-name-col {
+  font-size: 0.68rem;
+  color: #8a7d6f;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+}
+
+.yp-task-marks-col {
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  gap: 2px;
+}
+
+.yp-task-month-header {
+  font-size: 0.6rem;
+  text-align: center;
+  color: #a89a8a;
+  font-weight: 500;
+}
+
+.yp-task-count-col {
+  font-size: 0.65rem;
+  text-align: center;
+  color: #a89a8a;
+}
+
+.yp-task-rows-container {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.yp-task-row-item {
+  display: grid;
+  grid-template-columns: 24px 1fr 180px 40px;
+  gap: 8px;
+  align-items: center;
+  padding: 6px 4px;
+  border-bottom: 1px dashed rgba(92, 80, 69, 0.08);
+  border-radius: 4px;
+  transition: background 0.2s ease;
+}
+
+.yp-task-row-item:hover {
+  background: rgba(92, 80, 69, 0.03);
+}
+
+.yp-task-checkbox {
+  width: 18px;
+  height: 18px;
+  border-radius: 4px;
+  border: 1.5px solid #c4b8a8;
+  flex-shrink: 0;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.65rem;
+  color: #faf6ee;
+  padding: 0;
+  background: transparent;
+  transition: all 0.2s ease;
+  box-sizing: border-box;
+}
+
+.yp-task-checkbox.checked {
+  background: #a5b89a;
+  border-color: #a5b89a;
+}
+
+.yp-task-name {
+  font-size: 0.75rem;
+  color: #6b5f52;
+  line-height: 1.3;
+  min-height: 1.3em;
+}
+
+.yp-task-name.completed {
+  text-decoration: line-through;
+  color: #b8a99a;
+}
+
+.yp-task-marks-row {
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  gap: 2px;
+}
+
+.yp-task-mark-cell {
+  width: 100%;
+  aspect-ratio: 1;
+  border-radius: 2px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  box-sizing: border-box;
+}
+
+.yp-task-mark-cell:hover {
+  opacity: 0.7;
+  transform: scale(0.9);
+}
+
+.yp-task-mark-cell.marked {
+  opacity: 1;
+}
+
+.yp-task-mark-cell.active-col {
+  background: rgba(212, 165, 165, 0.15) !important;
+  border-radius: 3px;
+}
+
+.yp-task-count {
+  font-size: 0.65rem;
+  text-align: center;
+  color: #8a7d6f;
+  font-weight: 500;
+}
+
+.yp-task-add-row {
+  display: flex;
+  justify-content: center;
+  padding: 8px 0;
+  margin-top: 4px;
+}
+
+.yp-add-task-btn {
+  padding: 5px 16px;
+  font-size: 0.7rem;
+  color: #8a7d6f;
+  background: rgba(255, 255, 255, 0.5);
+  border: 1px solid rgba(92, 80, 69, 0.15);
+  border-radius: 14px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-family: inherit;
+}
+
+.yp-add-task-btn:hover {
+  border-color: rgba(92, 80, 69, 0.3);
+  color: #5c5045;
+  background: rgba(255, 255, 255, 0.8);
+}
+
+.yp-dot-notes-area {
+  margin-top: 12px;
+  height: 60px;
+  background-image: radial-gradient(circle, rgba(92, 80, 69, 0.15) 1px, transparent 1px);
+  background-size: 12px 12px;
+  border-radius: 6px;
+  border: 1px dashed rgba(92, 80, 69, 0.1);
+}
+
+.yp-task-empty {
+  text-align: center;
+  padding: 40px 20px;
+  font-size: 0.75rem;
+  color: #b8a99a;
+  font-style: italic;
+}
+
+/* === GOAL 目标拆解版 V2 === */
+.yp-goal-layout-v2 {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.yp-goals-top-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+
+.yp-goal-card-v2 {
+  background: rgba(255, 255, 255, 0.5);
+  border: 1px solid rgba(92, 80, 69, 0.1);
+  border-radius: 8px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-height: 100px;
+}
+
+.yp-goal-num-dot {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.8rem;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.yp-goal-text {
+  flex: 1;
+  font-size: 0.78rem;
+  color: #5c5045;
+  line-height: 1.5;
+  min-height: 3em;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.yp-goal-section {
+  background: rgba(255, 255, 255, 0.35);
+  border: 1px solid rgba(92, 80, 69, 0.08);
+  border-radius: 8px;
+  padding: 12px 14px;
+}
+
+.yp-goal-section.yp-section-full {
+  grid-column: 1 / -1;
+}
+
+.yp-goal-section-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.yp-goal-section-title {
+  font-size: 0.72rem;
+  font-weight: 600;
+  margin-bottom: 10px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid rgba(92, 80, 69, 0.1);
+  letter-spacing: 0.08em;
+}
+
+.yp-goal-section-content {
+  font-size: 0.75rem;
+  color: #6b5f52;
+  line-height: 1.6;
+  min-height: 4em;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+/* === 响应式 === */
+@media (max-width: 700px) {
+  .year-planner-widget {
+    width: 100%;
+  }
+  
+  .yp-goals-top-row {
+    grid-template-columns: 1fr;
+  }
+  
+  .yp-goal-section-row {
+    grid-template-columns: 1fr;
+  }
+  
+  .yp-plan-quarter-row {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+  
+  .yp-task-header-row,
+  .yp-task-row-item {
+    grid-template-columns: 20px 1fr 120px 35px;
+    gap: 6px;
+  }
+  
+  .yp-goals-row {
+    grid-template-columns: 1fr;
+  }
+  
+  .yp-sections-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .yp-password-list {
+    grid-template-columns: 1fr;
+  }
+}
+

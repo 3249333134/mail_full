@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>信笺下一步 UI 与操作逻辑设计</title>
+  <link rel="stylesheet" href="next-step-design.css">
+  <link rel="stylesheet" href="realistic-paper-system.css">
+</head>
+<body>
+  <header class="top-note">
+    <div>
+      <p class="eyebrow">Next Step UI / Interaction</p>
+      <h1>信笺下一步 UI 与操作逻辑设计</h1>
+      <p>以“书信的温度”为核心，参考怀旧情书、旧相册、手写纸张与蜡封拆信的质感，优先补齐核心体验短板。</p>
+    </div>
+    <nav>
+      <a href="index.html">高保真主稿</a>
+      <a href="page-hierarchy.html">页面层级</a>
+      <a href="real-letter-generator.html">真实信件</a>
+      <a href="mailbox-decorator.html">信箱装饰</a>
+      <a href="all-designs.html">设计总览</a>
+      <a href="#priority">优先级</a>
+      <a href="#flows">流程稿</a>
+    </nav>
+  </header>
+
+  <main>
+    <section class="hero-board">
+      <div class="letter-poster">
+        <div class="poster-paper">
+          <span class="date-mark">1995 / 05 / 20</span>
+          <h2>慢慢拆开一封信</h2>
+          <p>先听见纸张轻响，再看见蜡封裂开。声音不抢戏，按钮不打扰，所有操作都像从信纸边缘轻轻浮出来。</p>
+          <div class="wax-seal">信</div>
+        </div>
+      </div>
+      <div class="hero-copy">
+        <p class="eyebrow">Design Mood</p>
+        <h2>更像一只被保管很久的木盒，而不是一组功能入口</h2>
+        <p>视觉上减少硬质卡片感，增加纸张纤维、旧照片、细线、低饱和玫瑰色与茶绿色。交互上让“写信、拆信、等待、回信、记录”形成闭环。</p>
+        <div class="mood-tags">
+          <span>旧相册</span>
+          <span>蜡封</span>
+          <span>纸张阻尼</span>
+          <span>语音气泡</span>
+          <span>慢递状态</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="priority">
+      <div class="section-head">
+        <div>
+          <p class="eyebrow">Priority Matrix</p>
+          <h2>下一步设计优先级</h2>
+        </div>
+        <span class="status-pill">先补体验短板，再加情绪细节</span>
+      </div>
+      <div class="priority-grid">
+        <article class="priority-card high">
+          <h3>高优先级</h3>
+          <ul>
+            <li>录音自动播放改为拆信后语音气泡</li>
+            <li>撤销 / 重做、层级、对齐辅助线</li>
+            <li>一键备份、导入恢复、加密导出</li>
+            <li>20-30 秒自动草稿保存</li>
+          </ul>
+        </article>
+        <article class="priority-card middle">
+          <h3>中优先级</h3>
+          <ul>
+            <li>蜡封拆封动画与轻量音效</li>
+            <li>双人信箱投递中 / 已送达状态</li>
+            <li>随机慢递与待寄预览</li>
+            <li>日记书签、目录、手账同步</li>
+          </ul>
+        </article>
+        <article class="priority-card usability">
+          <h3>易用性</h3>
+          <ul>
+            <li>首次使用引导和简洁模式</li>
+            <li>移动端底部工具栏与属性抽屉</li>
+            <li>滑动翻页、双指缩放、压感涂鸦</li>
+            <li>全局搜索与信件标签</li>
+          </ul>
+        </article>
+        <article class="priority-card tech">
+          <h3>技术兜底</h3>
+          <ul>
+            <li>大资源迁移到 IndexedDB</li>
+            <li>数据库版本升级与迁移</li>
+            <li>画廊懒渲染、拖拽节流</li>
+            <li>录音格式检测与存储降级提示</li>
+          </ul>
+        </article>
+      </div>
+    </section>
+
+    <section class="section" id="flows">
+      <div class="section-head">
+        <div>
+          <p class="eyebrow">Interaction Flows</p>
+          <h2>关键 UI 与操作逻辑</h2>
+        </div>
+      </div>
+
+      <div class="flow-grid">
+        <article class="flow-card reading-flow">
+          <div class="flow-title">
+            <span>01</span>
+            <div>
+              <h3>拆信阅读与语音播放</h3>
+              <p>解决自动播放失效，保留仪式感。</p>
+            </div>
+          </div>
+          <div class="open-letter-demo">
+            <div class="envelope-back"></div>
+            <div class="letter-face">
+              <div class="seal-crack">信</div>
+              <h4>第十七封</h4>
+              <p>拆信动画完成后，语音气泡从右下浮出。</p>
+              <button class="voice-bubble">播放他的声音 · 00:36</button>
+            </div>
+          </div>
+          <ol class="logic-list">
+            <li>用户点击信件卡片，开始蜡封裂开和翻盖动画。</li>
+            <li>动画结束后显示语音气泡，用户点击才播放录音。</li>
+            <li>若本会话已点击过 BGM/录音，则允许后续自动淡入播放。</li>
+            <li>BGM 降到 15%，录音淡入；录音结束后 BGM 淡回。</li>
+          </ol>
+        </article>
+
+        <article class="flow-card editor-flow">
+          <div class="flow-title">
+            <span>02</span>
+            <div>
+              <h3>编辑器基础能力补全</h3>
+              <p>把丰富工具变成可靠的创作系统。</p>
+            </div>
+          </div>
+          <div class="editor-demo">
+            <aside class="mini-tools">
+              <button>撤销</button>
+              <button>重做</button>
+              <button>置顶</button>
+              <button>对齐</button>
+              <button>竖排</button>
+            </aside>
+            <main class="edit-canvas">
+              <div class="guide-line v"></div>
+              <div class="guide-line h"></div>
+              <div class="text-block vertical">愿君安</div>
+              <div class="photo-sticker"></div>
+            </main>
+            <aside class="mini-props">
+              <strong>属性</strong>
+              <label>层级</label>
+              <label>吸附</label>
+              <label>字向</label>
+            </aside>
+          </div>
+          <ol class="logic-list">
+            <li>所有新增、删除、移动、属性修改进入 50 步操作栈。</li>
+            <li>拖拽时显示中心线、边距线，靠近后吸附。</li>
+            <li>右侧属性面板提供上移、下移、置顶、置底。</li>
+            <li>文字支持横排 / 竖排切换，适配复古与和风信纸。</li>
+          </ol>
+        </article>
+
+        <article class="flow-card backup-flow">
+          <div class="flow-title">
+            <span>03</span>
+            <div>
+              <h3>备份恢复与自动草稿</h3>
+              <p>给高情感价值内容一个安全感入口。</p>
+            </div>
+          </div>
+          <div class="backup-demo">
+            <div class="safe-panel">
+              <h4>存在未完成的草稿</h4>
+              <p>上次编辑于 23:42，包含 2 页信纸、1 段录音。</p>
+              <div>
+                <button>恢复草稿</button>
+                <button class="quiet">放弃</button>
+              </div>
+            </div>
+            <div class="export-panel">
+              <strong>备份信笺</strong>
+              <span>信箱、信件、手账、媒体</span>
+              <label><input type="checkbox" checked> 包含媒体文件</label>
+              <label><input type="checkbox"> 使用密码加密</label>
+            </div>
+          </div>
+          <ol class="logic-list">
+            <li>编辑器每 20-30 秒保存草稿，按 mailboxId 与 letterId 归档。</li>
+            <li>再次进入编辑页时优先弹出恢复提示。</li>
+            <li>备份导出 JSON；媒体可 base64 内嵌或独立资源包。</li>
+            <li>导入前展示备份内容摘要，防止误覆盖。</li>
+          </ol>
+        </article>
+
+        <article class="flow-card delivery-flow">
+          <div class="flow-title">
+            <span>04</span>
+            <div>
+              <h3>双人信箱与时光慢递</h3>
+              <p>把等待设计成产品体验，而不是后台状态。</p>
+            </div>
+          </div>
+          <div class="delivery-demo">
+            <div class="delivery-column">
+              <strong>投递中</strong>
+              <span>约 3 天后送达</span>
+              <div class="route-line"><i></i></div>
+            </div>
+            <div class="delivery-column arrived">
+              <strong>新的来信</strong>
+              <span>下次启动时自动送达</span>
+              <button>收取</button>
+            </div>
+            <div class="delivery-column">
+              <strong>投递包</strong>
+              <span>加密文件，可跨设备导入</span>
+              <button>导出</button>
+            </div>
+          </div>
+          <ol class="logic-list">
+            <li>寄出后进入“投递中”，按设置时间到达。</li>
+            <li>离线期间到达的信，下次启动补送达并提示。</li>
+            <li>随机慢递支持 1-3 个月、半年内、平邮模式。</li>
+            <li>双人信箱可导出加密投递包，无后端也能交换。</li>
+          </ol>
+        </article>
+
+        <article class="flow-card journal-flow">
+          <div class="flow-title">
+            <span>05</span>
+            <div>
+              <h3>日记、手账与写信闭环</h3>
+              <p>让支线内容成为主体验的记忆索引。</p>
+            </div>
+          </div>
+          <div class="journal-demo">
+            <aside>
+              <strong>目录</strong>
+              <span class="active">1995 初遇</span>
+              <span>2000 雨夜</span>
+              <span>2005 仓库</span>
+            </aside>
+            <main>
+              <div class="bookmark">书签</div>
+              <h4>以撒的日记</h4>
+              <p>写完信后，同步到今日手账。</p>
+              <button>同步到手账</button>
+            </main>
+          </div>
+          <ol class="logic-list">
+            <li>日记增加目录、书签、页码定位。</li>
+            <li>写完信后可一键生成手账记录。</li>
+            <li>手账支持按关键词、日期、收信人搜索。</li>
+            <li>年/月/日/清单任务状态与信纸计划组件同步。</li>
+          </ol>
+        </article>
+
+        <article class="flow-card mobile-flow">
+          <div class="flow-title">
+            <span>06</span>
+            <div>
+              <h3>移动端编辑与简洁模式</h3>
+              <p>把复杂功能收进手势和底部面板。</p>
+            </div>
+          </div>
+          <div class="phone-demo">
+            <div class="phone-screen">
+              <header>新建信件</header>
+              <div class="phone-paper">愿君安</div>
+              <div class="bottom-bar">
+                <button>T</button>
+                <button>图</button>
+                <button>声</button>
+                <button>组件</button>
+              </div>
+              <div class="bottom-sheet">
+                <strong>属性面板</strong>
+                <span>字号 · 层级 · 对齐 · 透明度</span>
+              </div>
+            </div>
+            <div class="mode-card">
+              <strong>简洁模式</strong>
+              <span>隐藏手账、待寄、日记，仅保留收信与写信。</span>
+            </div>
+          </div>
+          <ol class="logic-list">
+            <li>移动端编辑器改为全屏画布 + 底部工具栏。</li>
+            <li>属性面板从底部弹出，避免挤压画布。</li>
+            <li>画廊、日记支持左右滑；信纸支持双指缩放。</li>
+            <li>首次进入按模块触发新手引导，不一次性打扰。</li>
+          </ol>
+        </article>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-head">
+        <div>
+          <p class="eyebrow">Global Layer</p>
+          <h2>全局搜索、标签与技术状态提示</h2>
+        </div>
+      </div>
+      <div class="global-grid">
+        <article>
+          <h3>全局搜索</h3>
+          <div class="search-box">搜索标题、正文、收信人、手账...</div>
+          <p>结果按信件、信箱、日记、手账分组，直接跳转阅读或编辑。</p>
+        </article>
+        <article>
+          <h3>标签系统</h3>
+          <div class="tag-row"><span>未读</span><span>待回信</span><span>重要</span><span>自定义</span></div>
+          <p>标签显示在信件卡片和搜索筛选里，不破坏信纸阅读沉浸感。</p>
+        </article>
+        <article>
+          <h3>兼容提示</h3>
+          <div class="warning-card">当前浏览器录音格式受限，已切换为 m4a 兼容模式。</div>
+          <p>MediaRecorder、IndexedDB、自动播放失败都给出柔和提示。</p>
+        </article>
+      </div>
+    </section>
+  </main>
+</body>
+</html>

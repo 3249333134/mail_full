@@ -1,0 +1,1348 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>信笺设计优化方案与实施路线图</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    
+    :root {
+      --ink-deep: #1a1d25;
+      --ink-main: #2c3142;
+      --ink-sub: #5a6278;
+      --ink-light: #8b93a7;
+      --paper-warm: #faf6f0;
+      --paper-cream: #f5efe4;
+      --paper-aged: #ebe3d4;
+      --rose-warm: #c96567;
+      --rose-soft: #e8a5a6;
+      --leaf-deep: #4a7c59;
+      --leaf-soft: #8fb996;
+      --gold-warm: #b8956a;
+      --night-deep: #2a334a;
+      --border-soft: rgba(42, 51, 74, 0.1);
+      --shadow-paper: 0 2px 12px rgba(42, 51, 74, 0.08), 0 8px 32px rgba(42, 51, 74, 0.06);
+      --shadow-lift: 0 4px 20px rgba(42, 51, 74, 0.12), 0 16px 48px rgba(42, 51, 74, 0.08);
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+      background: var(--paper-warm);
+      color: var(--ink-main);
+      line-height: 1.7;
+      font-size: 15px;
+    }
+
+    /* 顶部导航 */
+    .top-nav {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: rgba(250, 246, 240, 0.92);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border-soft);
+      padding: 14px 48px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .nav-brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .nav-seal {
+      width: 32px;
+      height: 32px;
+      background: var(--rose-warm);
+      color: white;
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 600;
+      font-size: 14px;
+      letter-spacing: 1px;
+    }
+
+    .nav-brand h1 {
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--ink-deep);
+    }
+
+    .nav-brand small {
+      font-size: 12px;
+      color: var(--ink-light);
+      display: block;
+    }
+
+    .nav-links {
+      display: flex;
+      gap: 28px;
+      font-size: 13px;
+    }
+
+    .nav-links a {
+      color: var(--ink-sub);
+      text-decoration: none;
+      transition: color 0.2s;
+    }
+
+    .nav-links a:hover {
+      color: var(--rose-warm);
+    }
+
+    /* 主容器 */
+    .container {
+      max-width: 1180px;
+      margin: 0 auto;
+      padding: 48px 48px 80px;
+    }
+
+    /* Hero 区域 */
+    .hero {
+      text-align: center;
+      padding: 60px 0 80px;
+      position: relative;
+    }
+
+    .hero::before {
+      content: '';
+      position: absolute;
+      top: 40px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 60px;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, var(--rose-warm), transparent);
+    }
+
+    .hero-eyebrow {
+      font-size: 12px;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      color: var(--rose-warm);
+      font-weight: 500;
+      margin-bottom: 20px;
+    }
+
+    .hero h1 {
+      font-size: 38px;
+      font-weight: 600;
+      color: var(--ink-deep);
+      margin-bottom: 18px;
+      letter-spacing: -0.5px;
+    }
+
+    .hero p {
+      font-size: 16px;
+      color: var(--ink-sub);
+      max-width: 640px;
+      margin: 0 auto;
+      line-height: 1.8;
+    }
+
+    .hero-meta {
+      display: flex;
+      justify-content: center;
+      gap: 40px;
+      margin-top: 40px;
+      padding-top: 32px;
+      border-top: 1px solid var(--border-soft);
+    }
+
+    .meta-item {
+      text-align: center;
+    }
+
+    .meta-item strong {
+      display: block;
+      font-size: 24px;
+      font-weight: 600;
+      color: var(--ink-deep);
+    }
+
+    .meta-item span {
+      font-size: 12px;
+      color: var(--ink-light);
+    }
+
+    /* 章节通用 */
+    .section {
+      margin-bottom: 72px;
+    }
+
+    .section-head {
+      margin-bottom: 36px;
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+    }
+
+    .section-title h2 {
+      font-size: 26px;
+      font-weight: 600;
+      color: var(--ink-deep);
+      margin-bottom: 8px;
+    }
+
+    .section-title p {
+      font-size: 14px;
+      color: var(--ink-sub);
+    }
+
+    .section-badge {
+      font-size: 12px;
+      padding: 6px 14px;
+      background: var(--paper-cream);
+      border: 1px solid var(--border-soft);
+      border-radius: 20px;
+      color: var(--ink-sub);
+    }
+
+    /* 现状评估 */
+    .assessment-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+    }
+
+    .assessment-card {
+      background: white;
+      border-radius: 12px;
+      padding: 28px;
+      box-shadow: var(--shadow-paper);
+      border: 1px solid var(--border-soft);
+    }
+
+    .assessment-card.strength {
+      border-top: 3px solid var(--leaf-deep);
+    }
+
+    .assessment-card.improve {
+      border-top: 3px solid var(--gold-warm);
+    }
+
+    .assessment-card h3 {
+      font-size: 17px;
+      font-weight: 600;
+      margin-bottom: 18px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .assessment-card.strength h3 { color: var(--leaf-deep); }
+    .assessment-card.improve h3 { color: var(--gold-warm); }
+
+    .assessment-list {
+      list-style: none;
+    }
+
+    .assessment-list li {
+      padding: 10px 0;
+      border-bottom: 1px dashed var(--border-soft);
+      font-size: 14px;
+      color: var(--ink-main);
+      display: flex;
+      gap: 10px;
+    }
+
+    .assessment-list li:last-child {
+      border-bottom: none;
+    }
+
+    .assessment-list li::before {
+      content: '';
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      margin-top: 8px;
+      flex-shrink: 0;
+    }
+
+    .assessment-card.strength li::before { background: var(--leaf-soft); }
+    .assessment-card.improve li::before { background: var(--gold-warm); }
+
+    /* 优化方向卡片 */
+    .optimize-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 20px;
+    }
+
+    .optimize-card {
+      background: white;
+      border-radius: 12px;
+      padding: 28px 24px;
+      box-shadow: var(--shadow-paper);
+      border: 1px solid var(--border-soft);
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    .optimize-card:hover {
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-lift);
+    }
+
+    .optimize-icon {
+      width: 44px;
+      height: 44px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      margin-bottom: 18px;
+    }
+
+    .optimize-card.visual .optimize-icon { background: #fdf2f2; color: var(--rose-warm); }
+    .optimize-card.interaction .optimize-icon { background: #f0f7f2; color: var(--leaf-deep); }
+    .optimize-card.architecture .optimize-icon { background: #f5f0e8; color: var(--gold-warm); }
+
+    .optimize-card h3 {
+      font-size: 17px;
+      font-weight: 600;
+      color: var(--ink-deep);
+      margin-bottom: 12px;
+    }
+
+    .optimize-card p {
+      font-size: 13px;
+      color: var(--ink-sub);
+      margin-bottom: 16px;
+      line-height: 1.7;
+    }
+
+    .optimize-points {
+      list-style: none;
+    }
+
+    .optimize-points li {
+      font-size: 13px;
+      color: var(--ink-main);
+      padding: 6px 0;
+      padding-left: 16px;
+      position: relative;
+    }
+
+    .optimize-points li::before {
+      content: '→';
+      position: absolute;
+      left: 0;
+      color: var(--ink-light);
+      font-size: 12px;
+    }
+
+    /* 详细优化模块 */
+    .detail-module {
+      background: white;
+      border-radius: 12px;
+      padding: 32px;
+      box-shadow: var(--shadow-paper);
+      border: 1px solid var(--border-soft);
+      margin-bottom: 24px;
+    }
+
+    .module-header {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      margin-bottom: 24px;
+      padding-bottom: 18px;
+      border-bottom: 1px solid var(--border-soft);
+    }
+
+    .module-number {
+      width: 36px;
+      height: 36px;
+      background: var(--ink-deep);
+      color: white;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 600;
+      font-size: 15px;
+    }
+
+    .module-header h3 {
+      font-size: 19px;
+      font-weight: 600;
+      color: var(--ink-deep);
+    }
+
+    .module-header p {
+      font-size: 13px;
+      color: var(--ink-sub);
+    }
+
+    .module-content {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 24px;
+    }
+
+    .module-subsection h4 {
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--ink-main);
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .module-subsection h4::before {
+      content: '';
+      width: 3px;
+      height: 14px;
+      background: var(--rose-warm);
+      border-radius: 2px;
+    }
+
+    .module-subsection ul {
+      list-style: none;
+    }
+
+    .module-subsection li {
+      font-size: 13.5px;
+      color: var(--ink-sub);
+      padding: 7px 0;
+      padding-left: 18px;
+      position: relative;
+      line-height: 1.7;
+    }
+
+    .module-subsection li::before {
+      content: '·';
+      position: absolute;
+      left: 6px;
+      color: var(--ink-light);
+      font-weight: bold;
+    }
+
+    .module-subsection li strong {
+      color: var(--ink-main);
+      font-weight: 500;
+    }
+
+    /* 路线图时间线 */
+    .roadmap {
+      position: relative;
+      padding-left: 40px;
+    }
+
+    .roadmap::before {
+      content: '';
+      position: absolute;
+      left: 15px;
+      top: 8px;
+      bottom: 8px;
+      width: 2px;
+      background: linear-gradient(180deg, var(--rose-warm), var(--leaf-deep), var(--gold-warm), var(--night-deep));
+      border-radius: 2px;
+    }
+
+    .phase {
+      position: relative;
+      margin-bottom: 36px;
+      background: white;
+      border-radius: 12px;
+      padding: 28px;
+      box-shadow: var(--shadow-paper);
+      border: 1px solid var(--border-soft);
+    }
+
+    .phase::before {
+      content: '';
+      position: absolute;
+      left: -33px;
+      top: 32px;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      border: 3px solid white;
+      box-shadow: 0 0 0 2px var(--border-soft);
+    }
+
+    .phase.p1::before { background: var(--rose-warm); }
+    .phase.p2::before { background: var(--leaf-deep); }
+    .phase.p3::before { background: var(--gold-warm); }
+    .phase.p4::before { background: var(--night-deep); }
+
+    .phase-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 18px;
+    }
+
+    .phase-title h3 {
+      font-size: 19px;
+      font-weight: 600;
+      color: var(--ink-deep);
+      margin-bottom: 4px;
+    }
+
+    .phase-title span {
+      font-size: 13px;
+      color: var(--ink-light);
+    }
+
+    .phase-tag {
+      font-size: 12px;
+      padding: 5px 12px;
+      border-radius: 12px;
+      font-weight: 500;
+    }
+
+    .phase.p1 .phase-tag { background: #fdf2f2; color: var(--rose-warm); }
+    .phase.p2 .phase-tag { background: #f0f7f2; color: var(--leaf-deep); }
+    .phase.p3 .phase-tag { background: #faf3e8; color: var(--gold-warm); }
+    .phase.p4 .phase-tag { background: #eef0f5; color: var(--night-deep); }
+
+    .phase-goals {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+      margin-bottom: 20px;
+    }
+
+    .goal-item {
+      background: var(--paper-warm);
+      border-radius: 8px;
+      padding: 14px 16px;
+    }
+
+    .goal-item strong {
+      display: block;
+      font-size: 13px;
+      color: var(--ink-deep);
+      margin-bottom: 4px;
+      font-weight: 600;
+    }
+
+    .goal-item span {
+      font-size: 12px;
+      color: var(--ink-sub);
+      line-height: 1.6;
+    }
+
+    .phase-tasks {
+      list-style: none;
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 8px 24px;
+    }
+
+    .phase-tasks li {
+      font-size: 13.5px;
+      color: var(--ink-main);
+      padding: 6px 0;
+      padding-left: 20px;
+      position: relative;
+    }
+
+    .phase-tasks li::before {
+      content: '☐';
+      position: absolute;
+      left: 0;
+      font-size: 12px;
+      color: var(--ink-light);
+    }
+
+    /* 技术建议 */
+    .tech-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 20px;
+    }
+
+    .tech-card {
+      background: white;
+      border-radius: 12px;
+      padding: 24px;
+      box-shadow: var(--shadow-paper);
+      border: 1px solid var(--border-soft);
+      border-left: 4px solid var(--night-deep);
+    }
+
+    .tech-card h4 {
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--ink-deep);
+      margin-bottom: 14px;
+    }
+
+    .tech-card ul {
+      list-style: none;
+    }
+
+    .tech-card li {
+      font-size: 13px;
+      color: var(--ink-sub);
+      padding: 6px 0;
+      padding-left: 16px;
+      position: relative;
+      line-height: 1.7;
+    }
+
+    .tech-card li::before {
+      content: '▸';
+      position: absolute;
+      left: 0;
+      color: var(--ink-light);
+    }
+
+    .tech-card li code {
+      background: var(--paper-warm);
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 12px;
+      color: var(--ink-main);
+    }
+
+    /* 底部总结 */
+    .summary {
+      background: linear-gradient(135deg, var(--ink-deep) 0%, var(--night-deep) 100%);
+      border-radius: 16px;
+      padding: 48px;
+      color: white;
+      text-align: center;
+    }
+
+    .summary h2 {
+      font-size: 24px;
+      font-weight: 600;
+      margin-bottom: 16px;
+    }
+
+    .summary p {
+      font-size: 14px;
+      opacity: 0.8;
+      max-width: 560px;
+      margin: 0 auto 32px;
+      line-height: 1.8;
+    }
+
+    .summary-points {
+      display: flex;
+      justify-content: center;
+      gap: 48px;
+    }
+
+    .summary-point {
+      text-align: center;
+    }
+
+    .summary-point strong {
+      display: block;
+      font-size: 28px;
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+
+    .summary-point span {
+      font-size: 12px;
+      opacity: 0.7;
+    }
+
+    /* 响应式 */
+    @media (max-width: 900px) {
+      .container { padding: 32px 24px 60px; }
+      .top-nav { padding: 12px 24px; }
+      .nav-links { display: none; }
+      .hero h1 { font-size: 28px; }
+      .assessment-grid, .optimize-grid, .module-content, .phase-goals, .phase-tasks, .tech-grid {
+        grid-template-columns: 1fr;
+      }
+      .hero-meta { gap: 24px; }
+      .summary { padding: 32px 24px; }
+      .summary-points { gap: 24px; flex-wrap: wrap; }
+    }
+  </style>
+</head>
+<body>
+  <nav class="top-nav">
+    <div class="nav-brand">
+      <div class="nav-seal">优</div>
+      <div>
+        <h1>信笺设计优化方案</h1>
+        <small>Design Optimization & Roadmap</small>
+      </div>
+    </div>
+    <div class="nav-links">
+      <a href="#assessment">现状评估</a>
+      <a href="#directions">优化方向</a>
+      <a href="#details">详细方案</a>
+      <a href="#roadmap">实施路线</a>
+      <a href="#tech">技术建议</a>
+    </div>
+  </nav>
+
+  <div class="container">
+    <!-- Hero -->
+    <section class="hero">
+      <div class="hero-eyebrow">Optimization Plan · 2026</div>
+      <h1>从「好看的设计稿」走向「可用的产品」</h1>
+      <p>基于现有高保真原型、页面层级、真实信件体系与下一步设计，系统性梳理视觉一致性、交互闭环与产品优先级，输出可落地的四阶段实施路线图。</p>
+      <div class="hero-meta">
+        <div class="meta-item">
+          <strong>9</strong>
+          <span>功能域覆盖</span>
+        </div>
+        <div class="meta-item">
+          <strong>4</strong>
+          <span>实施阶段</span>
+        </div>
+        <div class="meta-item">
+          <strong>18</strong>
+          <span>信件模板</span>
+        </div>
+        <div class="meta-item">
+          <strong>5</strong>
+          <span>计划组件</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- 现状评估 -->
+    <section class="section" id="assessment">
+      <div class="section-head">
+        <div class="section-title">
+          <h2>设计现状评估</h2>
+          <p>当前设计体系的优势与待优化点</p>
+        </div>
+        <span class="section-badge">Assessment</span>
+      </div>
+
+      <div class="assessment-grid">
+        <div class="assessment-card strength">
+          <h3>✓ 已建立的设计优势</h3>
+          <ul class="assessment-list">
+            <li>视觉语言统一：旧纸、蜡封、墨色、玫瑰色形成完整叙事氛围</li>
+            <li>信息架构清晰：四级页面层级覆盖9个功能域，逻辑自洽</li>
+            <li>编辑器三栏结构：工具-画布-属性的专业布局，扩展性强</li>
+            <li>计划组件体系：年/月/周/日/清单的3-in-1设计，数据联动思路清晰</li>
+            <li>真实信件模板：18种风格覆盖从古至今，差异化显著</li>
+            <li>移动端考虑：底部工具栏、属性抽屉、简洁模式已有雏形</li>
+          </ul>
+        </div>
+        <div class="assessment-card improve">
+          <h3>△ 待深化的优化方向</h3>
+          <ul class="assessment-list">
+            <li>功能密度过高：支线功能（日记/手账/待寄）与核心写信体验权重模糊</li>
+            <li>交互细节缺失：拆信动画、组件内嵌编辑、拖拽吸附等关键交互未细化</li>
+            <li>状态反馈不足：自动保存、同步状态、加载、错误等反馈体系不完整</li>
+            <li>模板整合路径：18种真实信件模板如何接入编辑器流程尚不清晰</li>
+            <li>数据安全流程：备份导入导出、草稿恢复的完整用户旅程待补全</li>
+            <li>动效规范缺失：各场景过渡动画、微交互缺乏统一标准</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- 三大优化方向 -->
+    <section class="section" id="directions">
+      <div class="section-head">
+        <div class="section-title">
+          <h2>三大核心优化方向</h2>
+          <p>视觉体系深化 · 交互体验闭环 · 信息架构精简</p>
+        </div>
+        <span class="section-badge">Directions</span>
+      </div>
+
+      <div class="optimize-grid">
+        <div class="optimize-card visual">
+          <div class="optimize-icon">◐</div>
+          <h3>视觉体系深化</h3>
+          <p>统一材质语言，建立功能区与叙事区的视觉层级差异，补充动效规范。</p>
+          <ul class="optimize-points">
+            <li>纸张材质系统标准化</li>
+            <li>功能控件与叙事元素分层</li>
+            <li>统一阴影与圆角规范</li>
+            <li>微交互动效节奏定义</li>
+            <li>深色模式与夜色主题</li>
+          </ul>
+        </div>
+        <div class="optimize-card interaction">
+          <div class="optimize-icon">↻</div>
+          <h3>交互体验闭环</h3>
+          <p>补全核心路径的完整交互流程，强化状态反馈，降低操作认知成本。</p>
+          <ul class="optimize-points">
+            <li>拆信-阅读-回信完整流</li>
+            <li>编辑器撤销重做与对齐</li>
+            <li>计划组件内嵌编辑流程</li>
+            <li>备份恢复的安全感设计</li>
+            <li>语音气泡的交互范式</li>
+          </ul>
+        </div>
+        <div class="optimize-card architecture">
+          <div class="optimize-icon">≡</div>
+          <h3>信息架构精简</h3>
+          <p>明确核心路径与支线功能的关系，渐进式呈现复杂功能。</p>
+          <ul class="optimize-points">
+            <li>核心写信路径轻量化</li>
+            <li>简洁模式的具体定义</li>
+            <li>渐进式首次引导设计</li>
+            <li>支线功能的入口策略</li>
+            <li>全局搜索与标签系统</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- 详细优化方案 -->
+    <section class="section" id="details">
+      <div class="section-head">
+        <div class="section-title">
+          <h2>详细优化方案</h2>
+          <p>六个关键模块的具体设计改进</p>
+        </div>
+        <span class="section-badge">Details</span>
+      </div>
+
+      <!-- 模块1：编辑器 -->
+      <div class="detail-module">
+        <div class="module-header">
+          <div class="module-number">01</div>
+          <div>
+            <h3>编辑器体验深化</h3>
+            <p>三栏布局的交互细节与创作流畅度优化</p>
+          </div>
+        </div>
+        <div class="module-content">
+          <div class="module-subsection">
+            <h4>创作流畅度</h4>
+            <ul>
+              <li><strong>操作栈管理</strong>：50步撤销/重做，文字编辑、元素移动、属性修改统一入栈</li>
+              <li><strong>智能辅助线</strong>：拖拽时显示中心线、边距线，靠近8px阈值自动吸附</li>
+              <li><strong>层级操作</strong>：右键菜单 + 属性面板双通道，支持置顶/置底/上移/下移</li>
+              <li><strong>键盘快捷键</strong>：Ctrl+Z/Y撤销重做，Ctrl+[/]调整层级，空格拖拽画布</li>
+            </ul>
+          </div>
+          <div class="module-subsection">
+            <h4>组件内嵌编辑</h4>
+            <ul>
+              <li><strong>双击进入</strong>：计划组件双击进入内部编辑模式，画布灰显，组件高亮</li>
+              <li><strong>数据同步</strong>：组件修改实时同步到手账系统，右上角显示"已同步"状态</li>
+              <li><strong>尺寸自适应</strong>：组件支持拖拽缩放，内部布局自动响应调整</li>
+              <li><strong>透明背景</strong>：一键切换组件背景透明，融入信纸不突兀</li>
+            </ul>
+          </div>
+          <div class="module-subsection">
+            <h4>自动保存与草稿</h4>
+            <ul>
+              <li><strong>保存状态可见</strong>：顶部栏实时显示"已保存 / 保存中 / 未连接"</li>
+              <li><strong>版本回溯</strong>：保留最近5个自动保存版本，可一键回退</li>
+              <li><strong>离开提醒</strong>：未保存时关闭页面，弹出草稿确认弹窗</li>
+              <li><strong>断点续编</strong>：再次打开自动恢复上次编辑位置与选中状态</li>
+            </ul>
+          </div>
+          <div class="module-subsection">
+            <h4>真实信件模板接入</h4>
+            <ul>
+              <li><strong>模板应用入口</strong>：信纸样式选择器扩展为18种真实模板预览</li>
+              <li><strong>自动排版</strong>：选择模板后自动转换文字方向（横排/竖排）、字体栈</li>
+              <li><strong>参数可调</strong>：污渍程度、折痕样式、纸张年代可微调</li>
+              <li><strong>导出保真</strong>：导出PNG时完整保留纸纹、印章、邮戳等材质层</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <!-- 模块2：阅读体验 -->
+      <div class="detail-module">
+        <div class="module-header">
+          <div class="module-number">02</div>
+          <div>
+            <h3>阅读与拆信仪式感</h3>
+            <p>从信封到内容的沉浸式体验设计</p>
+          </div>
+        </div>
+        <div class="module-content">
+          <div class="module-subsection">
+            <h4>拆信动画流程</h4>
+            <ul>
+              <li><strong>蜡封裂开</strong>：点击信封后蜡封先出现裂纹，0.3s后分两半向两侧滑落</li>
+              <li><strong>信封翻盖</strong>：上盖向上翻开，带纸张轻响音效（用户触发后播放）</li>
+              <li><strong>信纸抽出</strong>：信纸从信封中缓缓滑出，同时背景柔和变暗聚焦内容</li>
+              <li><strong>可跳过机制</strong>：第二次查看同一封信自动跳过动画，直接进入阅读</li>
+            </ul>
+          </div>
+          <div class="module-subsection">
+            <h4>语音气泡交互</h4>
+            <ul>
+              <li><strong>浮出时机</strong>：拆信动画结束后，语音气泡从右下角淡入上浮</li>
+              <li><strong>点击播放</strong>：必须用户主动点击才播放，规避浏览器自动播放限制</li>
+              <li><strong>智能续播</strong>：本会话已授权音频后，后续信件可自动淡入播放</li>
+              <li><strong>BGM混音</strong>：语音播放时BGM自动降至15%音量，结束后淡回</li>
+            </ul>
+          </div>
+          <div class="module-subsection">
+            <h4>分页阅读体验</h4>
+            <ul>
+              <li><strong>翻页动效</strong>：左右滑动或点击翻页，带纸张翻动的卷曲效果</li>
+              <li><strong>进度感知</strong>：底部显示页码与阅读进度条，支持点击跳转</li>
+              <li><strong>书签功能</strong>：长按段落可添加书签，下次打开自动定位</li>
+              <li><strong>回信入口</strong>：阅读到底部浮现"写回信"按钮，预填充收信人</li>
+            </ul>
+          </div>
+          <div class="module-subsection">
+            <h4>阅读上下文面板</h4>
+            <ul>
+              <li><strong>信件元信息</strong>：右侧固定显示收信人、日期、状态、所属信箱</li>
+              <li><strong>故事线入口</strong>：关联的日记章节、手账记录快捷跳转</li>
+              <li><strong>操作区</strong>：编辑、导出、回信、删除四个核心操作</li>
+              <li><strong>移动端</strong>：收起为底部浮动按钮组，上滑展开完整面板</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <!-- 模块3：信箱与慢递 -->
+      <div class="detail-module">
+        <div class="module-header">
+          <div class="module-number">03</div>
+          <div>
+            <h3>信箱系统与慢递体验</h3>
+            <p>把等待设计成产品体验的一部分</p>
+          </div>
+        </div>
+        <div class="module-content">
+          <div class="module-subsection">
+            <h4>信箱装饰系统</h4>
+            <ul>
+              <li><strong>信箱单元化</strong>：每个信箱作为独立可装饰单元，外壳+贴纸+标签+状态</li>
+              <li><strong>材质主题</strong>：铜制邮筒、木质信盒、牛皮档案袋、航空信封四种基础材质</li>
+              <li><strong>装饰元素</strong>：蜡封章、手写标签、邮戳、照片夹、捆扎绳等可组合装饰</li>
+              <li><strong>状态可视化</strong>：未读信件数量通过信箱插旗、突出标签等方式呈现</li>
+            </ul>
+          </div>
+          <div class="module-subsection">
+            <h4>双人信箱与投递</h4>
+            <ul>
+              <li><strong>投递中状态</strong>：寄出后信件进入"在途"状态，显示预计送达时间</li>
+              <li><strong>随机慢递</strong>：支持平邮（3-7天）、慢递（1-3月）、半年期三种模式</li>
+              <li><strong>离线补送达</strong>：离线期间到达的信件，下次启动时统一"派件"提示</li>
+              <li><strong>加密投递包</strong>：无后端场景下，导出加密文件手动交换信件</li>
+            </ul>
+          </div>
+          <div class="module-subsection">
+            <h4>待寄与定时发送</h4>
+            <ul>
+              <li><strong>待寄列表</strong>：独立入口展示所有待寄出信件，支持修改与取消</li>
+              <li><strong>定时设置</strong>：指定日期时间发送，支持农历、纪念日提醒预设</li>
+              <li><strong>寄出仪式</strong>：点击"寄出"后有信封投入信箱的动画与音效</li>
+              <li><strong>撤回窗口</strong>：寄出后10分钟内可撤回，模拟"还在邮筒里"的状态</li>
+            </ul>
+          </div>
+          <div class="module-subsection">
+            <h4>信件堆叠浏览</h4>
+            <ul>
+              <li><strong>堆叠交互</strong>：左右滑动切换信件，当前信件放大居中，两侧露出预览</li>
+              <li><strong>时间线导航</strong>：底部时间轴快速跳转到某月/某年的信件</li>
+              <li><strong>筛选分组</strong>：按未读、待回信、带录音、有照片等维度筛选</li>
+              <li><strong>双视角切换</strong>：双人信箱支持"他的信/我的信/全部"三视图切换</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <!-- 模块4：计划与手账 -->
+      <div class="detail-module">
+        <div class="module-header">
+          <div class="module-number">04</div>
+          <div>
+            <h3>计划组件与手账闭环</h3>
+            <p>从独立功能到信纸可嵌入组件的统一体系</p>
+          </div>
+        </div>
+        <div class="module-content">
+          <div class="module-subsection">
+            <h4>年度计划 3-in-1</h4>
+            <ul>
+              <li><strong>YEAR视图</strong>：12个月色块总览，颜色标记任务类别，点击月份进入月计划</li>
+              <li><strong>NOTE视图</strong>：年度目标、季度复盘、关键事件的自由笔记区</li>
+              <li><strong>LIST视图</strong>：年度愿望清单、读书清单、观影清单等可自定义列表</li>
+              <li><strong>类别系统</strong>：日常/工作/成长/重点四种类别，颜色全局统一</li>
+            </ul>
+          </div>
+          <div class="module-subsection">
+            <h4>月/周/日联动</h4>
+            <ul>
+              <li><strong>逐级下钻</strong>：年→月→周→日，点击日期自动跳转对应层级视图</li>
+              <li><strong>任务同步</strong>：任一视图添加的任务，在其他视图自动同步显示状态</li>
+              <li><strong>复盘体系</strong>：月末/周末自动生成复盘入口，回顾完成情况</li>
+              <li><strong>农历支持</strong>：月视图显示农历日期，传统节日自动标注</li>
+            </ul>
+          </div>
+          <div class="module-subsection">
+            <h4>信纸嵌入机制</h4>
+            <ul>
+              <li><strong>组件库入口</strong>：编辑器左侧组件栏统一管理，拖拽即可插入信纸</li>
+              <li><strong>尺寸预设</strong>：提供窄版、宽版、方形三种预设尺寸，也可自由缩放</li>
+              <li><strong>样式适配</strong>：组件自动适应当前信纸风格（复古/简约/夜间）</li>
+              <li><strong>导出完整</strong>：导出图片时组件作为信纸一部分完整渲染</li>
+            </ul>
+          </div>
+          <div class="module-subsection">
+            <h4>手账与写信联动</h4>
+            <ul>
+              <li><strong>一键同步</strong>：写完信后可选择"同步到手账"，自动记录今日通信</li>
+              <li><strong>日记关联</strong>：信件可关联对应日记章节，阅读时侧边栏显示入口</li>
+              <li><strong>手账搜索</strong>：全局搜索覆盖手账内容，可按关键词、日期、标签检索</li>
+              <li><strong>模板系统</strong>：手账页面支持应用模板，快速搭建版式结构</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <!-- 模块5：数据安全 -->
+      <div class="detail-module">
+        <div class="module-header">
+          <div class="module-number">05</div>
+          <div>
+            <h3>数据安全与备份体系</h3>
+            <p>给高情感价值内容足够的安全感</p>
+          </div>
+        </div>
+        <div class="module-content">
+          <div class="module-subsection">
+            <h4>自动草稿机制</h4>
+            <ul>
+              <li><strong>定时保存</strong>：编辑器每25秒自动保存一次草稿到IndexedDB</li>
+              <li><strong>多版本保留</strong>：每封信保留最近5个历史版本，可查看时间戳</li>
+              <li><strong>恢复入口</strong>：重新打开编辑页时，顶部弹出"恢复上次草稿"提示</li>
+              <li><strong>冲突处理</strong>：多端编辑冲突时展示版本对比，由用户选择保留</li>
+            </ul>
+          </div>
+          <div class="module-subsection">
+            <h4>备份与导出</h4>
+            <ul>
+              <li><strong>全量备份</strong>：一键导出所有信箱、信件、手账、媒体文件</li>
+              <li><strong>可选加密</strong>：支持设置密码加密备份文件，AES加密保障隐私</li>
+              <li><strong>媒体选项</strong>：可选择是否包含录音、图片等媒体资源（减小体积）</li>
+              <li><strong>增量备份</strong>：后续备份仅导出新增/修改内容，提升效率</li>
+            </ul>
+          </div>
+          <div class="module-subsection">
+            <h4>导入与恢复</h4>
+            <ul>
+              <li><strong>预览摘要</strong>：导入前先展示备份内容摘要（信箱数、信件数、日期）</li>
+              <li><strong>合并模式</strong>：支持"合并到现有"和"覆盖全部"两种导入模式</li>
+              <li><strong>进度反馈</strong>：导入过程显示进度条和当前处理项，避免焦虑</li>
+              <li><strong>失败回滚</strong>：导入异常时自动回滚，不破坏现有数据</li>
+            </ul>
+          </div>
+          <div class="module-subsection">
+            <h4>存储与兼容</h4>
+            <ul>
+              <li><strong>IndexedDB迁移</strong>：大资源（录音、图片）从localStorage迁移到IndexedDB</li>
+              <li><strong>容量提示</strong>：存储空间使用接近上限时提前预警</li>
+              <li><strong>格式降级</strong>：录音格式根据浏览器支持自动选择webm/m4a</li>
+              <li><strong>数据版本</strong>：数据库带版本号，升级时自动执行迁移脚本</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <!-- 模块6：移动端 -->
+      <div class="detail-module">
+        <div class="module-header">
+          <div class="module-number">06</div>
+          <div>
+            <h3>移动端与简洁模式</h3>
+            <p>小屏体验优化与轻量化使用场景</p>
+          </div>
+        </div>
+        <div class="module-content">
+          <div class="module-subsection">
+            <h4>移动端编辑器</h4>
+            <ul>
+              <li><strong>全屏画布</strong>：移动端编辑器默认全屏显示信纸，工具收到底部</li>
+              <li><strong>底部工具栏</strong>：文字/图片/语音/组件四个核心工具，大尺寸按钮</li>
+              <li><strong>属性抽屉</strong>：属性设置从底部上滑弹出，不挤压画布空间</li>
+              <li><strong>手势支持</strong>：双指缩放画布、单指拖拽元素、双击编辑文字</li>
+            </ul>
+          </div>
+          <div class="module-subsection">
+            <h4>简洁模式</h4>
+            <ul>
+              <li><strong>核心功能</strong>：仅保留收信、写信两个核心入口，隐藏支线功能</li>
+              <li><strong>导航简化</strong>：底部Tab只保留"信箱"和"写信"两项</li>
+              <li><strong>可随时切换</strong>：设置中一键切换完整模式/简洁模式，记忆偏好</li>
+              <li><strong>渐进解锁</strong>：首次使用默认简洁模式，使用深度增加后提示解锁完整功能</li>
+            </ul>
+          </div>
+          <div class="module-subsection">
+            <h4>首次引导</h4>
+            <ul>
+              <li><strong>分步引导</strong>：不做一次性长教程，在对应功能首次使用时轻量提示</li>
+              <li><strong>示例信箱</strong>：首次进入预置一个示例信箱，包含3封演示信件</li>
+              <li><strong>创建引导</strong>：新建第一封信时，分步引导添加文字、图片、录音</li>
+              <li><strong>可跳过</strong>：所有引导都可一键跳过，不强迫用户走完流程</li>
+            </ul>
+          </div>
+          <div class="module-subsection">
+            <h4>全局搜索与标签</h4>
+            <ul>
+              <li><strong>统一搜索</strong>：顶部搜索框覆盖信件、信箱、日记、手账全部内容</li>
+              <li><strong>结果分组</strong>：搜索结果按类型分组展示，点击直接跳转对应位置</li>
+              <li><strong>标签系统</strong>：信件支持打标签（未读/待回/重要/自定义）</li>
+              <li><strong>筛选组合</strong>：标签+信箱+时间范围可组合筛选，高效定位</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 实施路线图 -->
+    <section class="section" id="roadmap">
+      <div class="section-head">
+        <div class="section-title">
+          <h2>四阶段实施路线图</h2>
+          <p>从核心体验到扩展玩法，按优先级分阶段落地</p>
+        </div>
+        <span class="section-badge">Roadmap</span>
+      </div>
+
+      <div class="roadmap">
+        <!-- 第一阶段 -->
+        <div class="phase p1">
+          <div class="phase-head">
+            <div class="phase-title">
+              <h3>第一阶段：核心体验补全</h3>
+              <span>基础可用 · 解决当前最影响使用的短板</span>
+            </div>
+            <span class="phase-tag">P0 · 高优先级</span>
+          </div>
+          <div class="phase-goals">
+            <div class="goal-item">
+              <strong>编辑器基础能力</strong>
+              <span>撤销重做、层级对齐、自动草稿</span>
+            </div>
+            <div class="goal-item">
+              <strong>语音播放修复</strong>
+              <span>语音气泡交互、BGM混音逻辑</span>
+            </div>
+            <div class="goal-item">
+              <strong>数据安全感</strong>
+              <span>备份导出、草稿恢复、版本管理</span>
+            </div>
+          </div>
+          <ul class="phase-tasks">
+            <li>实现50步撤销/重做操作栈，覆盖所有编辑动作</li>
+            <li>添加拖拽辅助线与8px吸附对齐</li>
+            <li>属性面板增加层级操作（置顶/置底/上移/下移）</li>
+            <li>25秒自动保存机制 + 5个历史版本回溯</li>
+            <li>录音从自动播放改为语音气泡点击播放</li>
+            <li>BGM与录音混音逻辑：录音时BGM降至15%</li>
+            <li>全量备份导出功能（JSON + 媒体资源）</li>
+            <li>备份导入预览与合并/覆盖模式</li>
+            <li>草稿恢复弹窗与断点续编</li>
+            <li>IndexedDB数据迁移与版本管理</li>
+          </ul>
+        </div>
+
+        <!-- 第二阶段 -->
+        <div class="phase p2">
+          <div class="phase-head">
+            <div class="phase-title">
+              <h3>第二阶段：交互体验深化</h3>
+              <span>强化仪式感 · 让写信读信更有温度</span>
+            </div>
+            <span class="phase-tag">P1 · 中优先级</span>
+          </div>
+          <div class="phase-goals">
+            <div class="goal-item">
+              <strong>拆信阅读体验</strong>
+              <span>蜡封动画、分页翻页、书签定位</span>
+            </div>
+            <div class="goal-item">
+              <strong>计划组件闭环</strong>
+              <span>年/月/周/日联动、信纸内嵌编辑</span>
+            </div>
+            <div class="goal-item">
+              <strong>信箱浏览优化</strong>
+              <span>堆叠交互、时间线、筛选分组</span>
+            </div>
+          </div>
+          <ul class="phase-tasks">
+            <li>蜡封裂开 + 信封翻盖 + 信纸抽出完整拆信动画</li>
+            <li>阅读器分页翻页效果与进度条</li>
+            <li>段落书签功能与自动定位</li>
+            <li>年度计划YEAR/NOTE/LIST三视图实现</li>
+            <li>月/周/日计划数据联动与逐级下钻</li>
+            <li>计划组件内嵌编辑模式（双击进入）</li>
+            <li>组件拖拽缩放与透明背景切换</li>
+            <li>信件堆叠浏览交互（左右滑动切换）</li>
+            <li>底部时间线导航与快速跳转</li>
+            <li>信件筛选：未读/待回/有录音/有照片</li>
+          </ul>
+        </div>
+
+        <!-- 第三阶段 -->
+        <div class="phase p3">
+          <div class="phase-head">
+            <div class="phase-title">
+              <h3>第三阶段：慢递与内容闭环</h3>
+              <span>产品特色 · 双人通信与手账日记联动</span>
+            </div>
+            <span class="phase-tag">P2 · 特色功能</span>
+          </div>
+          <div class="phase-goals">
+            <div class="goal-item">
+              <strong>慢递系统</strong>
+              <span>投递中状态、随机慢递、定时发送</span>
+            </div>
+            <div class="goal-item">
+              <strong>信箱装饰</strong>
+              <span>四种材质、装饰元素组合、状态可视化</span>
+            </div>
+            <div class="goal-item">
+              <strong>内容闭环</strong>
+              <span>手账同步、日记关联、写信记录</span>
+            </div>
+          </div>
+          <ul class="phase-tasks">
+            <li>待寄信件列表与定时发送设置</li>
+            <li>投递中状态与预计送达时间显示</li>
+            <li>随机慢递模式（平邮/慢递/半年期）</li>
+            <li>离线补送达机制与派件提示</li>
+            <li>加密投递包导出与导入（离线交换）</li>
+            <li>信箱四种基础材质主题</li>
+            <li>装饰元素系统（蜡封/标签/邮戳/照片夹）</li>
+            <li>写完信一键同步到手账</li>
+            <li>信件与日记章节互相关联</li>
+            <li>手账全局搜索与标签系统</li>
+          </ul>
+        </div>
+
+        <!-- 第四阶段 -->
+        <div class="phase p4">
+          <div class="phase-head">
+            <div class="phase-title">
+              <h3>第四阶段：真实信件与扩展玩法</h3>
+              <span>深度体验 · 真实质感与个性化扩展</span>
+            </div>
+            <span class="phase-tag">P3 · 扩展玩法</span>
+          </div>
+          <div class="phase-goals">
+            <div class="goal-item">
+              <strong>真实信件模板</strong>
+              <span>18种模板接入、自动排版、参数调节</span>
+            </div>
+            <div class="goal-item">
+              <strong>移动端完善</strong>
+              <span>简洁模式、手势操作、首次引导</span>
+            </div>
+            <div class="goal-item">
+              <strong>个性化扩展</strong>
+              <span>自定义BGM、个人印章、节日彩蛋</span>
+            </div>
+          </div>
+          <ul class="phase-tasks">
+            <li>18种真实信件模板接入编辑器样式系统</li>
+            <li>横排/竖排自动切换与字体栈适配</li>
+            <li>纸张参数调节：污渍、折痕、年代感</li>
+            <li>导出高清长图与封面生成</li>
+            <li>移动端简洁模式（核心两入口）</li>
+            <li>移动端手势：双指缩放、双击编辑、滑动翻页</li>
+            <li>渐进式首次引导与示例信箱</li>
+            <li>全局搜索覆盖信件/手账/日记</li>
+            <li>自定义BGM上传与信箱专属配乐</li>
+            <li>个人印章系统与节日主题彩蛋</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- 技术落地建议 -->
+    <section class="section" id="tech">
+      <div class="section-head">
+        <div class="section-title">
+          <h2>技术落地建议</h2>
+          <p>前端架构与实现层面的关键考量</p>
+        </div>
+        <span class="section-badge">Technical</span>
+      </div>
+
+      <div class="tech-grid">
+        <div class="tech-card">
+          <h4>数据层架构</h4>
+          <ul>
+            <li>使用 <code>IndexedDB</code> 存储大资源（录音、图片、备份）</li>
+            <li><code>localStorage</code> 仅存配置与轻量状态，避免容量超限</li>
+            <li>数据库带 <code>schemaVersion</code>，升级时执行迁移脚本</li>
+            <li>信件数据结构：<code>mailbox → letter → pages → elements</code> 四层嵌套</li>
+            <li>计划组件数据独立存储，通过引用关联到信纸元素</li>
+            <li>操作栈使用命令模式，每个操作封装为可撤销的Command对象</li>
+          </ul>
+        </div>
+        <div class="tech-card">
+          <h4>编辑器渲染</h4>
+          <ul>
+            <li>信纸画布使用绝对定位元素方案，便于导出与交互</li>
+            <li>拖拽使用 <code>requestAnimationFrame</code> 节流，保证60fps</li>
+            <li>辅助线计算基于元素边界矩形，8px阈值吸附</li>
+            <li>导出图片优先用 <code>html2canvas</code>，注意跨域图片处理</li>
+            <li>竖排文字使用 <code>writing-mode: vertical-rl</code>，兼容测试</li>
+            <li>真实信件材质用多层CSS背景叠加，减少图片资源依赖</li>
+          </ul>
+        </div>
+        <div class="tech-card">
+          <h4>音频系统</h4>
+          <ul>
+            <li>录音优先 <code>MediaRecorder</code> API，格式根据浏览器自动选择</li>
+            <li>维护全局音频管理器，统一控制BGM与录音的混音</li>
+            <li>首次用户交互后解锁音频上下文，规避自动播放限制</li>
+            <li>录音文件转 <code>Blob</code> 存入 IndexedDB，不存base64</li>
+            <li>淡入淡出使用 <code>GainNode</code> 线性渐变，避免突兀</li>
+          </ul>
+        </div>
+        <div class="tech-card">
+          <h4>性能与体验</h4>
+          <ul>
+            <li>信件画廊使用虚拟滚动，大量信件时保持流畅</li>
+            <li>图片资源懒加载，优先加载可视区域内的缩略图</li>
+            <li>CSS动画优先使用 <code>transform</code> 和 <code>opacity</code>，触发GPU加速</li>
+            <li>IndexedDB操作封装为Promise，统一错误处理</li>
+            <li>关键操作前检查存储容量，接近上限时提前提示</li>
+            <li>Service Worker 缓存静态资源，提升二次加载速度</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- 底部总结 -->
+    <section class="summary">
+      <h2>核心原则：先可用，再好用，最后好玩</h2>
+      <p>信笺的核心价值在于「书信的温度」。第一阶段先把创作和阅读的基础体验做扎实，让用户能安心写信、放心存信；第二阶段深化仪式感，让拆信读信成为值得期待的时刻；第三阶段打通慢递与手账，形成完整的情感闭环；最后用真实信件模板与个性化玩法拓展深度。</p>
+      <div class="summary-points">
+        <div class="summary-point">
+          <strong>P0</strong>
+          <span>基础可用</span>
+        </div>
+        <div class="summary-point">
+          <strong>P1</strong>
+          <span>体验流畅</span>
+        </div>
+        <div class="summary-point">
+          <strong>P2</strong>
+          <span>形成特色</span>
+        </div>
+        <div class="summary-point">
+          <strong>P3</strong>
+          <span>深度玩法</span>
+        </div>
+      </div>
+    </section>
+  </div>
+</body>
+</html>

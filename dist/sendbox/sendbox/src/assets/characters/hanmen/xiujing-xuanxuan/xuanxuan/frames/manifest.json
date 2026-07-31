@@ -1,0 +1,145 @@
+﻿{
+    "source":  "public\\assets\\characters\\xiujing-xuanxuan\\xuanxuan\\spritesheet-transparent.png",
+    "actions":  {
+                    "noble_idle":  {
+                                       "speed":  250,
+                                       "frames":  [
+                                                      "noble_idle/00.png"
+                                                  ],
+                                       "once":  true
+                                   },
+                    "arrange_sleeve":  {
+                                           "speed":  250,
+                                           "frames":  [
+                                                          "arrange_sleeve/00.png"
+                                                      ],
+                                           "once":  true
+                                       },
+                    "adjust_hairpin":  {
+                                           "speed":  250,
+                                           "frames":  [
+                                                          "adjust_hairpin/00.png"
+                                                      ],
+                                           "once":  true
+                                       },
+                    "hold_fan":  {
+                                     "speed":  250,
+                                     "frames":  [
+                                                    "hold_fan/00.png"
+                                                ],
+                                     "once":  true
+                                 },
+                    "salute":  {
+                                   "speed":  250,
+                                   "frames":  [
+                                                  "salute/00.png"
+                                              ],
+                                   "once":  true
+                               },
+                    "curtsey":  {
+                                    "speed":  250,
+                                    "frames":  [
+                                                   "curtsey/00.png"
+                                               ],
+                                    "once":  true
+                                },
+                    "drink_tea":  {
+                                      "speed":  250,
+                                      "frames":  [
+                                                     "drink_tea/00.png"
+                                                 ],
+                                      "once":  true
+                                  },
+                    "pour_tea":  {
+                                     "speed":  250,
+                                     "frames":  [
+                                                    "pour_tea/00.png"
+                                                ],
+                                     "once":  true
+                                 },
+                    "walk":  {
+                                 "speed":  250,
+                                 "frames":  [
+                                                "walk/00.png"
+                                            ],
+                                 "once":  true
+                             },
+                    "run":  {
+                                "speed":  250,
+                                "frames":  [
+                                               "run/00.png"
+                                           ],
+                                "once":  true
+                            },
+                    "cross_puddle":  {
+                                         "speed":  250,
+                                         "frames":  [
+                                                        "cross_puddle/00.png"
+                                                    ],
+                                         "once":  true
+                                     },
+                    "read_letter":  {
+                                        "speed":  250,
+                                        "frames":  [
+                                                       "read_letter/00.png"
+                                                   ],
+                                        "once":  true
+                                    },
+                    "write_letter":  {
+                                         "speed":  250,
+                                         "frames":  [
+                                                        "write_letter/00.png"
+                                                    ],
+                                         "once":  true
+                                     },
+                    "play_guqin":  {
+                                       "speed":  250,
+                                       "frames":  [
+                                                      "play_guqin/00.png"
+                                                  ],
+                                       "once":  true
+                                   },
+                    "embroider":  {
+                                      "speed":  250,
+                                      "frames":  [
+                                                     "embroider/00.png"
+                                                 ],
+                                      "once":  true
+                                  },
+                    "point_order":  {
+                                        "speed":  250,
+                                        "frames":  [
+                                                       "point_order/00.png"
+                                                   ],
+                                        "once":  true
+                                    },
+                    "annoyed":  {
+                                    "speed":  250,
+                                    "frames":  [
+                                                   "annoyed/00.png"
+                                               ],
+                                    "once":  true
+                                },
+                    "shy_smile":  {
+                                      "speed":  250,
+                                      "frames":  [
+                                                     "shy_smile/00.png"
+                                                 ],
+                                      "once":  true
+                                  },
+                    "startled":  {
+                                     "speed":  250,
+                                     "frames":  [
+                                                    "startled/00.png"
+                                                ],
+                                     "once":  true
+                                 },
+                    "petal_dance":  {
+                                        "speed":  250,
+                                        "frames":  [
+                                                       "petal_dance/00.png"
+                                                   ],
+                                        "once":  true
+                                    }
+                }
+}

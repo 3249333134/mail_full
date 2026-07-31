@@ -1,0 +1,44 @@
+{
+  "source": "public/assets/characters/moonlit-lady/spritesheet-export.png",
+  "padding": 8,
+  "actions": {
+    "idle": {
+      "speed": 260,
+      "frames": [
+        { "left": 0, "top": 0, "width": 313, "height": 300, "keepAll": true },
+        { "left": 313, "top": 0, "width": 314, "height": 300, "keepAll": true },
+        { "left": 627, "top": 0, "width": 313, "height": 300, "keepAll": true },
+        { "left": 940, "top": 0, "width": 314, "height": 300, "keepAll": true }
+      ]
+    },
+    "walk": {
+      "speed": 140,
+      "frames": [
+        { "left": 0, "top": 300, "width": 313, "height": 300, "keepAll": true },
+        { "left": 313, "top": 300, "width": 314, "height": 300, "keepAll": true },
+        { "left": 627, "top": 300, "width": 313, "height": 300, "keepAll": true },
+        { "left": 940, "top": 300, "width": 314, "height": 300, "keepAll": true }
+      ]
+    },
+    "till": {
+      "speed": 180,
+      "frames": [
+        { "left": 0, "top": 600, "width": 313, "height": 300, "keepAll": true },
+        { "left": 313, "top": 600, "width": 314, "height": 300, "keepAll": true },
+        { "left": 627, "top": 600, "width": 313, "height": 300, "keepAll": true },
+        { "left": 940, "top": 600, "width": 314, "height": 300, "keepAll": true }
+      ]
+    },
+    "happy": {
+      "speed": 190,
+      "once": true,
+      "effect": "hearts",
+      "frames": [
+        { "left": 0, "top": 900, "width": 313, "height": 354, "keepAll": true },
+        { "left": 313, "top": 900, "width": 314, "height": 354, "keepAll": true },
+        { "left": 627, "top": 900, "width": 313, "height": 354, "keepAll": true },
+        { "left": 940, "top": 900, "width": 314, "height": 354, "keepAll": true }
+      ]
+    }
+  }
+}

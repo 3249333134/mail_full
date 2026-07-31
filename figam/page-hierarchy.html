@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>信笺全功能页面层级设计</title>
+  <link rel="stylesheet" href="page-hierarchy.css">
+  <link rel="stylesheet" href="realistic-paper-system.css">
+</head>
+<body>
+  <header class="doc-header">
+    <div>
+      <p class="eyebrow">Information Architecture / UI Design</p>
+      <h1>信笺全功能页面层级设计</h1>
+      <p>基于当前 `index.html`、`app.js`、`journal.js`、编辑器组件与现有操作逻辑整理。</p>
+    </div>
+    <nav>
+      <a href="index.html">高保真主稿</a>
+      <a href="next-step-design.html">下一步优化</a>
+      <a href="#map">层级地图</a>
+      <a href="#screens">关键页面</a>
+      <a href="#rules">设计规则</a>
+      <a href="all-designs.html">设计总览</a>
+    </nav>
+  </header>
+
+  <main>
+    <section class="section intro">
+      <div>
+        <p class="eyebrow">Design Direction</p>
+        <h2>从“信件画廊”升级为“私人书信工作台”</h2>
+        <p>一级页面负责总览和继续任务，二级页面承接具体功能区，三级页面处理创作/阅读/管理，四级页面用于设置、弹窗、内部编辑和状态反馈。</p>
+      </div>
+      <div class="principle-grid">
+        <article><strong>叙事优先</strong><span>保留信封、纸张、日期、收信人、手写感。</span></article>
+        <article><strong>操作闭环</strong><span>每个入口都能完成创建、编辑、阅读、导出或返回。</span></article>
+        <article><strong>数据安全</strong><span>草稿、备份、定时发送、BGM 与语音状态可见。</span></article>
+        <article><strong>组件化</strong><span>年/月/周/日计划作为信纸可嵌入组件统一管理。</span></article>
+      </div>
+    </section>
+
+    <section class="section" id="map">
+      <div class="section-head">
+        <div>
+          <p class="eyebrow">Page Map</p>
+          <h2>一级 / 二级 / 三级 / 四级页面矩阵</h2>
+        </div>
+        <span class="badge">覆盖 9 个功能域</span>
+      </div>
+
+      <div class="hierarchy-grid">
+        <div class="grid-head">功能</div>
+        <div class="grid-head">一级页面</div>
+        <div class="grid-head">二级页面</div>
+        <div class="grid-head">三级页面</div>
+        <div class="grid-head">四级页面</div>
+
+        <div class="feature-cell">全局工作台</div>
+        <div class="page-card primary">首页总览<br><small>信箱、继续阅读、待办、BGM</small></div>
+        <div class="page-card">信箱分组 / 最近活动<br><small>按故事线、状态、附件聚合</small></div>
+        <div class="page-card">搜索与筛选结果<br><small>信箱、信件、日记、手账统一检索</small></div>
+        <div class="page-card">空状态 / 错误 / 首次引导<br><small>IndexedDB 异常、无数据恢复</small></div>
+
+        <div class="feature-cell">信箱管理</div>
+        <div class="page-card primary">信箱总览</div>
+        <div class="page-card">信箱详情画廊<br><small>信件堆叠、附件入口、双视角</small></div>
+        <div class="page-card">新增 / 编辑信箱</div>
+        <div class="page-card">图标、主题、背景、默认 BGM 设置</div>
+
+        <div class="feature-cell">信件创作</div>
+        <div class="page-card primary">新建信件入口</div>
+        <div class="page-card">样式选择<br><small>8 种信纸风格</small></div>
+        <div class="page-card">编辑器画布<br><small>文字、图片、语音、视频、贴图、组件</small></div>
+        <div class="page-card">元素属性 / 内部编辑 / 撤销重做 / 草稿备份</div>
+
+        <div class="feature-cell">信件阅读</div>
+        <div class="page-card primary">信件卡片</div>
+        <div class="page-card">阅读器<br><small>信封动画、翻页、BGM</small></div>
+        <div class="page-card">语音留言 / 回信 / 导出</div>
+        <div class="page-card">录音权限、导出水印、播放失败提示</div>
+
+        <div class="feature-cell">计划组件</div>
+        <div class="page-card primary">编辑器组件库</div>
+        <div class="page-card">年度 / 月 / 周 / 日 / 清单组件</div>
+        <div class="page-card">组件内部编辑<br><small>YEAR / NOTE / LIST</small></div>
+        <div class="page-card">数据同步、透明背景、导出组件、状态联动</div>
+
+        <div class="feature-cell">日记支线</div>
+        <div class="page-card primary">信箱附件入口</div>
+        <div class="page-card">日记阅读弹窗<br><small>47 页、章节、翻页</small></div>
+        <div class="page-card">页面详情 / 插图预览 / 页码定位</div>
+        <div class="page-card">加载失败、页码边界、返回原信件</div>
+
+        <div class="feature-cell">手账系统</div>
+        <div class="page-card primary">手账入口</div>
+        <div class="page-card">年 / 月 / 日 / 模板视图</div>
+        <div class="page-card">日期详情、任务清单、模板应用</div>
+        <div class="page-card">模板弹窗、任务编辑、同步到信纸组件</div>
+
+        <div class="feature-cell">待寄信件</div>
+        <div class="page-card primary">待寄入口</div>
+        <div class="page-card">待寄列表</div>
+        <div class="page-card">定时发送设置<br><small>日期时间、提醒、预设</small></div>
+        <div class="page-card">发送状态、失效重排、取消定时</div>
+
+        <div class="feature-cell">媒体与声音</div>
+        <div class="page-card primary">全局 BGM 控制</div>
+        <div class="page-card">信箱 BGM / 信件 BGM</div>
+        <div class="page-card">录音、播放、重录、音量</div>
+        <div class="page-card">权限、自动播放限制、文件存储提示</div>
+      </div>
+    </section>
+
+    <section class="section" id="screens">
+      <div class="section-head">
+        <div>
+          <p class="eyebrow">Key Screens</p>
+          <h2>关键页面 UI 设计稿</h2>
+        </div>
+        <span class="badge">按操作流排列</span>
+      </div>
+
+      <div class="screen-grid">
+        <article class="screen-card dashboard">
+          <div class="screen-label">L1 / 首页总览</div>
+          <div class="mini-shell">
+            <aside>
+              <strong>信笺</strong>
+              <span class="nav active">书信馆</span>
+              <span class="nav">手账</span>
+              <span class="nav">待寄</span>
+            </aside>
+            <main>
+              <div class="hero-line">
+                <div><small>继续阅读</small><strong>布雷诺来信 · 第十七封</strong></div>
+                <button>继续</button>
+              </div>
+              <div class="tile-row">
+                <span>7 信箱</span><span>85 信件</span><span>2 待寄</span>
+              </div>
+              <div class="mini-cards"><i></i><i></i><i></i></div>
+            </main>
+          </div>
+        </article>
+
+        <article class="screen-card mailbox-flow">
+          <div class="screen-label">L2 / 信箱详情</div>
+          <div class="mail-stage">
+            <div class="envelope ghost">远</div>
+            <div class="envelope focus"><span>收</span><strong>第十七封</strong><small>2005-04-22</small></div>
+            <div class="envelope ghost">旧</div>
+          </div>
+          <div class="side-actions">
+            <button>阅读</button><button>编辑</button><button>回信</button><button>导出</button>
+          </div>
+        </article>
+
+        <article class="screen-card editor-flow">
+          <div class="screen-label">L3 / 信件编辑器</div>
+          <div class="editor-mock">
+            <aside><span>页面</span><b>01</b><b>02</b><span>工具</span><i>T</i><i>图</i><i>声</i></aside>
+            <main>
+              <div class="toolbar">信纸 / 自动保存</div>
+              <div class="paper">致 缪宏谟<div class="planner-chip">年度计划</div></div>
+            </main>
+            <aside><span>属性</span><label>字体</label><label>层级</label><label>备份</label></aside>
+          </div>
+        </article>
+
+        <article class="screen-card reader-flow">
+          <div class="screen-label">L3-L4 / 阅读与语音</div>
+          <div class="reader-mock">
+            <div class="reader-paper">
+              <strong>第一封</strong>
+              <p>医院初遇后，她刚离开布雷诺，未寄出。</p>
+            </div>
+            <footer>
+              <button>录音</button><button>回信</button><button>编辑</button><button>导出</button>
+            </footer>
+          </div>
+        </article>
+
+        <article class="screen-card planner-flow">
+          <div class="screen-label">L2-L4 / 计划组件</div>
+          <div class="planner-mock">
+            <header><strong>2026 Year Planner</strong><span>YEAR NOTE LIST</span></header>
+            <div class="months">
+              <i>JAN</i><i>FEB</i><i class="hot">MAR</i><i>APR</i><i class="hot">MAY</i><i>JUN</i>
+              <i>JUL</i><i>AUG</i><i>SEP</i><i>OCT</i><i>NOV</i><i>DEC</i>
+            </div>
+            <div class="task-lines"><span></span><span></span><span></span></div>
+          </div>
+        </article>
+
+        <article class="screen-card journal-flow">
+          <div class="screen-label">L2-L4 / 手账系统</div>
+          <div class="journal-mock">
+            <div class="tabs"><span>年</span><span>月</span><span>日</span><span>模板</span></div>
+            <div class="calendar-grid">
+              <i></i><i></i><i class="marked"></i><i></i><i></i><i></i><i class="marked"></i>
+              <i></i><i></i><i></i><i class="today"></i><i></i><i></i><i></i>
+            </div>
+            <div class="journal-panel">今日任务 · 模板应用 · 同步组件</div>
+          </div>
+        </article>
+
+        <article class="screen-card scheduled-flow">
+          <div class="screen-label">L2-L4 / 待寄信件</div>
+          <div class="scheduled-mock">
+            <div class="scheduled-item"><strong>给未来的一封信</strong><span>2026-08-20 09:00</span></div>
+            <div class="scheduled-item muted"><strong>纪念日问候</strong><span>已设置提醒</span></div>
+            <div class="schedule-panel">
+              <label>日期</label><label>时间</label><button>确认定时</button>
+            </div>
+          </div>
+        </article>
+
+        <article class="screen-card modal-flow">
+          <div class="screen-label">L4 / 设置与弹窗</div>
+          <div class="modal-stack">
+            <div><strong>新增信箱</strong><span>名称 / 图标 / 主题 / BGM</span></div>
+            <div><strong>样式选择</strong><span>8 种信纸模板</span></div>
+            <div><strong>权限提示</strong><span>录音 / 自动播放 / 存储</span></div>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <section class="section" id="rules">
+      <div class="section-head">
+        <div>
+          <p class="eyebrow">UI Rules</p>
+          <h2>落地规则</h2>
+        </div>
+      </div>
+      <div class="rules-grid">
+        <article><h3>导航</h3><p>一级用工作台聚合，二级进入功能域，三级执行核心任务，四级只放弹窗、设置和内部编辑。</p></article>
+        <article><h3>编辑器</h3><p>左侧页面和工具，中间画布，右侧属性。所有组件必须支持选中、拖拽、缩放、层级和备份。</p></article>
+        <article><h3>阅读器</h3><p>阅读体验保留信封动画，操作按钮固定在底部，语音/BGM 状态始终可见。</p></article>
+        <article><h3>手账与计划</h3><p>年/月/周/日/清单共用任务模型，页面跳转和信纸组件状态保持同步。</p></article>
+      </div>
+    </section>
+  </main>
+</body>
+</html>

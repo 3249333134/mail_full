@@ -1,0 +1,2240 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>信笺 - 项目设计需求说明书</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    
+    :root {
+      --ink-deep: #1a1d25;
+      --ink-main: #2c3142;
+      --ink-sub: #5a6278;
+      --ink-light: #8b93a7;
+      --paper-warm: #faf6f0;
+      --paper-cream: #f5efe4;
+      --paper-aged: #ebe3d4;
+      --rose-warm: #c96567;
+      --rose-soft: #e8a5a6;
+      --leaf-deep: #4a7c59;
+      --gold-warm: #b8956a;
+      --night-deep: #2a334a;
+      --border-soft: rgba(42, 51, 74, 0.1);
+      --shadow-card: 0 2px 12px rgba(42, 51, 74, 0.06);
+      --shadow-lift: 0 4px 20px rgba(42, 51, 74, 0.1);
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+      background: var(--paper-warm);
+      color: var(--ink-main);
+      line-height: 1.75;
+      font-size: 14.5px;
+    }
+
+    /* 侧边目录 */
+    .sidebar {
+      position: fixed;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      width: 260px;
+      background: white;
+      border-right: 1px solid var(--border-soft);
+      padding: 32px 0;
+      overflow-y: auto;
+      z-index: 100;
+    }
+
+    .sidebar-brand {
+      padding: 0 28px 24px;
+      border-bottom: 1px solid var(--border-soft);
+      margin-bottom: 20px;
+    }
+
+    .sidebar-brand h1 {
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--ink-deep);
+      margin-bottom: 4px;
+    }
+
+    .sidebar-brand span {
+      font-size: 12px;
+      color: var(--ink-light);
+    }
+
+    .toc {
+      list-style: none;
+      padding: 0 12px;
+    }
+
+    .toc > li {
+      margin-bottom: 2px;
+    }
+
+    .toc a {
+      display: block;
+      padding: 8px 16px;
+      font-size: 13px;
+      color: var(--ink-sub);
+      text-decoration: none;
+      border-radius: 6px;
+      transition: all 0.15s;
+    }
+
+    .toc a:hover {
+      background: var(--paper-warm);
+      color: var(--ink-deep);
+    }
+
+    .toc > li > a {
+      font-weight: 500;
+      color: var(--ink-main);
+    }
+
+    .toc ul {
+      list-style: none;
+      padding-left: 12px;
+    }
+
+    .toc ul a {
+      font-size: 12.5px;
+      padding: 5px 16px;
+    }
+
+    /* 主内容 */
+    .main-content {
+      margin-left: 260px;
+      padding: 48px 64px 80px;
+      max-width: 1080px;
+    }
+
+    /* 文档头 */
+    .doc-header {
+      border-bottom: 2px solid var(--ink-deep);
+      padding-bottom: 32px;
+      margin-bottom: 48px;
+    }
+
+    .doc-header .label {
+      font-size: 12px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--rose-warm);
+      font-weight: 500;
+      margin-bottom: 12px;
+    }
+
+    .doc-header h1 {
+      font-size: 36px;
+      font-weight: 700;
+      color: var(--ink-deep);
+      margin-bottom: 16px;
+      letter-spacing: -0.5px;
+    }
+
+    .doc-header .subtitle {
+      font-size: 16px;
+      color: var(--ink-sub);
+      margin-bottom: 28px;
+    }
+
+    .doc-meta {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 20px;
+      padding-top: 24px;
+      border-top: 1px solid var(--border-soft);
+    }
+
+    .doc-meta div strong {
+      display: block;
+      font-size: 12px;
+      color: var(--ink-light);
+      font-weight: 500;
+      margin-bottom: 4px;
+    }
+
+    .doc-meta div span {
+      font-size: 14px;
+      color: var(--ink-main);
+      font-weight: 500;
+    }
+
+    /* 章节通用 */
+    .section {
+      margin-bottom: 56px;
+      scroll-margin-top: 32px;
+    }
+
+    .section h2 {
+      font-size: 24px;
+      font-weight: 600;
+      color: var(--ink-deep);
+      margin-bottom: 20px;
+      padding-bottom: 12px;
+      border-bottom: 1.5px solid var(--border-soft);
+    }
+
+    .section h3 {
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--ink-deep);
+      margin: 28px 0 14px;
+      padding-left: 12px;
+      border-left: 3px solid var(--rose-warm);
+    }
+
+    .section h4 {
+      font-size: 15.5px;
+      font-weight: 600;
+      color: var(--ink-main);
+      margin: 20px 0 10px;
+    }
+
+    .section p {
+      margin-bottom: 12px;
+      color: var(--ink-main);
+    }
+
+    .section ul, .section ol {
+      margin: 12px 0 12px 24px;
+    }
+
+    .section li {
+      margin-bottom: 6px;
+      color: var(--ink-main);
+    }
+
+    /* 信息卡片 */
+    .info-card {
+      background: white;
+      border-radius: 10px;
+      padding: 24px 28px;
+      box-shadow: var(--shadow-card);
+      border: 1px solid var(--border-soft);
+      margin: 20px 0;
+    }
+
+    .info-card.highlight {
+      border-left: 4px solid var(--rose-warm);
+    }
+
+    .info-card.tip {
+      border-left: 4px solid var(--leaf-deep);
+      background: #fafdfb;
+    }
+
+    .info-card.warning {
+      border-left: 4px solid var(--gold-warm);
+      background: #fdfaf5;
+    }
+
+    /* 表格 */
+    .req-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 16px 0;
+      font-size: 13.5px;
+    }
+
+    .req-table th {
+      background: var(--paper-cream);
+      padding: 12px 16px;
+      text-align: left;
+      font-weight: 600;
+      color: var(--ink-deep);
+      border-bottom: 2px solid var(--border-soft);
+      font-size: 13px;
+    }
+
+    .req-table td {
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border-soft);
+      vertical-align: top;
+    }
+
+    .req-table tr:hover td {
+      background: var(--paper-warm);
+    }
+
+    .priority {
+      display: inline-block;
+      padding: 2px 10px;
+      border-radius: 10px;
+      font-size: 11.5px;
+      font-weight: 500;
+    }
+
+    .priority.p0 { background: #fde8e8; color: #c53030; }
+    .priority.p1 { background: #fef3c7; color: #92400e; }
+    .priority.p2 { background: #dbeafe; color: #1e40af; }
+    .priority.p3 { background: #e5e7eb; color: #374151; }
+
+    /* 用户画像卡片 */
+    .persona-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 20px;
+      margin: 20px 0;
+    }
+
+    .persona-card {
+      background: white;
+      border-radius: 10px;
+      padding: 24px;
+      box-shadow: var(--shadow-card);
+      border: 1px solid var(--border-soft);
+    }
+
+    .persona-card h4 {
+      font-size: 16px;
+      color: var(--ink-deep);
+      margin-bottom: 8px;
+      margin-top: 0;
+    }
+
+    .persona-tag {
+      font-size: 12px;
+      color: var(--rose-warm);
+      font-weight: 500;
+      margin-bottom: 12px;
+    }
+
+    .persona-card dl {
+      font-size: 13px;
+    }
+
+    .persona-card dt {
+      color: var(--ink-light);
+      margin-top: 10px;
+      margin-bottom: 2px;
+    }
+
+    .persona-card dd {
+      color: var(--ink-main);
+      line-height: 1.6;
+    }
+
+    /* 架构图 */
+    .arch-diagram {
+      background: white;
+      border-radius: 10px;
+      padding: 32px;
+      box-shadow: var(--shadow-card);
+      border: 1px solid var(--border-soft);
+      margin: 20px 0;
+    }
+
+    .arch-level {
+      margin-bottom: 20px;
+    }
+
+    .arch-level:last-child {
+      margin-bottom: 0;
+    }
+
+    .arch-label {
+      font-size: 12px;
+      color: var(--ink-light);
+      font-weight: 500;
+      margin-bottom: 10px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .arch-nodes {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .arch-node {
+      padding: 10px 18px;
+      background: var(--paper-warm);
+      border: 1px solid var(--border-soft);
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--ink-main);
+    }
+
+    .arch-node.core {
+      background: #fdf2f2;
+      border-color: var(--rose-soft);
+      color: var(--rose-warm);
+    }
+
+    /* 功能需求列表 */
+    .feature-block {
+      background: white;
+      border-radius: 10px;
+      padding: 28px;
+      box-shadow: var(--shadow-card);
+      border: 1px solid var(--border-soft);
+      margin-bottom: 24px;
+    }
+
+    .feature-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 18px;
+      padding-bottom: 14px;
+      border-bottom: 1px solid var(--border-soft);
+    }
+
+    .feature-header h4 {
+      font-size: 17px;
+      margin: 0;
+    }
+
+    .feature-module {
+      font-size: 12px;
+      padding: 4px 12px;
+      background: var(--paper-cream);
+      border-radius: 12px;
+      color: var(--ink-sub);
+    }
+
+    .feature-list {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+    }
+
+    .feature-list li {
+      padding: 10px 0;
+      border-bottom: 1px dashed var(--border-soft);
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+    }
+
+    .feature-list li:last-child {
+      border-bottom: none;
+    }
+
+    .feature-id {
+      font-size: 11px;
+      font-family: "SF Mono", Consolas, monospace;
+      color: var(--ink-light);
+      background: var(--paper-warm);
+      padding: 2px 8px;
+      border-radius: 4px;
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+
+    .feature-desc {
+      flex: 1;
+      font-size: 13.5px;
+    }
+
+    .feature-desc strong {
+      color: var(--ink-deep);
+      font-weight: 500;
+    }
+
+    .feature-desc p {
+      margin: 4px 0 0;
+      font-size: 12.5px;
+      color: var(--ink-sub);
+    }
+
+    /* 规范色块 */
+    .color-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+      margin: 20px 0;
+    }
+
+    .color-swatch {
+      border-radius: 8px;
+      overflow: hidden;
+      border: 1px solid var(--border-soft);
+    }
+
+    .color-block {
+      height: 72px;
+    }
+
+    .color-info {
+      padding: 10px 12px;
+      background: white;
+      font-size: 12px;
+    }
+
+    .color-info strong {
+      display: block;
+      color: var(--ink-deep);
+      margin-bottom: 2px;
+    }
+
+    .color-info span {
+      color: var(--ink-light);
+      font-family: "SF Mono", Consolas, monospace;
+      font-size: 11px;
+    }
+
+    /* 里程碑时间线 */
+    .milestone-list {
+      list-style: none;
+      margin: 20px 0;
+      padding: 0;
+      position: relative;
+    }
+
+    .milestone-list::before {
+      content: '';
+      position: absolute;
+      left: 8px;
+      top: 8px;
+      bottom: 8px;
+      width: 2px;
+      background: var(--border-soft);
+    }
+
+    .milestone-item {
+      position: relative;
+      padding-left: 32px;
+      margin-bottom: 24px;
+    }
+
+    .milestone-item::before {
+      content: '';
+      position: absolute;
+      left: 2px;
+      top: 6px;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: white;
+      border: 3px solid var(--rose-warm);
+    }
+
+    .milestone-item h4 {
+      font-size: 16px;
+      margin: 0 0 6px;
+    }
+
+    .milestone-meta {
+      font-size: 12px;
+      color: var(--ink-light);
+      margin-bottom: 8px;
+    }
+
+    .milestone-item ul {
+      font-size: 13.5px;
+      margin: 8px 0 0 20px;
+    }
+
+    /* 风险表格 */
+    .risk-table .impact {
+      font-weight: 500;
+    }
+
+    .impact.high { color: #c53030; }
+    .impact.medium { color: #92400e; }
+    .impact.low { color: #1e40af; }
+
+    /* 修订记录 */
+    .revision-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+      margin-bottom: 32px;
+    }
+
+    .revision-table th, .revision-table td {
+      padding: 10px 16px;
+      text-align: left;
+      border-bottom: 1px solid var(--border-soft);
+    }
+
+    .revision-table th {
+      background: var(--paper-cream);
+      font-weight: 600;
+      color: var(--ink-deep);
+    }
+
+    /* 响应式 */
+    @media (max-width: 1024px) {
+      .sidebar { display: none; }
+      .main-content { margin-left: 0; padding: 32px 24px 60px; }
+      .persona-grid, .color-grid { grid-template-columns: 1fr; }
+      .doc-meta { grid-template-columns: repeat(2, 1fr); }
+    }
+
+    /* 打印优化 */
+    @media print {
+      .sidebar { display: none; }
+      .main-content { margin-left: 0; padding: 0; }
+      .section { page-break-inside: avoid; }
+    }
+  </style>
+</head>
+<body>
+  <!-- 侧边目录 -->
+  <nav class="sidebar">
+    <div class="sidebar-brand">
+      <h1>信笺 PRD</h1>
+      <span>产品需求说明书 V1.0</span>
+    </div>
+    <ul class="toc">
+      <li><a href="#doc-info">文档信息</a></li>
+      <li><a href="#chapter1">一、项目概述</a>
+        <ul>
+          <li><a href="#1-1">1.1 项目背景</a></li>
+          <li><a href="#1-2">1.2 产品定位</a></li>
+          <li><a href="#1-3">1.3 设计目标</a></li>
+          <li><a href="#1-4">1.4 范围与边界</a></li>
+        </ul>
+      </li>
+      <li><a href="#chapter2">二、用户与场景</a>
+        <ul>
+          <li><a href="#2-1">2.1 目标用户画像</a></li>
+          <li><a href="#2-2">2.2 核心使用场景</a></li>
+        </ul>
+      </li>
+      <li><a href="#chapter3">三、产品架构</a>
+        <ul>
+          <li><a href="#3-1">3.1 信息架构</a></li>
+          <li><a href="#3-2">3.2 功能模块总览</a></li>
+          <li><a href="#3-3">3.3 页面层级定义</a></li>
+        </ul>
+      </li>
+      <li><a href="#chapter4">四、详细功能需求</a>
+        <ul>
+          <li><a href="#4-1">4.1 信箱管理系统</a></li>
+          <li><a href="#4-2">4.2 信件编辑器</a></li>
+          <li><a href="#4-3">4.3 信件阅读器</a></li>
+          <li><a href="#4-4">4.4 计划组件系统</a></li>
+          <li><a href="#4-5">4.5 手账与日记</a></li>
+          <li><a href="#4-6">4.6 慢递与待寄</a></li>
+          <li><a href="#4-7">4.7 数据安全与备份</a></li>
+          <li><a href="#4-8">4.8 全局系统</a></li>
+        </ul>
+      </li>
+      <li><a href="#chapter5">五、视觉设计规范</a>
+        <ul>
+          <li><a href="#5-1">5.1 色彩系统</a></li>
+          <li><a href="#5-2">5.2 字体与排版</a></li>
+          <li><a href="#5-3">5.3 材质与阴影</a></li>
+          <li><a href="#5-4">5.4 组件规范</a></li>
+        </ul>
+      </li>
+      <li><a href="#chapter6">六、交互设计规范</a>
+        <ul>
+          <li><a href="#6-1">6.1 动效原则</a></li>
+          <li><a href="#6-2">6.2 核心交互流</a></li>
+          <li><a href="#6-3">6.3 移动端适配</a></li>
+        </ul>
+      </li>
+      <li><a href="#chapter7">七、非功能需求</a>
+        <ul>
+          <li><a href="#7-1">7.1 性能要求</a></li>
+          <li><a href="#7-2">7.2 兼容性</a></li>
+          <li><a href="#7-3">7.3 数据安全</a></li>
+          <li><a href="#7-4">7.4 可用性</a></li>
+        </ul>
+      </li>
+      <li><a href="#chapter8">八、里程碑与排期</a></li>
+      <li><a href="#chapter9">九、风险与依赖</a></li>
+    </ul>
+  </nav>
+
+  <!-- 主内容 -->
+  <main class="main-content">
+    <!-- 文档头 -->
+    <header class="doc-header" id="doc-info">
+      <div class="label">Product Requirements Document</div>
+      <h1>信笺 · 项目设计需求说明书</h1>
+      <p class="subtitle">一款以「书信的温度」为核心的数字书信创作与管理应用，支持多信箱管理、沉浸式编辑阅读、计划组件嵌入与慢递仪式感体验。</p>
+      
+      <div class="doc-meta">
+        <div>
+          <strong>文档版本</strong>
+          <span>V1.0</span>
+        </div>
+        <div>
+          <strong>创建日期</strong>
+          <span>2026-07-14</span>
+        </div>
+        <div>
+          <strong>文档状态</strong>
+          <span>初稿评审</span>
+        </div>
+        <div>
+          <strong>产品代号</strong>
+          <span>信笺 / Mail</span>
+        </div>
+      </div>
+    </header>
+
+    <!-- 修订记录 -->
+    <section class="section">
+      <h3 style="border: none; padding: 0; margin-top: 0;">修订记录</h3>
+      <table class="revision-table">
+        <thead>
+          <tr>
+            <th>版本</th>
+            <th>日期</th>
+            <th>修订人</th>
+            <th>修订内容</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>V1.0</td>
+            <td>2026-07-14</td>
+            <td>产品设计</td>
+            <td>初始版本，完成整体架构与功能需求定义</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- 第一章：项目概述 -->
+    <section class="section" id="chapter1">
+      <h2>一、项目概述</h2>
+
+      <h3 id="1-1">1.1 项目背景</h3>
+      <p>在即时通讯泛滥的时代，书信作为一种慢节奏、高情感浓度的交流方式，正在被重新发现价值。许多用户希望有一个专属的数字空间，用来存放对重要之人的书信、日记和手账，脱离社交平台的喧嚣，回归书写本身的沉静与真诚。</p>
+      <p>「信笺」定位为一款本地优先的数字书信应用，强调纸质书信的仪式感和叙事气质，同时融合现代生产力工具（计划、手账、待办）的便利性，打造一个兼具情感温度与实用价值的私人数字书信馆。</p>
+
+      <div class="info-card highlight">
+        <strong>核心价值主张：</strong>不是又一个笔记应用，而是一个「可以写信的地方」——所有功能都服务于「书写、保存、回味书信」这一核心体验。
+      </div>
+
+      <h3 id="1-2">1.2 产品定位</h3>
+      <ul>
+        <li><strong>产品类型</strong>：本地优先（Local-first）的 Web 应用，支持离线使用，数据存储于用户本地</li>
+        <li><strong>目标平台</strong>：桌面浏览器（优先）+ 移动端浏览器（响应式适配）</li>
+        <li><strong>商业模式</strong>：纯前端工具，无后端、无账号、无付费墙；用户完全拥有自己的数据</li>
+        <li><strong>差异化关键词</strong>：书信仪式感、纸张质感、多信箱叙事、慢递体验、计划组件嵌入</li>
+      </ul>
+
+      <h3 id="1-3">1.3 设计目标</h3>
+      <table class="req-table">
+        <thead>
+          <tr>
+            <th>维度</th>
+            <th>目标描述</th>
+            <th>衡量标准</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>视觉体验</strong></td>
+            <td>保留信封、纸张、蜡封的叙事气质，避免单一米色疲劳，建立旧相册式的视觉氛围</td>
+            <td>用户首次进入能感知到「书信感」而非「工具感」</td>
+          </tr>
+          <tr>
+            <td><strong>交互效率</strong></td>
+            <td>三栏编辑器结构清晰，创作流程顺畅，核心操作不超过2次点击</td>
+            <td>新建一封信并完成基础排版的时间 &lt; 30秒</td>
+          </tr>
+          <tr>
+            <td><strong>数据安全</strong></td>
+            <td>用户对数据有完全掌控感，自动保存、备份、恢复流程清晰可靠</td>
+            <td>数据丢失风险趋近于零；备份导出成功率 100%</td>
+          </tr>
+          <tr>
+            <td><strong>情感体验</strong></td>
+            <td>拆信、阅读、回信形成完整的情感闭环，慢递机制强化等待的仪式感</td>
+            <td>用户愿意反复打开回味已有的信件</td>
+          </tr>
+          <tr>
+            <td><strong>扩展性</strong></td>
+            <td>组件化架构，计划、手账、日记等支线功能可插拔，不干扰核心体验</td>
+            <td>新增功能模块不破坏现有交互流程</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3 id="1-4">1.4 范围与边界</h3>
+      
+      <h4>本期包含（In Scope）</h4>
+      <ul>
+        <li>多信箱管理与信箱装饰</li>
+        <li>信件编辑器（文字、图片、语音、组件）</li>
+        <li>沉浸式信件阅读器（拆信动画、分页、语音气泡）</li>
+        <li>年/月/周/日/清单计划组件（支持信纸内嵌）</li>
+        <li>手账系统与日记支线</li>
+        <li>待寄信件与定时慢递</li>
+        <li>本地数据备份与恢复</li>
+        <li>18种真实信件模板</li>
+        <li>响应式移动端适配</li>
+      </ul>
+
+      <h4>本期不包含（Out of Scope）</h4>
+      <ul>
+        <li>云端同步与多端实时协作</li>
+        <li>用户账号系统</li>
+        <li>在线信件投递（无后端服务）</li>
+        <li>多人实时协同编辑</li>
+        <li>AI 辅助写作功能</li>
+        <li>原生 App 版本</li>
+      </ul>
+    </section>
+
+    <!-- 第二章：用户与场景 -->
+    <section class="section" id="chapter2">
+      <h2>二、用户与场景</h2>
+
+      <h3 id="2-1">2.1 目标用户画像</h3>
+      
+      <div class="persona-grid">
+        <div class="persona-card">
+          <h4>情感记录者</h4>
+          <div class="persona-tag">核心用户 · 占比约 60%</div>
+          <dl>
+            <dt>特征</dt>
+            <dd>20-35岁，有稳定情感关系，喜欢文字表达，重视仪式感</dd>
+            <dt>核心诉求</dt>
+            <dd>给爱人/朋友写长信，记录心情与故事，希望有一个私密的、有温度的存放空间</dd>
+            <dt>使用频率</dt>
+            <dd>每周1-3次，每次15-60分钟</dd>
+            <dt>痛点</dt>
+            <dd>备忘录太冰冷、社交平台太公开、日记本不方便携带和搜索</dd>
+          </dl>
+        </div>
+
+        <div class="persona-card">
+          <h4>IP 创作者 / 同人爱好者</h4>
+          <div class="persona-tag">特色用户 · 占比约 25%</div>
+          <dl>
+            <dt>特征</dt>
+            <dd>剧本杀、小说、游戏爱好者，为喜欢的角色创作书信体内容</dd>
+            <dt>核心诉求</dt>
+            <dd>按角色/故事线分信箱管理，需要多种信纸风格，支持导出图片分享</dd>
+            <dt>使用频率</dt>
+            <dd>创作高峰期密集使用，平时偶尔打开回味</dd>
+            <dt>痛点</dt>
+            <dd>普通文档编辑器没有书信氛围，排版导出麻烦</dd>
+          </dl>
+        </div>
+
+        <div class="persona-card">
+          <h4>生活整理者</h4>
+          <div class="persona-tag">扩展用户 · 占比约 15%</div>
+          <dl>
+            <dt>特征</dt>
+            <dd>喜欢手账、计划、复盘，追求生活的秩序感和仪式感</dd>
+            <dt>核心诉求</dt>
+            <dd>用计划组件做年/月/周规划，结合手账记录，信纸形式增加书写动力</dd>
+            <dt>使用频率</dt>
+            <dd>每日打开查看计划，周末集中复盘</dd>
+            <dt>痛点</dt>
+            <dd>纯效率类计划工具太冰冷，难以坚持；手账App功能冗余</dd>
+          </dl>
+        </div>
+      </div>
+
+      <h3 id="2-2">2.2 核心使用场景</h3>
+
+      <div class="info-card">
+        <h4 style="margin-top: 0;">场景一：夜晚写信</h4>
+        <p><strong>触发</strong>：睡前安静时刻，想给对方写点什么</p>
+        <p><strong>路径</strong>：打开应用 → 选择对应信箱 → 新建信件 → 编辑文字/添加照片/录音 → 保存或定时寄出</p>
+        <p><strong>情绪</strong>：沉静、温柔、专注</p>
+      </div>
+
+      <div class="info-card">
+        <h4 style="margin-top: 0;">场景二：拆信回味</h4>
+        <p><strong>触发</strong>：收到提醒/想念对方/随机翻到</p>
+        <p><strong>路径</strong>：打开信箱 → 浏览信件堆叠 → 选择一封 → 观看拆信动画 → 阅读内容/播放语音 → 写回信</p>
+        <p><strong>情绪</strong>：期待、感动、温暖</p>
+      </div>
+
+      <div class="info-card">
+        <h4 style="margin-top: 0;">场景三：年度规划</h4>
+        <p><strong>触发</strong>：年初/月末，想做计划和复盘</p>
+        <p><strong>路径</strong>：新建信件 → 插入年度计划组件 → 填写目标与任务 → 保存到「给自己的信」信箱 → 每月打开更新进度</p>
+        <p><strong>情绪</strong>：清晰、有掌控感、期待</p>
+      </div>
+
+      <div class="info-card">
+        <h4 style="margin-top: 0;">场景四：慢递仪式</h4>
+        <p><strong>触发</strong>：纪念日/生日/特殊日期前，想写一封给未来的信</p>
+        <p><strong>路径</strong>：写完信 → 设置定时寄出时间 → 信件进入「待寄」状态 → 到期自动「送达」对应信箱 → 收到提醒拆信</p>
+        <p><strong>情绪</strong>：仪式感、期待、时间的重量</p>
+      </div>
+    </section>
+
+    <!-- 第三章：产品架构 -->
+    <section class="section" id="chapter3">
+      <h2>三、产品架构</h2>
+
+      <h3 id="3-1">3.1 信息架构</h3>
+      
+      <div class="arch-diagram">
+        <div class="arch-level">
+          <div class="arch-label">L1 · 一级入口</div>
+          <div class="arch-nodes">
+            <div class="arch-node core">我的信箱</div>
+            <div class="arch-node">手账</div>
+            <div class="arch-node">待寄</div>
+            <div class="arch-node">搜索</div>
+          </div>
+        </div>
+        <div class="arch-level">
+          <div class="arch-label">L2 · 二级页面</div>
+          <div class="arch-nodes">
+            <div class="arch-node">信箱总览</div>
+            <div class="arch-node core">信箱详情</div>
+            <div class="arch-node">手账年/月/日</div>
+            <div class="arch-node">待寄列表</div>
+            <div class="arch-node">搜索结果</div>
+          </div>
+        </div>
+        <div class="arch-level">
+          <div class="arch-label">L3 · 三级页面</div>
+          <div class="arch-nodes">
+            <div class="arch-node core">信件阅读器</div>
+            <div class="arch-node core">信件编辑器</div>
+            <div class="arch-node">计划组件编辑</div>
+            <div class="arch-node">日记阅读</div>
+            <div class="arch-node">手账详情</div>
+          </div>
+        </div>
+        <div class="arch-level">
+          <div class="arch-label">L4 · 四级弹窗/抽屉</div>
+          <div class="arch-nodes">
+            <div class="arch-node">信箱设置</div>
+            <div class="arch-node">样式选择</div>
+            <div class="arch-node">元素属性</div>
+            <div class="arch-node">备份导入</div>
+            <div class="arch-node">定时设置</div>
+            <div class="arch-node">权限提示</div>
+          </div>
+        </div>
+      </div>
+
+      <h3 id="3-2">3.2 功能模块总览</h3>
+      <table class="req-table">
+        <thead>
+          <tr>
+            <th>模块</th>
+            <th>子功能</th>
+            <th>优先级</th>
+            <th>说明</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td rowspan="3"><strong>信箱管理</strong></td>
+            <td>信箱增删改查</td>
+            <td><span class="priority p0">P0</span></td>
+            <td>多信箱创建、编辑名称、删除、排序</td>
+          </tr>
+          <tr>
+            <td>信箱装饰</td>
+            <td><span class="priority p2">P2</span></td>
+            <td>材质主题、装饰元素、状态可视化</td>
+          </tr>
+          <tr>
+            <td>信箱BGM</td>
+            <td><span class="priority p3">P3</span></td>
+            <td>每个信箱可设置专属背景音乐</td>
+          </tr>
+          <tr>
+            <td rowspan="4"><strong>信件编辑器</strong></td>
+            <td>基础编辑（文字/图片/语音）</td>
+            <td><span class="priority p0">P0</span></td>
+            <td>文字排版、图片插入、录音添加</td>
+          </tr>
+          <tr>
+            <td>撤销重做与对齐</td>
+            <td><span class="priority p0">P0</span></td>
+            <td>操作栈、层级管理、辅助线吸附</td>
+          </tr>
+          <tr>
+            <td>计划组件嵌入</td>
+            <td><span class="priority p1">P1</span></td>
+            <td>年/月/周/日/清单组件插入与编辑</td>
+          </tr>
+          <tr>
+            <td>真实信件模板</td>
+            <td><span class="priority p3">P3</span></td>
+            <td>18种风格模板一键应用</td>
+          </tr>
+          <tr>
+            <td rowspan="3"><strong>信件阅读器</strong></td>
+            <td>拆信动画</td>
+            <td><span class="priority p1">P1</span></td>
+            <td>蜡封、翻盖、抽出的完整动效</td>
+          </tr>
+          <tr>
+            <td>分页阅读</td>
+            <td><span class="priority p1">P1</span></td>
+            <td>翻页动效、进度、书签</td>
+          </tr>
+          <tr>
+            <td>语音气泡</td>
+            <td><span class="priority p0">P0</span></td>
+            <td>点击播放、BGM混音</td>
+          </tr>
+          <tr>
+            <td rowspan="2"><strong>计划组件</strong></td>
+            <td>年/月/周/日视图</td>
+            <td><span class="priority p1">P1</span></td>
+            <td>逐级下钻、数据同步</td>
+          </tr>
+          <tr>
+            <td>清单与笔记</td>
+            <td><span class="priority p2">P2</span></td>
+            <td>自定义列表、自由笔记区</td>
+          </tr>
+          <tr>
+            <td rowspan="2"><strong>慢递系统</strong></td>
+            <td>定时发送</td>
+            <td><span class="priority p2">P2</span></td>
+            <td>指定日期时间自动送达</td>
+          </tr>
+          <tr>
+            <td>随机慢递</td>
+            <td><span class="priority p2">P2</span></td>
+            <td>平邮/慢递/半年期随机延迟</td>
+          </tr>
+          <tr>
+            <td rowspan="2"><strong>数据安全</strong></td>
+            <td>自动草稿</td>
+            <td><span class="priority p0">P0</span></td>
+            <td>定时保存、版本回溯、断点续编</td>
+          </tr>
+          <tr>
+            <td>备份恢复</td>
+            <td><span class="priority p0">P0</span></td>
+            <td>全量导出、加密、导入合并</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3 id="3-3">3.3 页面层级定义</h3>
+      <ul>
+        <li><strong>一级页面</strong>：用户进入某功能域的主入口。如信箱总览、手账首页、待寄列表。</li>
+        <li><strong>二级页面</strong>：具体功能区或列表视图。如信箱详情、手账月视图、搜索结果。</li>
+        <li><strong>三级页面</strong>：核心任务执行页面。如编辑器画布、阅读器、组件内部编辑。</li>
+        <li><strong>四级页面</strong>：弹窗、抽屉、设置面板。如信箱设置、元素属性、备份导入、定时发送。</li>
+      </ul>
+
+      <div class="info-card tip">
+        <strong>设计原则：</strong>核心操作（写信、读信）不超过两级跳转到达；支线功能（手账、日记、设置）收纳在三级及以下，不干扰主路径。
+      </div>
+    </section>
+
+    <!-- 第四章：详细功能需求 -->
+    <section class="section" id="chapter4">
+      <h2>四、详细功能需求</h2>
+
+      <!-- 4.1 信箱管理 -->
+      <h3 id="4-1">4.1 信箱管理系统</h3>
+
+      <div class="feature-block">
+        <div class="feature-header">
+          <h4>信箱基础管理</h4>
+          <span class="feature-module">模块：信箱</span>
+        </div>
+        <ul class="feature-list">
+          <li>
+            <span class="feature-id">MB-001</span>
+            <div class="feature-desc">
+              <strong>信箱创建</strong>
+              <p>用户可创建多个信箱，每个信箱包含：名称、图标、主题色、描述。创建后自动生成默认信纸样式。</p>
+            </div>
+          </li>
+          <li>
+            <span class="feature-id">MB-002</span>
+            <div class="feature-desc">
+              <strong>信箱编辑与删除</strong>
+              <p>支持修改信箱名称、图标、主题；删除信箱需二次确认，删除后信件进入回收站（保留7天）或立即彻底删除。</p>
+            </div>
+          </li>
+          <li>
+            <span class="feature-id">MB-003</span>
+            <div class="feature-desc">
+              <strong>信箱排序</strong>
+              <p>支持拖拽调整信箱顺序，排序状态持久化保存。默认按最近活动时间排序。</p>
+            </div>
+          </li>
+          <li>
+            <span class="feature-id">MB-004</span>
+            <div class="feature-desc">
+              <strong>信箱统计信息</strong>
+              <p>每个信箱显示：信件总数、未读数、最近一封日期。首页展示全局统计：信箱数、信件总数、待寄数。</p>
+            </div>
+          </li>
+        </ul>
+      </div>
+
+      <div class="feature-block">
+        <div class="feature-header">
+          <h4>信件浏览与筛选</h4>
+          <span class="feature-module">模块：信箱</span>
+        </div>
+        <ul class="feature-list">
+          <li>
+            <span class="feature-id">MB-005</span>
+            <div class="feature-desc">
+              <strong>堆叠浏览</strong>
+              <p>信箱详情页以堆叠卡片形式展示信件，当前居中放大，左右露出前后信件预览。支持左右滑动/点击箭头切换。</p>
+            </div>
+          </li>
+          <li>
+            <span class="feature-id">MB-006</span>
+            <div class="feature-desc">
+              <strong>时间线导航</strong>
+              <p>底部时间轴显示信件分布，点击可快速跳转到对应月份的信件。</p>
+            </div>
+          </li>
+          <li>
+            <span class="feature-id">MB-007</span>
+            <div class="feature-desc">
+              <strong>筛选与标签</strong>
+              <p>支持按状态筛选：全部/未读/待回信/有录音/有照片。支持自定义标签，信件可打多个标签。</p>
+            </div>
+          </li>
+          <li>
+            <span class="feature-id">MB-008</span>
+            <div class="feature-desc">
+              <strong>信件详情面板</strong>
+              <p>右侧固定面板显示当前信件元信息：收信人、日期、状态、所属信箱，以及阅读/编辑/导出/回信操作。</p>
+            </div>
+          </li>
+        </ul>
+      </div>
+
+      <div class="feature-block">
+        <div class="feature-header">
+          <h4>信箱装饰系统</h4>
+          <span class="feature-module">模块：信箱 · P2</span>
+        </div>
+        <ul class="feature-list">
+          <li>
+            <span class="feature-id">MB-009</span>
+            <div class="feature-desc">
+              <strong>材质主题</strong>
+              <p>四种基础材质：铜制邮筒、木质信盒、牛皮档案袋、航空信封。每个材质对应不同的视觉表现和装饰元素。</p>
+            </div>
+          </li>
+          <li>
+            <span class="feature-id">MB-010</span>
+            <div class="feature-desc">
+              <strong>装饰元素组合</strong>
+              <p>可选装饰：蜡封章、手写标签、邮戳、照片夹、捆扎绳。用户可自由组合，形成个性化信箱外观。</p>
+            </div>
+          </li>
+          <li>
+            <span class="feature-id">MB-011</span>
+            <div class="feature-desc">
+              <strong>状态可视化</strong>
+              <p>未读信件通过信箱插旗、数字角标等方式呈现，保持整体美感的同时传递状态信息。</p>
+            </div>
+          </li>
+        </ul>
+      </div>
+
+      <!-- 4.2 信件编辑器 -->
+      <h3 id="4-2">4.2 信件编辑器</h3>
+
+      <div class="feature-block">
+        <div class="feature-header">
+          <h4>三栏布局结构</h4>
+          <span class="feature-module">模块：编辑器</span>
+        </div>
+        <ul class="feature-list">
+          <li>
+            <span class="feature-id">ED-001</span>
+            <div class="feature-desc">
+              <strong>左侧工具轨（Tool Rail）</strong>
+              <p>包含：页面缩略图（新增/切换/删除页面）、基础工具（文字/图片/语音/视频/贴图/组件）、组件库（日期/收信人/地点/年计划/月计划等）。</p>
+            </div>
+          </li>
+          <li>
+            <span class="feature-id">ED-002</span>
+            <div class="feature-desc">
+              <strong>中间画布区（Canvas Zone）</strong>
+              <p>信纸画布居中展示，顶部工具栏显示当前信纸样式和缩放控制（百分比/适应宽度）。画布支持拖拽移动元素、缩放。</p>
+            </div>
+          </li>
+          <li>
+            <span class="feature-id">ED-003</span>
+            <div class="feature-desc">
+              <strong>右侧属性面板（Property Dock）</strong>
+              <p>分段式：信纸/封面切换。选中元素时显示对应属性：文字属性（字体/字号/行距/颜色）、图片属性、组件属性、层级与对齐操作。</p>
+            </div>
+          </li>
+          <li>
+            <span class="feature-id">ED-004</span>
+            <div class="feature-desc">
+              <strong>顶部操作栏</strong>
+              <p>返回按钮、信件标题与保存状态指示、撤销/重做、预览、保存按钮。自动保存状态实时可见。</p>
+            </div>
+          </li>
+        </ul>
+      </div>
+
+      <div class="feature-block">
+        <div class="feature-header">
+          <h4>编辑基础能力</h4>
+          <span class="feature-module">模块：编辑器 · P0</span>
+        </div>
+        <ul class="feature-list">
+          <li>
+            <span class="feature-id">ED-005</span>
+            <div class="feature-desc">
+              <strong>文字编辑</strong>
+              <p>支持横排/竖排切换、字体选择（宋体/楷体/毛笔/钢笔等多套字体栈）、字号、行距、字色。双击文字进入编辑态。</p>
+            </div>
+          </li>
+          <li>
+            <span class="feature-id">ED-006</span>
+            <div class="feature-desc">
+              <strong>图片插入</strong>
+              <p>支持本地上传图片，可拖拽调整位置和尺寸，支持圆角、透明度调节。图片随信件数据一同存储。</p>
+            </div>
+          </li>
+          <li>
+            <span class="feature-id">ED-007</span>
+            <div class="feature-desc">
+              <strong>语音录制</strong>
+              <p>调用麦克风录音，支持录制/暂停/重听/删除。录音文件随信件保存，阅读时通过语音气泡播放。</p>
+            </div>
+          </li>
+          <li>
+            <span class="feature-id">ED-008</span>
+            <div class="feature-desc">
+              <strong>多页支持</strong>
+              <p>一封信可包含多页信纸，左侧页面缩略图切换，支持新增/删除/拖拽排序页面。</p>
+            </div>
+          </li>
+        </ul>
+      </div>
+
+      <div class="feature-block">
+        <div class="feature-header">
+          <h4>编辑辅助功能</h4>
+          <span class="feature-module">模块：编辑器 · P0</span>
+        </div>
+        <ul class="feature-list">
+          <li>
+            <span class="feature-id">ED-009</span>
+            <div class="feature-desc">
+              <strong>撤销/重做栈</strong>
+              <p>50步操作历史，所有新增/删除/移动/属性修改均入栈。快捷键 Ctrl+Z / Ctrl+Y。操作栈随草稿一同保存。</p>
+            </div>
+          </li>
+          <li>
+            <span class="feature-id">ED-010</span>
+            <div class="feature-desc">
+              <strong>层级管理</strong>
+              <p>支持置顶、置底、上移一层、下移一层。右键菜单和属性面板双通道操作。图层面板显示当前页所有元素。</p>
+            </div>
+          </li>
+          <li>
+            <span class="feature-id">ED-011</span>
+            <div class="feature-desc">
+              <strong>辅助线与吸附</strong>
+              <p>拖拽元素时显示水平/垂直中心线、边距参考线。距离小于8px时自动吸附对齐。</p>
+            </div>
+          </li>
+          <li>
+            <span class="feature-id">ED-012</span>
+            <div class="feature-desc">
+              <strong>对齐操作</strong>
+              <p>属性面板提供：左对齐、水平居中、右对齐、顶部对齐、垂直居中、底部对齐。支持多元素选中后批量对齐。</p>
+            </div>
+          </li>
+        </ul>
+      </div>
+
+      <div class="feature-block">
+        <div class="feature-header">
+          <h4>组件嵌入与真实模板</h4>
+          <span class="feature-module">模块：编辑器 · P1/P3</span>
+        </div>
+        <ul class="feature-list">
+          <li>
+            <span class="feature-id">ED-013</span>
+            <div class="feature-desc">
+              <strong>计划组件插入</strong>
+              <p>从左侧组件库拖拽年/月/周/日/清单组件到信纸，可自由调整位置和尺寸。双击进入组件内部编辑模式。</p>
+            </div>
+          </li>
+          <li>
+            <span class="feature-id">ED-014</span>
+            <div class="feature-desc">
+              <strong>组件透明背景</strong>
+              <p>一键切换组件是否显示背景，透明模式下组件融入信纸不突兀。</p>
+            </div>
+          </li>
+          <li>
+            <span class="feature-id">ED-015</span>
+            <div class="feature-desc">
+              <strong>真实信件模板应用</strong>
+              <p>18种模板（竹简/奏折/花笺/侨批/航空邮简等）一键应用，自动切换文字方向、字体栈、纸张材质。</p>
+            </div>
+          </li>
+          <li>
+            <span class="feature-id">ED-016</span>
+            <div class="feature-desc">
+              <strong>模板参数调节</strong>
+              <p>可微调纸张年代感、污渍程度、折痕深浅，生成个性化的真实感效果。</p>
+            </div>
+          </li>
+        </ul>
+      </div>
+
+      <!-- 4.3 信件阅读器 -->
+      <h3 id="4-3">4.3 信件阅读器</h3>
+
+      <div class="feature-block">
+        <div class="feature-header">
+          <h4>拆信动画流程</h4>
+          <span class="feature-module">模块：阅读器 · P1</span>
+        </div>
+        <ul class="feature-list">
+          <li>
+            <span class="feature-id">RD-001</span>
+            <div class="feature-desc">
+              <strong>蜡封裂开</strong>
+              <p>点击信封后，蜡封先出现裂纹（0.2s），随后分两半向两侧滑落，带轻微弹跳效果。</p>
+            </div>
+          </li>
+          <li>
+            <span class="feature-id">RD-002</span>
+            <div class="feature-desc">
+              <strong>信封翻盖</strong>
+              <p>上盖向上翻开（约0.3s），伴随纸张轻响音效（用户首次交互后才播放）。</p>
+            </div>
+          </li>
+          <li>
+            <span class="feature-id">RD-003</span>
+            <div class="feature-desc">
+              <strong>信纸抽出</strong>
+              <p>信纸从信封中缓缓滑出（0.4s），背景同时柔和变暗聚焦内容。抽出后进入阅读态。</p>
+            </div>
+          </li>
+          <li>
+            <span class="feature-id">RD-004</span>
+            <div class="feature-desc">
+              <strong>动画跳过机制</strong>
+              <p>同一封信第二次及以后打开，自动跳过拆信动画直接进入阅读。设置中可强制开启。</p>
+            </div>
+          </li>
+        </ul>
+      </div>
+
+      <div class="feature-block">
+        <div class="feature-header">
+          <h4>阅读体验</h4>
+          <span class="feature-module">模块：阅读器</span>
+        </div>
+        <ul class="feature-list">
+          <li>
+            <span class="feature-id">RD-005</span>
+            <div class="feature-desc">
+              <strong>分页翻页</strong>
+              <p>多页信件支持左右翻页，带纸张翻动的卷曲效果。支持键盘左右键、点击两侧区域、滑动手势三种操作。</p>
+            </div>
+          </li>
+          <li>
+            <span class="feature-id">RD-006</span>
+            <div class="feature-desc">
+              <strong>进度与页码</strong>
+              <p>底部显示当前页码/总页数，以及进度条。点击进度条可跳转到对应页。</p>
+            </div>
+          </li>
+          <li>
+            <span class="feature-id">RD-007</span>
+            <div class="feature-desc">
+              <strong>书签功能</strong>
+              <p>长按段落可添加书签，书签列表显示在侧边。下次打开自动定位到上次阅读位置。</p>
+            </div>
+          </li>
+          <li>
+            <span class="feature-id">RD-008</span>
+            <div class="feature-desc">
+              <strong>语音气泡交互</strong>
+              <p>拆信完成后，语音气泡从右下角淡入。用户点击才播放（规避自动播放限制）。本会话已授权后可自动淡入。</p>
+            </div>
+          </li>
+          <li>
+            <span class="feature-id">RD-009</span>
+            <div class="feature-desc">
+              <strong>BGM混音逻辑</strong>
+              <p>语音播放时，BGM自动降至15%音量；语音结束后BGM淡回原音量。过渡平滑，无突兀感。</p>
+            </div>
+          </li>
+        </ul>
+      </div>
+
+      <div class="feature-block">
+        <div class="feature-header">
+          <h4>阅读操作</h4>
+          <span class="feature-module">模块：阅读器</span>
+        </div>
+        <ul class="feature-list">
+          <li>
+            <span class="feature-id">RD-010</span>
+            <div class="feature-desc">
+              <strong>底部操作栏</strong>
+              <p>固定底部：编辑、导出长图、回信、更多（删除/移动信箱/标签）。桌面端右侧面板同步显示。</p>
+            </div>
+          </li>
+          <li>
+            <span class="feature-id">RD-011</span>
+            <div class="feature-desc">
+              <strong>回信功能</strong>
+              <p>点击回信跳转到编辑器，自动填充收信人（反转）、引用原信可选、继承当前信箱。</p>
+            </div>
+          </li>
+          <li>
+            <span class="feature-id">RD-012</span>
+            <div class="feature-desc">
+              <strong>导出图片</strong>
+              <p>支持导出单页或全页为PNG长图，分辨率可选。导出时完整保留纸张材质、印章等效果。</p>
+            </div>
+          </li>
+          <li>
+            <span class="feature-id">RD-013</span>
+            <div class="feature-desc">
+              <strong>故事线入口</strong>
+              <p>侧边栏显示关联的日记章节、手账记录快捷入口，点击跳转到对应支线内容。</p>
+            </div>
+          </li>
+        </ul>
+      </div>
+
+      <!-- 4.4 计划组件系统 -->
+      <h3 id="4-4">4.4 计划组件系统</h3>
+
+      <div class="feature-block">
+        <div class="feature-header">
+          <h4>年度计划 3-in-1</h4>
+          <span class="feature-module">模块：计划 · P1</span>
+        </div>
+        <ul class="feature-list">
+          <li>
+            <span class="feature-id">PL-001</span>
+            <div class="feature-desc">
+              <strong>YEAR 年度总览</strong>
+              <p>12个月色块展示，按季度分组。每个月可标记多个类别（日常/工作/成长/重点），颜色区分。点击月份进入月计划。</p>
+            </div>
+          </li>
+          <li>
+            <span class="feature-id">PL-002</span>
+            <div class="feature-desc">
+              <strong>NOTE 自由笔记</strong>
+              <p>年度目标、季度复盘、关键事件等自由书写区域，支持富文本格式。</p>
+            </div>
+          </li>
+          <li>
+            <span class="feature-id">PL-003</span>
+            <div class="feature-desc">
+              <strong>LIST 清单页</strong>
+              <p>年度愿望清单、读书清单、观影清单等可自定义列表，支持勾选完成状态。</p>
+            </div>
+          </li>
+          <li>
+            <span class="feature-id">PL-004</span>
+            <div class="feature-desc">
+              <strong>类别系统</strong>
+              <p>默认四种类别：日常（灰）、工作（蓝）、成长（绿）、重点（红）。颜色全局统一，可自定义类别名称和颜色。</p>
+            </div>
+          </li>
+        </ul>
+      </div>
+
+      <div class="feature-block">
+        <div class="feature-header">
+          <h4>月/周/日计划</h4>
+          <span class="feature-module">模块：计划 · P1</span>
+        </div>
+        <ul class="feature-list">
+          <li>
+            <span class="feature-id">PL-005</span>
+            <div class="feature-desc">
+              <strong>逐级下钻</strong>
+              <p>年计划点击月份 → 月计划；月计划点击日期 → 日计划；形成完整的层级导航，每级可返回上级。</p>
+            </div>
+          </li>
+          <li>
+            <span class="feature-id">PL-006</span>
+            <div class="feature-desc">
+              <strong>数据同步</strong>
+              <p>任一视图添加/完成的任务，在其他视图自动同步显示状态。任务数据统一存储，多视图共享。</p>
+            </div>
+          </li>
+          <li>
+            <span class="feature-id">PL-007</span>
+            <div class="feature-desc">
+              <strong>月计划视图</strong>
+              <p>月历网格布局，每天显示任务数量和类别色点。支持农历显示和传统节日标注。</p>
+            </div>
+          </li>
+          <li>
+            <span class="feature-id">PL-008</span>
+            <div class="feature-desc">
+              <strong>周计划视图</strong>
+              <p>七分栏布局或时间轴布局可选，展示一周每天的待办。支持拖拽调整任务日期。</p>
+            </div>
+          </li>
+          <li>
+            <span class="feature-id">PL-009</span>
+            <div class="feature-desc">
+              <strong>日计划视图</strong>
+              <p>时间格（小时格）+ 待办清单 + 复盘笔记。可设置任务时间、提醒（本地通知）。</p>
+            </div>
+          </li>
+        </ul>
+      </div>
+
+      <div class="feature-block">
+        <div class="feature-header">
+          <h4>信纸嵌入机制</h4>
+          <span class="feature-module">模块：计划 · P1</span>
+        </div>
+        <ul class="feature-list">
+          <li>
+            <span class="feature-id">PL-010</span>
+            <div class="feature-desc">
+              <strong>拖拽插入</strong>
+              <p>编辑器左侧组件库中选择计划类型，拖拽到信纸任意位置插入。</p>
+            </div>
+          </li>
+          <li>
+            <span class="feature-id">PL-011</span>
+            <div class="feature-desc">
+              <strong>内部编辑模式</strong>
+              <p>双击组件进入内部编辑，画布其余区域灰显遮罩。编辑完成后点击外部或ESC退出。</p>
+            </div>
+          </li>
+          <li>
+            <span class="feature-id">PL-012</span>
+            <div class="feature-desc">
+              <strong>尺寸与样式</strong>
+              <p>支持拖拽缩放组件尺寸，内部布局自适应。可切换透明背景，融入信纸风格。</p>
+            </div>
+          </li>
+          <li>
+            <span class="feature-id">PL-013</span>
+            <div class="feature-desc">
+              <strong>数据联动</strong>
+              <p>信纸中的组件数据与手账系统实时同步，修改一处全局更新。右上角显示"已同步"状态。</p>
+            </div>
+          </li>
+        </ul>
+      </div>
+
+      <!-- 4.5 手账与日记 -->
+      <h3 id="4-5">4.5 手账与日记</h3>
+
+      <div class="feature-block">
+        <div class="feature-header">
+          <h4>手账系统</h4>
+          <span class="feature-module">模块：手账 · P2</span>
+        </div>
+        <ul class="feature-list">
+          <li>
+            <span class="feature-id">JO-001</span>
+            <div class="feature-desc">
+              <strong>年/月/日视图</strong>
+              <p>独立的手账页面，与计划组件共享同一套任务数据。支持日历视图和列表视图切换。</p>
+            </div>
+          </li>
+          <li>
+            <span class="feature-id">JO-002</span>
+            <div class="feature-desc">
+              <strong>模板系统</strong>
+              <p>提供多种手账模板（子弹笔记、三日复盘、感恩日记等），可快速应用到当日页面。</p>
+            </div>
+          </li>
+          <li>
+            <span class="feature-id">JO-003</span>
+            <div class="feature-desc">
+              <strong>写信同步</strong>
+              <p>写完一封信后可选择"同步到手账"，自动在当日手账中生成一条通信记录。</p>
+            </div>
+          </li>
+          <li>
+            <span class="feature-id">JO-004</span>
+            <div class="feature-desc">
+              <strong>手账搜索</strong>
+              <p>全局搜索覆盖手账内容，支持按关键词、日期范围、标签检索。</p>
+            </div>
+          </li>
+        </ul>
+      </div>
+
+      <div class="feature-block">
+        <div class="feature-header">
+          <h4>日记支线</h4>
+          <span class="feature-module">模块：日记 · P2</span>
+        </div>
+        <ul class="feature-list">
+          <li>
+            <span class="feature-id">DN-001</span>
+            <div class="feature-desc">
+              <strong>信箱关联日记</strong>
+              <p>每个信箱可附带一部日记（如"以撒的日记"），作为故事线的补充阅读材料。</p>
+            </div>
+          </li>
+          <li>
+            <span class="feature-id">DN-002</span>
+            <div class="feature-desc">
+              <strong>分页阅读</strong>
+              <p>日记按章节/页码组织，支持翻页阅读、目录导航、书签定位。</p>
+            </div>
+          </li>
+          <li>
+            <span class="feature-id">DN-003</span>
+            <div class="feature-desc">
+              <strong>信件互链</strong>
+              <p>日记中提到的信件可直接跳转阅读；信件侧边栏显示关联的日记章节入口。</p>
+            </div>
+          </li>
+        </ul>
+      </div>
+
+      <!-- 4.6 慢递与待寄 -->
+      <h3 id="4-6">4.6 慢递与待寄系统</h3>
+
+      <div class="feature-block">
+        <div class="feature-header">
+          <h4>定时发送</h4>
+          <span class="feature-module">模块：慢递 · P2</span>
+        </div>
+        <ul class="feature-list">
+          <li>
+            <span class="feature-id">SD-001</span>
+            <div class="feature-desc">
+              <strong>定时设置</strong>
+              <p>写信完成后可设置定时寄出：指定日期和时间。支持农历日期、纪念日预设。</p>
+            </div>
+          </li>
+          <li>
+            <span class="feature-id">SD-002</span>
+            <div class="feature-desc">
+              <strong>待寄列表</strong>
+              <p>独立的"待寄"入口，展示所有等待寄出的信件，显示倒计时。支持修改时间和取消。</p>
+            </div>
+          </li>
+          <li>
+            <span class="feature-id">SD-003</span>
+            <div class="feature-desc">
+              <strong>自动送达</strong>
+              <p>到达设定时间后，信件自动从"待寄"移动到目标信箱，并标记为新来信。下次打开时提示。</p>
+            </div>
+          </li>
+          <li>
+            <span class="feature-id">SD-004</span>
+            <div class="feature-desc">
+              <strong>撤回窗口</strong>
+              <p>设置后10分钟内可无理由撤回，模拟"信件还在邮筒里"的状态。超时后进入正式投递。</p>
+            </div>
+          </li>
+        </ul>
+      </div>
+
+      <div class="feature-block">
+        <div class="feature-header">
+          <h4>随机慢递</h4>
+          <span class="feature-module">模块：慢递 · P2</span>
+        </div>
+        <ul class="feature-list">
+          <li>
+            <span class="feature-id">SD-005</span>
+            <div class="feature-desc">
+              <strong>三种慢递模式</strong>
+              <p>平邮（3-7天）、慢递（1-3个月随机）、半年期（3-6个月随机）。模拟真实邮寄的不确定性。</p>
+            </div>
+          </li>
+          <li>
+            <span class="feature-id">SD-006</span>
+            <div class="feature-desc">
+              <strong>投递中状态</strong>
+              <p>寄出后信件显示"投递中"状态，展示预计到达时间范围和进度感。信箱中可见但不可阅读。</p>
+            </div>
+          </li>
+          <li>
+            <span class="feature-id">SD-007</span>
+            <div class="feature-desc">
+              <strong>离线补送达</strong>
+              <p>离线期间到达的信件，下次启动应用时统一"派件"，有新信提示动画。</p>
+            </div>
+          </li>
+        </ul>
+      </div>
+
+      <div class="feature-block">
+        <div class="feature-header">
+          <h4>双人信箱与投递包</h4>
+          <span class="feature-module">模块：慢递 · P2</span>
+        </div>
+        <ul class="feature-list">
+          <li>
+            <span class="feature-id">SD-008</span>
+            <div class="feature-desc">
+              <strong>双人视角</strong>
+              <p>支持"他的信/我的信/全部"三视图切换，模拟双向通信的信箱体验。</p>
+            </div>
+          </li>
+          <li>
+            <span class="feature-id">SD-009</span>
+            <div class="feature-desc">
+              <strong>加密投递包</strong>
+              <p>无后端场景下，可导出加密的投递包文件，手动发送给对方，对方导入后信件自动进入待寄/已送达状态。</p>
+            </div>
+          </li>
+        </ul>
+      </div>
+
+      <!-- 4.7 数据安全与备份 -->
+      <h3 id="4-7">4.7 数据安全与备份</h3>
+
+      <div class="feature-block">
+        <div class="feature-header">
+          <h4>自动草稿机制</h4>
+          <span class="feature-module">模块：数据 · P0</span>
+        </div>
+        <ul class="feature-list">
+          <li>
+            <span class="feature-id">DS-001</span>
+            <div class="feature-desc">
+              <strong>定时自动保存</strong>
+              <p>编辑器每25秒自动保存一次草稿到本地 IndexedDB。停止输入3秒后也触发保存。顶部实时显示保存状态。</p>
+            </div>
+          </li>
+          <li>
+            <span class="feature-id">DS-002</span>
+            <div class="feature-desc">
+              <strong>多版本保留</strong>
+              <p>每封信保留最近5个历史版本，带时间戳。用户可查看并回退到任一版本。</p>
+            </div>
+          </li>
+          <li>
+            <span class="feature-id">DS-003</span>
+            <div class="feature-desc">
+              <strong>草稿恢复</strong>
+              <p>重新打开编辑页时，若存在未完成草稿，顶部弹出"恢复上次草稿"提示，可选择恢复或放弃。</p>
+            </div>
+          </li>
+          <li>
+            <span class="feature-id">DS-004</span>
+            <div class="feature-desc">
+              <strong>离开页面提醒</strong>
+              <p>有未保存更改时关闭/刷新页面，触发浏览器原生确认弹窗，防止误操作丢失。</p>
+            </div>
+          </li>
+        </ul>
+      </div>
+
+      <div class="feature-block">
+        <div class="feature-header">
+          <h4>备份与导出</h4>
+          <span class="feature-module">模块：数据 · P0</span>
+        </div>
+        <ul class="feature-list">
+          <li>
+            <span class="feature-id">DS-005</span>
+            <div class="feature-desc">
+              <strong>全量备份导出</strong>
+              <p>一键导出所有数据：信箱、信件、手账、日记、设置。生成 JSON 文件下载。可选是否包含媒体资源（录音/图片）。</p>
+            </div>
+          </li>
+          <li>
+            <span class="feature-id">DS-006</span>
+            <div class="feature-desc">
+              <strong>密码加密</strong>
+              <p>备份文件支持设置密码，使用 AES 加密。导入时需输入正确密码才能解密。</p>
+            </div>
+          </li>
+          <li>
+            <span class="feature-id">DS-007</span>
+            <div class="feature-desc">
+              <strong>单信箱导出</strong>
+              <p>支持单独导出某个信箱的数据，便于分享或迁移。导出格式与全量备份兼容。</p>
+            </div>
+          </li>
+        </ul>
+      </div>
+
+      <div class="feature-block">
+        <div class="feature-header">
+          <h4>导入与恢复</h4>
+          <span class="feature-module">模块：数据 · P0</span>
+        </div>
+        <ul class="feature-list">
+          <li>
+            <span class="feature-id">DS-008</span>
+            <div class="feature-desc">
+              <strong>备份预览</strong>
+              <p>选择备份文件后，先展示摘要信息：信箱数量、信件数量、备份日期、版本号。确认后再执行导入。</p>
+            </div>
+          </li>
+          <li>
+            <span class="feature-id">DS-009</span>
+            <div class="feature-desc">
+              <strong>两种导入模式</strong>
+              <p>合并模式：将备份内容并入现有数据（同ID跳过或更新可选）；覆盖模式：清空现有数据后导入。默认合并。</p>
+            </div>
+          </li>
+          <li>
+            <span class="feature-id">DS-010</span>
+            <div class="feature-desc">
+              <strong>导入进度与回滚</strong>
+              <p>导入过程显示进度条。若导入失败，自动回滚到导入前状态，不破坏现有数据。</p>
+            </div>
+          </li>
+        </ul>
+      </div>
+
+      <!-- 4.8 全局系统 -->
+      <h3 id="4-8">4.8 全局系统功能</h3>
+
+      <div class="feature-block">
+        <div class="feature-header">
+          <h4>搜索与标签</h4>
+          <span class="feature-module">模块：全局</span>
+        </div>
+        <ul class="feature-list">
+          <li>
+            <span class="feature-id">GL-001</span>
+            <div class="feature-desc">
+              <strong>全局搜索</strong>
+              <p>顶部搜索框统一检索：信件标题、正文、收信人、手账内容、日记内容。结果按类型分组展示。</p>
+            </div>
+          </li>
+          <li>
+            <span class="feature-id">GL-002</span>
+            <div class="feature-desc">
+              <strong>标签系统</strong>
+              <p>支持系统标签（未读、待回信、重要）和自定义标签。信件可打多个标签，支持按标签筛选。</p>
+            </div>
+          </li>
+        </ul>
+      </div>
+
+      <div class="feature-block">
+        <div class="feature-header">
+          <h4>简洁模式与引导</h4>
+          <span class="feature-module">模块：全局 · P3</span>
+        </div>
+        <ul class="feature-list">
+          <li>
+            <span class="feature-id">GL-003</span>
+            <div class="feature-desc">
+              <strong>简洁模式</strong>
+              <p>隐藏手账、待寄、日记等支线功能，仅保留收信与写信两个核心入口。设置中可随时切换。</p>
+            </div>
+          </li>
+          <li>
+            <span class="feature-id">GL-004</span>
+            <div class="feature-desc">
+              <strong>渐进式引导</strong>
+              <p>首次使用预置一个示例信箱（含3封演示信）。各功能首次使用时轻量提示，不做一次性长教程。所有引导可跳过。</p>
+            </div>
+          </li>
+          <li>
+            <span class="feature-id">GL-005</span>
+            <div class="feature-desc">
+              <strong>BGM系统</strong>
+              <p>全局背景音乐控制，每个信箱可设置专属BGM。支持音量调节、淡入淡出、播放列表。</p>
+            </div>
+          </li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- 第五章：视觉设计规范 -->
+    <section class="section" id="chapter5">
+      <h2>五、视觉设计规范</h2>
+
+      <h3 id="5-1">5.1 色彩系统</h3>
+
+      <h4>主色板</h4>
+      <div class="color-grid">
+        <div class="color-swatch">
+          <div class="color-block" style="background: #1a1d25;"></div>
+          <div class="color-info">
+            <strong>深墨色</strong>
+            <span>#1a1d25 · 主文本/主操作</span>
+          </div>
+        </div>
+        <div class="color-swatch">
+          <div class="color-block" style="background: #c96567;"></div>
+          <div class="color-info">
+            <strong>玫瑰色</strong>
+            <span>#c96567 · 强调/叙事/蜡封</span>
+          </div>
+        </div>
+        <div class="color-swatch">
+          <div class="color-block" style="background: #4a7c59;"></div>
+          <div class="color-info">
+            <strong>叶绿色</strong>
+            <span>#4a7c59 · 支线功能/成功态</span>
+          </div>
+        </div>
+        <div class="color-swatch">
+          <div class="color-block" style="background: #b8956a;"></div>
+          <div class="color-info">
+            <strong>暖金色</strong>
+            <span>#b8956a · 警告/装饰/邮戳</span>
+          </div>
+        </div>
+      </div>
+
+      <h4>中性色板</h4>
+      <div class="color-grid">
+        <div class="color-swatch">
+          <div class="color-block" style="background: #faf6f0;"></div>
+          <div class="color-info">
+            <strong>纸张暖白</strong>
+            <span>#faf6f0 · 页面背景</span>
+          </div>
+        </div>
+        <div class="color-swatch">
+          <div class="color-block" style="background: #f5efe4;"></div>
+          <div class="color-info">
+            <strong>奶油米</strong>
+            <span>#f5efe4 · 卡片/次级背景</span>
+          </div>
+        </div>
+        <div class="color-swatch">
+          <div class="color-block" style="background: #5a6278;"></div>
+          <div class="color-info">
+            <strong>次级灰</strong>
+            <span>#5a6278 · 次要文本</span>
+          </div>
+        </div>
+        <div class="color-swatch">
+          <div class="color-block" style="background: #2a334a;"></div>
+          <div class="color-info">
+            <strong>夜色深蓝</strong>
+            <span>#2a334a · 深色主题/夜间信箱</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="info-card tip">
+        <strong>用色原则：</strong>大面积使用低饱和度的纸张色系，小面积使用玫瑰色作为情感强调。功能操作优先用深墨色，避免彩色按钮过多造成视觉噪音。
+      </div>
+
+      <h3 id="5-2">5.2 字体与排版</h3>
+      <ul>
+        <li><strong>UI 字体栈</strong>：-apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", sans-serif（界面文字）</li>
+        <li><strong>书信宋体</strong>："Songti SC", "SimSun", "Noto Serif SC", serif（正式书信正文）</li>
+        <li><strong>毛笔行楷</strong>："STXingkai", "华文行楷", "KaiTi", "楷体"（毛笔/竖排书信模板）</li>
+        <li><strong>钢笔手写</strong>："FZKai-Z03S", "Kaiti SC", "HanziPen SC"（钢笔信模板）</li>
+        <li><strong>打字机</strong>："Courier New", Courier, monospace（电报/打字机模板）</li>
+      </ul>
+
+      <h4>字号层级</h4>
+      <table class="req-table">
+        <thead>
+          <tr><th>层级</th><th>字号</th><th>字重</th><th>用途</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>大标题 H1</td><td>28-36px</td><td>600</td><td>页面主标题</td></tr>
+          <tr><td>小标题 H2</td><td>20-24px</td><td>600</td><td>模块标题、卡片标题</td></tr>
+          <tr><td>正文 Body</td><td>14-15px</td><td>400</td><td>正文、描述文字</td></tr>
+          <tr><td>小字 Small</td><td>12-13px</td><td>400</td><td>辅助信息、时间戳、标签</td></tr>
+          <tr><td>书信正文</td><td>16-18px</td><td>400</td><td>信纸内文字（行高1.8）</td></tr>
+        </tbody>
+      </table>
+
+      <h3 id="5-3">5.3 材质与阴影</h3>
+      <ul>
+        <li><strong>纸张材质</strong>：通过多层 CSS 背景叠加实现纸纹、纤维、泛黄效果，不依赖图片资源</li>
+        <li><strong>折痕效果</strong>：使用线性渐变模拟折痕的高光与阴影，十字折痕为两条交叉线</li>
+        <li><strong>卡片阴影</strong>：双层阴影结构（近景淡 + 远景散），模拟纸张悬浮在桌面上的真实感</li>
+        <li><strong>圆角规范</strong>：卡片 8-12px，按钮 6-8px，避免过度圆润失去纸质感</li>
+        <li><strong>投影方向</strong>：统一光源来自左上方，阴影偏右下，Y轴偏移为主</li>
+      </ul>
+
+      <h3 id="5-4">5.4 组件规范</h3>
+      <ul>
+        <li><strong>主按钮</strong>：深墨色填充 + 白色文字 + 8px 圆角，悬停轻微提亮</li>
+        <li><strong>次按钮</strong>：透明背景 + 细边框 + 深墨色文字</li>
+        <li><strong>幽灵按钮</strong>：无边框纯文字，hover 出现浅底色</li>
+        <li><strong>输入框</strong>：1px 边框 + 8px 圆角 + 浅灰底色，focus 时边框变玫瑰色</li>
+        <li><strong>卡片</strong>：白底 + 轻阴影 + 细边框，内容区内边距统一 20-24px</li>
+      </ul>
+    </section>
+
+    <!-- 第六章：交互设计规范 -->
+    <section class="section" id="chapter6">
+      <h2>六、交互设计规范</h2>
+
+      <h3 id="6-1">6.1 动效原则</h3>
+      <ul>
+        <li><strong>节奏：慢而从容</strong>：动效时长偏长（0.3-0.5s），缓动函数优先 ease-out，营造沉静不急躁的氛围</li>
+        <li><strong>层级：物理感</strong>：元素出现有先后顺序，模拟真实物体的运动惯性，不做机械的同时出现</li>
+        <li><strong>反馈：轻而明确</strong>：点击、悬停有细微反馈（颜色变化/轻微位移），但不过度夸张</li>
+        <li><strong>转场：叙事性</strong>：拆信、翻页等核心动效带有故事感，不是单纯的位移淡入</li>
+      </ul>
+
+      <h4>动效时长参考</h4>
+      <table class="req-table">
+        <thead>
+          <tr><th>动效类型</th><th>时长</th><th>缓动</th><th>说明</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>按钮/状态反馈</td><td>150-200ms</td><td>ease-out</td><td>快速响应，不拖沓</td></tr>
+          <tr><td>面板展开/收起</td><td>250-300ms</td><td>ease-out</td><td>流畅但不迟缓</td></tr>
+          <tr><td>页面切换</td><td>300-400ms</td><td>ease-in-out</td><td>有明显过渡感</td></tr>
+          <tr><td>拆信动画</td><td>800-1200ms</td><td>cubic-bezier</td><td>仪式感动效，分阶段</td></tr>
+          <tr><td>翻页动效</td><td>400ms</td><td>ease-in-out</td><td>模拟纸张翻动</td></tr>
+        </tbody>
+      </table>
+
+      <h3 id="6-2">6.2 核心交互流</h3>
+
+      <h4>写信流程（主路径）</h4>
+      <ol>
+        <li>首页 → 点击「新建信件」或选择信箱后新建</li>
+        <li>进入编辑器，默认信纸样式，光标自动聚焦文字区</li>
+        <li>输入正文 → 可插入图片、录音、组件</li>
+        <li>自动保存持续进行中，顶部状态可见</li>
+        <li>完成后点击「保存」或直接返回（自动保存）</li>
+        <li>可选：设置定时寄出 / 导出图片</li>
+      </ol>
+
+      <h4>读信流程</h4>
+      <ol>
+        <li>信箱详情 → 点击目标信件</li>
+        <li>触发拆信动画（首次观看，后续可跳过）</li>
+        <li>进入阅读器，语音气泡从右下浮出（如有录音）</li>
+        <li>翻页阅读 → 可添加书签</li>
+        <li>底部操作：回信 / 编辑 / 导出 / 更多</li>
+      </ol>
+
+      <h3 id="6-3">6.3 移动端适配</h3>
+      <ul>
+        <li><strong>断点</strong>：768px 以下切换为移动端布局</li>
+        <li><strong>导航</strong>：侧边栏收起为底部 Tab 栏（信箱、写信、手账、我的）</li>
+        <li><strong>编辑器</strong>：全屏画布 + 底部工具栏 + 属性从底部上滑弹出</li>
+        <li><strong>阅读器</strong>：全屏沉浸阅读，操作按钮收到底部</li>
+        <li><strong>手势</strong>：左右滑翻页、双指缩放画布、长按出菜单、下拉刷新</li>
+        <li><strong>触控目标</strong>：按钮最小尺寸 44×44px，间距不小于 8px</li>
+      </ul>
+    </section>
+
+    <!-- 第七章：非功能需求 -->
+    <section class="section" id="chapter7">
+      <h2>七、非功能需求</h2>
+
+      <h3 id="7-1">7.1 性能要求</h3>
+      <table class="req-table">
+        <thead>
+          <tr><th>指标</th><th>要求</th><th>说明</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>首屏加载</td>
+            <td>&lt; 2s（常规网络）</td>
+            <td>静态资源压缩 + Service Worker 缓存</td>
+          </tr>
+          <tr>
+            <td>编辑器帧率</td>
+            <td>≥ 55fps 拖拽时</td>
+            <td>使用 rAF 节流，避免布局抖动</td>
+          </tr>
+          <tr>
+            <td>信件加载</td>
+            <td>&lt; 500ms 打开一封信</td>
+            <td>常规 2-3 页带图片的信件</td>
+          </tr>
+          <tr>
+            <td>导出图片</td>
+            <td>&lt; 3s（单页信纸）</td>
+            <td>含材质层和元素的完整渲染</td>
+          </tr>
+          <tr>
+            <td>数据量支持</td>
+            <td>至少 500 封信流畅运行</td>
+            <td>列表使用虚拟滚动优化</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3 id="7-2">7.2 兼容性</h3>
+      <ul>
+        <li><strong>桌面浏览器</strong>：Chrome 90+、Edge 90+、Safari 14+、Firefox 88+</li>
+        <li><strong>移动浏览器</strong>：iOS Safari 14+、Chrome Mobile 90+</li>
+        <li><strong>API 兼容降级</strong>：
+          <ul>
+            <li>IndexedDB 不可用时降级到 localStorage（提示容量限制）</li>
+            <li>MediaRecorder 不支持时隐藏录音功能并提示</li>
+            <li>自动播放被拦截时优雅降级为点击播放</li>
+          </ul>
+        </li>
+        <li><strong>分辨率</strong>：最小支持宽度 320px，最大自适应 2560px</li>
+      </ul>
+
+      <h3 id="7-3">7.3 数据安全</h3>
+      <ul>
+        <li><strong>本地优先</strong>：所有数据默认存储在用户本地浏览器，不上传任何服务器</li>
+        <li><strong>加密备份</strong>：可选密码加密备份文件，使用 AES-256 算法</li>
+        <li><strong>无账号系统</strong>：不收集用户身份信息，不设置注册登录流程</li>
+        <li><strong>数据隔离</strong>：不同浏览器实例数据独立，不跨域共享</li>
+        <li><strong>导出文件</strong>：用户手动导出的文件完全由用户掌控，应用不留存副本</li>
+      </ul>
+
+      <h3 id="7-4">7.4 可用性</h3>
+      <ul>
+        <li><strong>键盘支持</strong>：常用操作支持快捷键（撤销/重做/保存/新建等）</li>
+        <li><strong>无障碍</strong>：语义化 HTML 结构，图片有 alt 文本，颜色对比度满足 WCAG AA</li>
+        <li><strong>错误处理</strong>：存储失败、录音失败、导入失败均有友好提示和恢复建议</li>
+        <li><strong>空状态</strong>：无信箱、无信件、无搜索结果等空场景有引导性设计</li>
+      </ul>
+    </section>
+
+    <!-- 第八章：里程碑与排期 -->
+    <section class="section" id="chapter8">
+      <h2>八、里程碑与排期</h2>
+
+      <p>按优先级分为四个阶段，建议按顺序逐步落地，每个阶段结束后可独立使用并收集反馈。</p>
+
+      <ol class="milestone-list">
+        <li class="milestone-item">
+          <h4>M1 · 核心体验版（MVP）</h4>
+          <div class="milestone-meta">优先级 P0 · 目标：基础可用，能安心写信读信</div>
+          <ul>
+            <li>信箱基础管理（增删改查、排序）</li>
+            <li>信件编辑器核心：文字/图片/多页</li>
+            <li>编辑器辅助：撤销重做、层级、辅助线对齐</li>
+            <li>自动草稿保存 + 版本回溯</li>
+            <li>信件基础阅读器（无拆信动画版本）</li>
+            <li>语音气泡播放 + BGM混音</li>
+            <li>全量备份导出与导入恢复</li>
+            <li>IndexedDB 数据层架构搭建</li>
+          </ul>
+        </li>
+        <li class="milestone-item">
+          <h4>M2 · 体验优化版</h4>
+          <div class="milestone-meta">优先级 P1 · 目标：交互流畅，有书信仪式感</div>
+          <ul>
+            <li>蜡封拆信完整动画 + 音效</li>
+            <li>阅读器分页翻页效果 + 书签</li>
+            <li>年度计划 3-in-1 组件</li>
+            <li>月/周/日计划联动</li>
+            <li>计划组件信纸内嵌编辑</li>
+            <li>信件堆叠浏览 + 时间线导航</li>
+            <li>全局搜索功能</li>
+            <li>导出高清长图优化</li>
+          </ul>
+        </li>
+        <li class="milestone-item">
+          <h4>M3 · 特色功能版</h4>
+          <div class="milestone-meta">优先级 P2 · 目标：形成产品特色与内容闭环</div>
+          <ul>
+            <li>定时发送 + 待寄列表</li>
+            <li>随机慢递 + 投递中状态</li>
+            <li>信箱装饰系统（4种材质+装饰元素）</li>
+            <li>手账系统基础版</li>
+            <li>日记支线功能</li>
+            <li>写信同步到手账</li>
+            <li>加密投递包（离线交换）</li>
+            <li>标签系统</li>
+          </ul>
+        </li>
+        <li class="milestone-item">
+          <h4>M4 · 深度扩展版</h4>
+          <div class="milestone-meta">优先级 P3 · 目标：丰富玩法，移动端完善</div>
+          <ul>
+            <li>18种真实信件模板接入编辑器</li>
+            <li>模板参数调节（污渍/折痕/年代感）</li>
+            <li>移动端简洁模式</li>
+            <li>移动端手势优化与首次引导</li>
+            <li>自定义 BGM 上传</li>
+            <li>个人印章系统</li>
+            <li>节日主题彩蛋</li>
+            <li>深色模式 / 夜间主题</li>
+          </ul>
+        </li>
+      </ol>
+    </section>
+
+    <!-- 第九章：风险与依赖 -->
+    <section class="section" id="chapter9">
+      <h2>九、风险与依赖</h2>
+
+      <table class="req-table risk-table">
+        <thead>
+          <tr>
+            <th>风险项</th>
+            <th>影响</th>
+            <th>概率</th>
+            <th>应对方案</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>浏览器存储容量限制</td>
+            <td><span class="impact high">高</span></td>
+            <td>中</td>
+            <td>使用 IndexedDB 存储大文件；接近上限时提前预警；提供导出清理建议</td>
+          </tr>
+          <tr>
+            <td>录音格式浏览器兼容差异</td>
+            <td><span class="impact medium">中</span></td>
+            <td>高</td>
+            <td>检测浏览器支持自动选择 webm/m4a；导入时做格式兼容处理</td>
+          </tr>
+          <tr>
+            <td>自动播放策略限制</td>
+            <td><span class="impact medium">中</span></td>
+            <td>高</td>
+            <td>改为语音气泡点击播放；首次交互后解锁自动播放</td>
+          </tr>
+          <tr>
+            <td>html2canvas 导出效果偏差</td>
+            <td><span class="impact medium">中</span></td>
+            <td>中</td>
+            <td>关键材质使用标准CSS属性；复杂效果预渲染为图片；测试主流浏览器</td>
+          </tr>
+          <tr>
+            <td>数据迁移失败导致丢失</td>
+            <td><span class="impact high">高</span></td>
+            <td>低</td>
+            <td>升级前自动备份；迁移失败回滚；版本号校验</td>
+          </tr>
+          <tr>
+            <td>大量信件导致页面卡顿</td>
+            <td><span class="impact medium">中</span></td>
+            <td>中</td>
+            <td>虚拟滚动列表；图片懒加载；分页加载策略</td>
+          </tr>
+          <tr>
+            <td>竖排文字各浏览器渲染差异</td>
+            <td><span class="impact low">低</span></td>
+            <td>中</td>
+            <td>使用标准 writing-mode 属性；字体栈 fallback；关键模板截图对比</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3>技术依赖</h3>
+      <ul>
+        <li><strong>IndexedDB</strong>：本地数据持久化核心</li>
+        <li><strong>MediaRecorder API</strong>：录音功能</li>
+        <li><strong>Web Audio API</strong>：BGM 混音、淡入淡出</li>
+        <li><strong>html2canvas</strong>（可选）：信纸导出图片，或自行实现 SVG 导出</li>
+        <li><strong>CryptoJS / Web Crypto API</strong>：备份文件加密</li>
+        <li><strong>Service Worker</strong>（可选）：静态资源缓存、离线访问增强</li>
+      </ul>
+
+      <div class="info-card warning" style="margin-top: 32px;">
+        <strong>文档说明：</strong>本需求说明书为 V1.0 初稿，后续将根据设计评审和技术可行性评估进行调整。各功能的详细交互原型与视觉规范参见对应设计稿文件。
+      </div>
+    </section>
+  </main>
+</body>
+</html>

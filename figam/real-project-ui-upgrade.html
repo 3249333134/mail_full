@@ -1,0 +1,779 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>信笺真实项目 UI 深化设计 V6</title>
+  <link rel="stylesheet" href="real-project-ui-upgrade.css">
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand-mark" href="#overview" aria-label="返回顶部">
+      <span class="brand-seal">笺</span>
+      <span>
+        <strong>信笺 Real Mail OS</strong>
+        <small>真实书信质感整页 UI 设计稿</small>
+      </span>
+    </a>
+    <nav class="topnav" aria-label="页面导航">
+      <a href="#prototype">整页原型</a>
+      <a href="#operations">逐级操作</a>
+      <a href="#templates">18 种模板</a>
+      <a href="#flow">操作逻辑</a>
+    </nav>
+  </header>
+
+  <main>
+    <section class="hero-band" id="overview">
+      <div class="hero-copy">
+        <p class="kicker">PROJECT UI UPGRADE</p>
+        <h1>把当前项目从“干净信纸卡片”升级成“桌面上的真实书信系统”</h1>
+        <p class="hero-text">基于现有代码里的首页、信箱详情、编辑器、阅读器、日记、手账、待寄与信箱设置，重新统一视觉层级。所有信件与信箱都改为可触摸的实物：有纸纹、折痕、污渍、邮戳、边角磨损、墨迹深浅和桌面投影。</p>
+        <div class="hero-actions">
+          <a class="primary-action" href="#prototype"><span class="icon icon-grid" aria-hidden="true"></span>查看整页 UI</a>
+          <a class="secondary-action" href="#templates"><span class="icon icon-stack" aria-hidden="true"></span>查看模板库</a>
+        </div>
+        <dl class="quality-list">
+          <div><dt>纸张真实</dt><dd>纤维、折痕、破边、泛黄与压痕分层绘制</dd></div>
+          <div><dt>信箱成组</dt><dd>整个信箱块作为可装饰单元，而不是单个小图标</dd></div>
+          <div><dt>流程闭环</dt><dd>写信、阅读、录音、备份、待寄与手账入口统一</dd></div>
+        </dl>
+        <div class="material-score">
+          <span>V5 材质目标</span>
+          <b>纸张不再只是背景，而是有厚度、污渍、折痕、印刷偏移和桌面阴影的实物。</b>
+        </div>
+        <div class="material-score operation-score">
+          <span>V6 操作目标</span>
+          <b>把详细功能规格拆成 L1-L4 操作链：入口、动作、反馈、异常、数据状态都在界面上有明确位置。</b>
+        </div>
+      </div>
+
+      <div class="desk-scene" aria-label="真实信件视觉基准">
+        <div class="desk-lamp"></div>
+        <div class="ink-bottle"><span></span></div>
+        <div class="pen-object"></div>
+        <div class="envelope-object envelope-airmail">
+          <span class="stamp-box"></span>
+          <span class="postmark"></span>
+          <span class="address-line a1"></span>
+          <span class="address-line a2"></span>
+          <span class="address-line a3"></span>
+        </div>
+        <div class="paper-object hero-letter">
+          <span class="fold fold-v"></span>
+          <span class="fold fold-h"></span>
+          <span class="vertical-copy brush">木生吾夫亲启<br>纸短情长<br>伏惟珍重</span>
+          <span class="red-seal">缄</span>
+        </div>
+        <div class="paper-object note-under"></div>
+      </div>
+    </section>
+
+    <section class="prototype-band" id="prototype">
+      <div class="section-heading">
+        <p class="kicker">WHOLE PAGE UI</p>
+        <h2>真实项目整页原型</h2>
+        <p>左侧保留你的信箱导航逻辑，右侧把当前项目的一级、二级、三级与四级页面串成可点击设计稿。</p>
+      </div>
+
+      <div class="app-shell">
+        <aside class="app-sidebar" aria-label="信箱侧栏">
+          <div class="sidebar-head">
+            <span class="brand-seal mini">笺</span>
+            <div>
+              <strong>我的信箱</strong>
+              <small>7 个信箱 · 85 封信</small>
+            </div>
+          </div>
+          <label class="search-field">
+            <span class="icon icon-search" aria-hidden="true"></span>
+            <input type="search" value="布雷诺来信" aria-label="搜索信件">
+          </label>
+          <div class="mailbox-list">
+            <button class="mailbox-row active">
+              <span class="mini-mailbox skin-copper"></span>
+              <span>布雷诺来信</span>
+              <b>25</b>
+            </button>
+            <button class="mailbox-row">
+              <span class="mini-mailbox skin-paper"></span>
+              <span>大梁来信</span>
+              <b>4</b>
+            </button>
+            <button class="mailbox-row">
+              <span class="mini-mailbox skin-blue"></span>
+              <span>螳螂来信</span>
+              <b>4</b>
+            </button>
+            <button class="mailbox-row">
+              <span class="mini-mailbox skin-archive"></span>
+              <span>陇平来信</span>
+              <b>15</b>
+            </button>
+            <button class="mailbox-row">
+              <span class="mini-mailbox skin-green"></span>
+              <span>桃止来信</span>
+              <b>11</b>
+            </button>
+          </div>
+          <button class="new-mailbox-cta"><span class="icon icon-plus" aria-hidden="true"></span>新增信箱</button>
+        </aside>
+
+        <div class="workbench">
+          <div class="workbench-top">
+            <div>
+              <h3>信笺主界面</h3>
+              <p>当前项目结构映射：home-view / mailbox-view / reader-view / editor-view / mailbox-modal</p>
+            </div>
+            <div class="utility-actions" aria-label="全局操作">
+              <button title="播放氛围音乐"><span class="icon icon-audio" aria-hidden="true"></span></button>
+              <button title="导出备份"><span class="icon icon-download" aria-hidden="true"></span></button>
+              <button title="简洁模式"><span class="icon icon-toggle" aria-hidden="true"></span></button>
+            </div>
+          </div>
+
+          <div class="screen-tabs" role="tablist" aria-label="页面状态切换">
+            <button class="screen-tab active" data-screen="home">一级 首页</button>
+            <button class="screen-tab" data-screen="mailbox">二级 信箱详情</button>
+            <button class="screen-tab" data-screen="reader">三级 阅读器</button>
+            <button class="screen-tab" data-screen="editor">三级 编辑器</button>
+            <button class="screen-tab" data-screen="settings">四级 信箱设置</button>
+          </div>
+
+          <section class="screen-stage active" data-stage="home" aria-label="首页设计">
+            <div class="home-dashboard">
+              <article class="continue-unit">
+                <div class="unit-copy">
+                  <span class="status-label">正在阅读</span>
+                  <h4>布雷诺来信</h4>
+                  <p>第 5 封 · 四月 20, 2000 年 · 已解锁录音</p>
+                  <div class="unit-metrics">
+                    <span>25 封</span>
+                    <span>3 封待回</span>
+                    <span>1 封待寄</span>
+                  </div>
+                </div>
+                <div class="real-mailbox-unit">
+                  <span class="unit-backdrop"></span>
+                  <span class="unit-body"></span>
+                  <span class="unit-slot"></span>
+                  <span class="unit-flag"></span>
+                  <span class="unit-label brush">布雷诺</span>
+                  <span class="unit-tag">私人</span>
+                </div>
+              </article>
+
+              <aside class="quick-panel">
+                <h4>快速继续</h4>
+                <button class="continue-letter">
+                  <span class="letter-mini mini-red-column"></span>
+                  <span>
+                    <small>缪宏谟</small>
+                    <strong>第五封 · 未寄出的雨夜</strong>
+                  </span>
+                </button>
+                <div class="stats-line">
+                  <span><b>7</b>信箱</span>
+                  <span><b>85</b>信件</span>
+                  <span><b>0</b>待寄</span>
+                </div>
+              </aside>
+            </div>
+
+            <div class="real-mailbox-grid">
+              <article class="mailbox-block copper">
+                <span class="mailbox-object copper-box"><i></i></span>
+                <h5>布雷诺来信</h5>
+                <p>铜制投递口 · 蜡封章 · 泛黄纸盒</p>
+              </article>
+              <article class="mailbox-block archive">
+                <span class="mailbox-object archive-folder"><i></i></span>
+                <h5>大梁来信</h5>
+                <p>牛皮纸袋 · 编号贴 · 捆扎棉绳</p>
+              </article>
+              <article class="mailbox-block blue">
+                <span class="mailbox-object blue-airmail"><i></i></span>
+                <h5>螳螂来信</h5>
+                <p>航空蓝边 · 邮戳 · 地址线</p>
+              </article>
+              <article class="mailbox-block green">
+                <span class="mailbox-object wood-box"><i></i></span>
+                <h5>桃止来信</h5>
+                <p>木质信盒 · 植物贴纸 · 角标</p>
+              </article>
+            </div>
+          </section>
+
+          <section class="screen-stage" data-stage="mailbox" aria-label="信箱详情设计">
+            <div class="mailbox-detail-head">
+              <div>
+                <span class="status-label">二级页面</span>
+                <h4>布雷诺来信</h4>
+                <p>以撒致缪宏谟的二十五封信，按真实信件堆叠浏览。</p>
+              </div>
+              <button class="compose-btn"><span class="icon icon-pen" aria-hidden="true"></span>新建信件</button>
+            </div>
+            <div class="letter-rail">
+              <button class="rail-arrow" aria-label="上一封">‹</button>
+              <article class="real-letter-card faded">
+                <span class="paper-stack one"></span>
+                <span class="mail-object old-postcard"></span>
+                <h5>第三封</h5>
+                <p>五月 10, 1997 年</p>
+              </article>
+              <article class="real-letter-card current">
+                <span class="paper-stack one"></span>
+                <span class="mail-object red-column-letter"></span>
+                <h5>第五封</h5>
+                <p>未寄出，纸张被雨水浸染。</p>
+                <span class="voice-badge"><span class="icon icon-audio" aria-hidden="true"></span>录音</span>
+              </article>
+              <article class="real-letter-card faded">
+                <span class="paper-stack one"></span>
+                <span class="mail-object qiaopi-pack"></span>
+                <h5>第六封</h5>
+                <p>侨批红带封套</p>
+              </article>
+              <button class="rail-arrow" aria-label="下一封">›</button>
+            </div>
+            <div class="mailbox-subflow">
+              <span>滑动浏览</span>
+              <span>模拟邮寄延迟</span>
+              <span>待回信标签</span>
+              <span>导出投递包</span>
+            </div>
+          </section>
+
+          <section class="screen-stage" data-stage="reader" aria-label="阅读器设计">
+            <div class="reader-layout">
+              <aside class="reader-meta">
+                <span class="status-label">阅读器</span>
+                <h4>致 缪宏谟</h4>
+                <p>拆信动画结束后显示语音气泡，点击后播放，避免浏览器自动播放失败。</p>
+                <button class="voice-prompt"><span class="icon icon-audio" aria-hidden="true"></span>播放随信录音</button>
+                <div class="page-switch">
+                  <button class="active">1</button><button>2</button><button>3</button>
+                </div>
+              </aside>
+              <article class="reader-paper-real">
+                <span class="fold fold-v"></span>
+                <span class="fold fold-h"></span>
+                <div class="paper-date">
+                  <b>20</b>
+                  <small>五月<br>2002年</small>
+                </div>
+                <div class="red-columns"></div>
+                <p class="vertical-letter brush">缪宏谟，<br>你丈夫死了。恭喜你，又成了自由的寡妇。<br>没关系。他们送什么，我就让他们吃什么。</p>
+                <span class="stamp-round">以撒</span>
+              </article>
+              <aside class="reader-tools">
+                <button><span class="icon icon-pen" aria-hidden="true"></span>编辑</button>
+                <button><span class="icon icon-download" aria-hidden="true"></span>导出长图</button>
+                <button><span class="icon icon-stack" aria-hidden="true"></span>同步手账</button>
+                <button><span class="icon icon-plus" aria-hidden="true"></span>回信</button>
+              </aside>
+            </div>
+          </section>
+
+          <section class="screen-stage" data-stage="editor" aria-label="编辑器设计">
+            <div class="editor-status-strip">
+              <span>自动保存：3 秒前</span>
+              <span>历史栈：32 / 50</span>
+              <span>吸附：8px</span>
+              <span>版本：可回溯 5 份</span>
+            </div>
+            <div class="editor-prototype">
+              <aside class="editor-toolbox">
+                <h4>工具</h4>
+                <button><span class="icon icon-type" aria-hidden="true"></span>文字</button>
+                <button><span class="icon icon-image" aria-hidden="true"></span>相片</button>
+                <button><span class="icon icon-audio" aria-hidden="true"></span>录音</button>
+                <button><span class="icon icon-seal" aria-hidden="true"></span>印章</button>
+                <hr>
+                <button><span class="icon icon-undo" aria-hidden="true"></span>撤销</button>
+                <button><span class="icon icon-redo" aria-hidden="true"></span>重做</button>
+              </aside>
+              <div class="editor-canvas-stage">
+                <article class="canvas-paper">
+                  <span class="guide-line v"></span>
+                  <span class="guide-line h"></span>
+                  <span class="selected-text brush">前信未复，实在令人不安。</span>
+                  <span class="photo-placeholder"></span>
+                  <span class="wax-mark">缄</span>
+                </article>
+              </div>
+              <aside class="property-drawer">
+                <h4>属性</h4>
+                <div class="segmented">
+                  <button class="active">信纸</button><button>封面</button>
+                </div>
+                <div class="template-tune">
+                  <span>模板真实感参数</span>
+                  <label>年代感 <input type="range" value="72" aria-label="年代感"></label>
+                  <label>污渍 <input type="range" value="48" aria-label="污渍"></label>
+                  <label>折痕 <input type="range" value="64" aria-label="折痕"></label>
+                </div>
+                <label>字体
+                  <select><option>毛笔行楷</option><option>钢笔手写</option><option>像素电报</option></select>
+                </label>
+                <label>层级
+                  <select><option>置于顶层</option><option>上移一层</option><option>下移一层</option></select>
+                </label>
+                <div class="layer-list">
+                  <span>红栏信纸</span>
+                  <span>手写正文</span>
+                  <span>邮戳印章</span>
+                  <span>随信录音</span>
+                </div>
+              </aside>
+            </div>
+          </section>
+
+          <section class="screen-stage" data-stage="settings" aria-label="信箱设置设计">
+            <div class="designer-layout">
+              <aside class="designer-controls">
+                <h4>信箱设置</h4>
+                <label>信箱名称<input value="布雷诺来信"></label>
+                <label>材质<select><option>铜制邮筒</option><option>木质信盒</option><option>透明档案袋</option></select></label>
+                <label>装饰<select><option>蜡封章 + 手写标签</option><option>照片夹 + 邮戳</option><option>航邮边 + 编号贴</option></select></label>
+                <div class="swatch-row">
+                  <button class="swatch red active"></button>
+                  <button class="swatch blue"></button>
+                  <button class="swatch green"></button>
+                  <button class="swatch ink"></button>
+                </div>
+              </aside>
+              <div class="mailbox-unit-designer">
+                <div class="unit-board">
+                  <span class="board-shadow"></span>
+                  <span class="decor-ticket">25</span>
+                  <span class="decor-thread"></span>
+                  <span class="decor-seal">缪</span>
+                  <div class="big-mailbox-object">
+                    <span class="slot"></span>
+                    <span class="label brush">布雷诺来信</span>
+                    <span class="corner-code">NO. 2000-05</span>
+                  </div>
+                </div>
+                <p>整个信箱块作为一个可编辑单元：外壳、贴纸、邮戳、角标、背景和状态一起保存。</p>
+              </div>
+              <aside class="designer-spec">
+                <h4>落地字段</h4>
+                <ul>
+                  <li>material: copper / wood / archive / airmail</li>
+                  <li>decorations: seal, tag, thread, photo</li>
+                  <li>paperSet: 18 个真实信件模板</li>
+                  <li>mode: simple / complete</li>
+                </ul>
+              </aside>
+            </div>
+          </section>
+        </div>
+      </div>
+    </section>
+
+    <section class="operation-detail-band" id="operations">
+      <div class="section-heading">
+        <p class="kicker">FUNCTIONAL SPEC TO UI</p>
+        <h2>按详细功能规格拆出的逐级操作蓝图</h2>
+        <p>基于 detailed-functional-spec.html，把每个模块从一级入口到四级弹窗/属性面板都设计成可落地的界面规则。用户每点一步，系统要给出状态、反馈、恢复路径。</p>
+      </div>
+
+      <div class="operation-overview">
+        <article class="op-focus-card">
+          <span class="path-tag">全局原则</span>
+          <h3>每个功能都遵循 5 段式交互</h3>
+          <div class="op-cycle">
+            <span>入口</span>
+            <span>选择</span>
+            <span>编辑</span>
+            <span>确认</span>
+            <span>反馈</span>
+          </div>
+          <p>入口要清晰，选择要可撤销，编辑要自动保存，确认要防误触，反馈要说明下一步。</p>
+        </article>
+        <article class="op-focus-card">
+          <span class="path-tag">页面分级</span>
+          <h3>L1-L4 不混在同一层</h3>
+          <div class="level-key">
+            <b>L1</b><span>全局入口：信箱、手账、待寄、搜索、设置</span>
+            <b>L2</b><span>对象列表：信箱详情、待寄列表、搜索结果</span>
+            <b>L3</b><span>核心任务：阅读器、编辑器、计划组件、日记页</span>
+            <b>L4</b><span>局部面板：属性、装饰、定时、备份、权限提示</span>
+          </div>
+        </article>
+        <article class="op-focus-card">
+          <span class="path-tag">反馈状态</span>
+          <h3>所有高价值内容都要可恢复</h3>
+          <div class="recover-stack">
+            <span>25s 草稿</span>
+            <span>3s 停顿保存</span>
+            <span>5 个历史版本</span>
+            <span>导入前快照</span>
+            <span>失败自动回滚</span>
+          </div>
+        </article>
+      </div>
+
+      <div class="operation-matrix" aria-label="逐级操作矩阵">
+        <article class="operation-card mb-card">
+          <header>
+            <span class="module-code">MB</span>
+            <div>
+              <h3>信箱管理系统</h3>
+              <p>创建、编辑、删除、堆叠浏览、信箱装饰。</p>
+            </div>
+          </header>
+          <div class="level-steps">
+            <section><b>L1 我的信箱</b><p>侧栏 + 首页网格显示所有信箱，提供新增、搜索、快速继续、备份入口。</p></section>
+            <section><b>L2 信箱详情</b><p>点击信箱块进入信件堆叠，展示当前信件、未读、待回信、待寄状态。</p></section>
+            <section><b>L3 堆叠浏览</b><p>左右点击、拖拽、键盘方向键切换信件；当前卡点击进入阅读器。</p></section>
+            <section><b>L4 设置/装饰</b><p>抽屉面板编辑名称、图标、主题色、材质、装饰元素；删除需二次确认。</p></section>
+          </div>
+          <div class="ui-wire mailbox-wire">
+            <span class="wire-sidebar"></span>
+            <span class="wire-card active"></span>
+            <span class="wire-card"></span>
+            <span class="wire-drawer"></span>
+          </div>
+          <ul class="micro-rules">
+            <li>重名在提交时校验，错误显示在输入框下方。</li>
+            <li>最后一个信箱不可删除，按钮置灰并给原因。</li>
+            <li>20 个以上信箱提示整理归档，但不强制限制。</li>
+          </ul>
+        </article>
+
+        <article class="operation-card ed-card">
+          <header>
+            <span class="module-code">ED</span>
+            <div>
+              <h3>信件编辑器</h3>
+              <p>文字、图片、录音、计划组件、撤销重做、辅助线。</p>
+            </div>
+          </header>
+          <div class="level-steps">
+            <section><b>L1 写信入口</b><p>首页新建、信箱详情新建、阅读器回信都进入同一个编辑器。</p></section>
+            <section><b>L2 页面与模板</b><p>左侧页面缩略图管理多页信纸，顶部显示保存状态和历史栈。</p></section>
+            <section><b>L3 画布编辑</b><p>拖拽元素、双击文字、插入图片/录音/印章，吸附线实时出现。</p></section>
+            <section><b>L4 属性面板</b><p>字体、竖排、层级、透明度、裁切、录音气泡、定时寄出都在右侧局部面板。</p></section>
+          </div>
+          <div class="ui-wire editor-wire">
+            <span class="wire-tools"></span>
+            <span class="wire-paper"></span>
+            <span class="wire-props"></span>
+            <span class="wire-guide v"></span>
+            <span class="wire-guide h"></span>
+          </div>
+          <ul class="micro-rules">
+            <li>撤销栈上限 50 步，新增、删除、移动、属性变更都入栈。</li>
+            <li>录音不支持时隐藏录音入口，显示浏览器兼容提示。</li>
+            <li>离开页面前如有未保存更改，应用内弹窗先拦截。</li>
+          </ul>
+        </article>
+
+        <article class="operation-card rd-card">
+          <header>
+            <span class="module-code">RD</span>
+            <div>
+              <h3>信件阅读器</h3>
+              <p>蜡封拆信、分页翻页、语音气泡、回信与同步手账。</p>
+            </div>
+          </header>
+          <div class="level-steps">
+            <section><b>L1 来信提醒</b><p>首页快速继续、信箱未读角标、离线送达提示都可进入阅读。</p></section>
+            <section><b>L2 选择信件</b><p>在堆叠浏览中选中信件，未读信显示蜡封和“新来信”状态。</p></section>
+            <section><b>L3 阅读沉浸</b><p>拆信动画完成后显示真实纸张，支持分页、书签、左右翻页。</p></section>
+            <section><b>L4 音频/回信</b><p>语音气泡需点击播放，BGM 渐低；回信自动带入原信关联。</p></section>
+          </div>
+          <div class="ui-wire reader-wire">
+            <span class="wire-envelope"></span>
+            <span class="wire-wax"></span>
+            <span class="wire-page"></span>
+            <span class="wire-voice"></span>
+          </div>
+          <ul class="micro-rules">
+            <li>自动播放被浏览器拦截时不报错，降级为播放提示按钮。</li>
+            <li>翻页动效可跳过，reduced-motion 下改为淡入淡出。</li>
+            <li>书签保存到信件元数据，下次进入直接跳转。</li>
+          </ul>
+        </article>
+
+        <article class="operation-card pl-card">
+          <header>
+            <span class="module-code">PL</span>
+            <div>
+              <h3>计划组件系统</h3>
+              <p>年度 3-in-1、年/月/周/日下钻、嵌入信纸。</p>
+            </div>
+          </header>
+          <div class="level-steps">
+            <section><b>L1 手账入口</b><p>顶部导航和底部标签进入手账，显示年度进度与最近记录。</p></section>
+            <section><b>L2 年/月视图</b><p>YEAR、NOTE、LIST 三视图切换，月份卡显示任务密度和书签。</p></section>
+            <section><b>L3 日视图编辑</b><p>日程、清单、随笔、信件摘要可在同一日页编辑。</p></section>
+            <section><b>L4 信纸嵌入</b><p>编辑器插入计划组件后，进入内部编辑模式，退出回到信纸画布。</p></section>
+          </div>
+          <div class="ui-wire planner-wire">
+            <span class="wire-year"></span>
+            <span class="wire-month"></span>
+            <span class="wire-day"></span>
+            <span class="wire-embed"></span>
+          </div>
+          <ul class="micro-rules">
+            <li>组件嵌入是引用，不复制数据，手账修改后信纸内同步。</li>
+            <li>组件宽度小于 200px 时仅显示标题和完成进度。</li>
+            <li>从信件同步到手账时自动生成当日摘要。</li>
+          </ul>
+        </article>
+
+        <article class="operation-card sd-card">
+          <header>
+            <span class="module-code">SD</span>
+            <div>
+              <h3>慢递与待寄系统</h3>
+              <p>定时发送、随机慢递、离线加密投递包。</p>
+            </div>
+          </header>
+          <div class="level-steps">
+            <section><b>L1 待寄入口</b><p>首页统计、信箱详情状态、编辑器定时按钮进入待寄管理。</p></section>
+            <section><b>L2 待寄列表</b><p>按投递中、可撤回、即将送达分组，支持预览和撤回。</p></section>
+            <section><b>L3 定时设置</b><p>选择具体日期、农历、纪念日快捷项或随机慢递档位。</p></section>
+            <section><b>L4 投递包</b><p>生成 .letter 加密文件，导入时输入密码并选择目标信箱。</p></section>
+          </div>
+          <div class="ui-wire delivery-wire">
+            <span>已写完</span>
+            <span>可撤回</span>
+            <span>投递中</span>
+            <span>已送达</span>
+          </div>
+          <ul class="micro-rules">
+            <li>10 分钟撤回窗口结束后只可查看，不可修改。</li>
+            <li>应用关闭期间到期，下次打开批量补送达并提示。</li>
+            <li>随机天数生成后固定，不因刷新而变化。</li>
+          </ul>
+        </article>
+
+        <article class="operation-card ds-card">
+          <header>
+            <span class="module-code">DS</span>
+            <div>
+              <h3>数据安全与备份</h3>
+              <p>自动草稿、全量备份、导入恢复、冲突回滚。</p>
+            </div>
+          </header>
+          <div class="level-steps">
+            <section><b>L1 设置入口</b><p>全局设置进入数据管理，也可从编辑器保存状态点击查看。</p></section>
+            <section><b>L2 备份中心</b><p>显示最近备份、存储占用、IndexedDB 状态和媒体数量。</p></section>
+            <section><b>L3 导出/导入</b><p>选择范围、是否包含媒体、是否 AES 加密，导入时预览摘要。</p></section>
+            <section><b>L4 冲突处理</b><p>合并、覆盖、重命名导入；失败自动恢复导入前快照。</p></section>
+          </div>
+          <div class="ui-wire backup-wire">
+            <span class="backup-node">元数据</span>
+            <span class="backup-node">媒体</span>
+            <span class="backup-node">加密</span>
+            <span class="backup-node">回滚</span>
+          </div>
+          <ul class="micro-rules">
+            <li>导出进度超过 1 秒显示进度条，不阻塞页面阅读。</li>
+            <li>覆盖模式必须二次确认，说明会清空当前数据。</li>
+            <li>旧版本备份自动执行迁移脚本，失败给可恢复建议。</li>
+          </ul>
+        </article>
+      </div>
+
+      <div class="operation-swimlane" aria-label="核心任务泳道">
+        <div class="swimlane-head">
+          <span>核心任务</span>
+          <span>用户动作</span>
+          <span>系统反馈</span>
+          <span>异常与恢复</span>
+        </div>
+        <div class="swim-row">
+          <b>创建信箱</b>
+          <p>点击新增信箱，填写名称，选择图标/主题/默认信纸。</p>
+          <p>右侧抽屉保存后收起，新信箱淡入列表首位。</p>
+          <p>重名、空名、超长均内联提示；最后一个信箱不可删。</p>
+        </div>
+        <div class="swim-row">
+          <b>写一封信</b>
+          <p>选择模板，输入正文，插入照片、录音、印章或计划组件。</p>
+          <p>顶部显示保存中/已保存，画布显示吸附线和选中框。</p>
+          <p>刷新前提醒；崩溃后下次进入提示恢复草稿。</p>
+        </div>
+        <div class="swim-row">
+          <b>拆信阅读</b>
+          <p>在堆叠卡点击当前信件，观看蜡封裂开和翻盖。</p>
+          <p>进入分页阅读，语音气泡等待用户点击播放。</p>
+          <p>动画可跳过；音频失败则保留阅读并提示重试。</p>
+        </div>
+        <div class="swim-row">
+          <b>慢递寄出</b>
+          <p>在编辑器选择定时、随机慢递或导出投递包。</p>
+          <p>待寄列表展示撤回窗口、投递中、预计范围。</p>
+          <p>离线到期下次打开补送达；投递包密码错误可重试。</p>
+        </div>
+        <div class="swim-row">
+          <b>备份恢复</b>
+          <p>选择导出范围、媒体、加密；导入时选择合并或覆盖。</p>
+          <p>显示备份摘要、进度、导入统计和成功提示。</p>
+          <p>导入失败自动回滚，冲突项可跳过、覆盖或重命名。</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="templates-band" id="templates">
+      <div class="section-heading">
+        <p class="kicker">TEMPLATE LIBRARY</p>
+        <h2>18 种真实信封与信纸模板</h2>
+        <p>每个模板都避免干净平面卡片，统一增加纸张厚度、边缘破损、污渍、压痕、邮戳、地址栏和真实书写密度。</p>
+      </div>
+      <div class="template-principles" aria-label="真实信件判断标准">
+        <span>不规则纸边</span>
+        <span>多层桌面投影</span>
+        <span>印章偏移与褪色</span>
+        <span>墨迹浓淡变化</span>
+        <span>折线有高光与阴影</span>
+      </div>
+      <div class="template-grid" aria-label="十八种信件模板">
+        <article class="template-card t-old-envelope"><div class="template-art"><span class="grain"></span><span class="fold-mark"></span><span class="edge-wear e1"></span><span class="edge-wear e2"></span><span class="smudge s1"></span><span class="smudge s2"></span></div><h3>01 旧邮戳信封</h3><p>圆戳、邮票、地址线、折角</p></article>
+        <article class="template-card t-airmail"><div class="template-art"><span class="grain"></span><span class="fold-mark"></span><span class="edge-wear e1"></span><span class="edge-wear e2"></span><span class="smudge s1"></span><span class="smudge s2"></span></div><h3>02 航空蓝红边封</h3><p>PAR AVION、斜边、蓝墨</p></article>
+        <article class="template-card t-kraft"><div class="template-art"><span class="grain"></span><span class="fold-mark"></span><span class="edge-wear e1"></span><span class="edge-wear e2"></span><span class="smudge s1"></span><span class="smudge s2"></span></div><h3>03 中式牛皮纸封</h3><p>竖排题签、红框、纸袋厚度</p></article>
+        <article class="template-card t-telegram"><div class="template-art"><span class="grain"></span><span class="fold-mark"></span><span class="edge-wear e1"></span><span class="edge-wear e2"></span><span class="smudge s1"></span><span class="smudge s2"></span></div><h3>04 电报急件</h3><p>表格、STOP 断句、编号章</p></article>
+        <article class="template-card t-qiaopi"><div class="template-art"><span class="grain"></span><span class="fold-mark"></span><span class="edge-wear e1"></span><span class="edge-wear e2"></span><span class="smudge s1"></span><span class="smudge s2"></span></div><h3>05 侨批红带封套</h3><p>红色束带、叠纸、姓名竖排</p></article>
+        <article class="template-card t-receipt"><div class="template-art"><span class="grain"></span><span class="fold-mark"></span><span class="edge-wear e1"></span><span class="edge-wear e2"></span><span class="smudge s1"></span><span class="smudge s2"></span></div><h3>06 旧票据批信</h3><p>红栏表格、盖章、扫描感</p></article>
+        <article class="template-card t-photo-letter"><div class="template-art"><span class="grain"></span><span class="fold-mark"></span><span class="edge-wear e1"></span><span class="edge-wear e2"></span><span class="smudge s1"></span><span class="smudge s2"></span></div><h3>07 照片竖排家书</h3><p>相片层、航空边、花角</p></article>
+        <article class="template-card t-courier"><div class="template-art"><span class="grain"></span><span class="fold-mark"></span><span class="edge-wear e1"></span><span class="edge-wear e2"></span><span class="smudge s1"></span><span class="smudge s2"></span></div><h3>08 现代快递件</h3><p>条码、标签、透明窗口</p></article>
+        <article class="template-card t-red-column"><div class="template-art"><span class="grain"></span><span class="fold-mark"></span><span class="edge-wear e1"></span><span class="edge-wear e2"></span><span class="smudge s1"></span><span class="smudge s2"></span></div><h3>09 红栏竖排信纸</h3><p>朱红竖线、折痕、毛笔</p></article>
+        <article class="template-card t-blue-pen"><div class="template-art"><span class="grain"></span><span class="fold-mark"></span><span class="edge-wear e1"></span><span class="edge-wear e2"></span><span class="smudge s1"></span><span class="smudge s2"></span></div><h3>10 蓝墨钢笔横线</h3><p>墨水晕染、压痕、钢笔字</p></article>
+        <article class="template-card t-damaged"><div class="template-art"><span class="grain"></span><span class="fold-mark"></span><span class="edge-wear e1"></span><span class="edge-wear e2"></span><span class="smudge s1"></span><span class="smudge s2"></span></div><h3>11 破损旧档案</h3><p>缺角、胶带、脏污边缘</p></article>
+        <article class="template-card t-short-note"><div class="template-art"><span class="grain"></span><span class="fold-mark"></span><span class="edge-wear e1"></span><span class="edge-wear e2"></span><span class="smudge s1"></span><span class="smudge s2"></span></div><h3>12 撕边便签</h3><p>手撕上边、日期签名</p></article>
+        <article class="template-card t-revision"><div class="template-art"><span class="grain"></span><span class="fold-mark"></span><span class="edge-wear e1"></span><span class="edge-wear e2"></span><span class="smudge s1"></span><span class="smudge s2"></span></div><h3>13 修改痕稿纸</h3><p>圈改、划线、铅笔痕</p></article>
+        <article class="template-card t-ancient"><div class="template-art"><span class="grain"></span><span class="fold-mark"></span><span class="edge-wear e1"></span><span class="edge-wear e2"></span><span class="smudge s1"></span><span class="smudge s2"></span></div><h3>14 古代折页奏笺</h3><p>朱批、折页、奏字印记</p></article>
+        <article class="template-card t-bamboo"><div class="template-art"><span class="grain"></span><span class="fold-mark"></span><span class="edge-wear e1"></span><span class="edge-wear e2"></span><span class="smudge s1"></span><span class="smudge s2"></span></div><h3>15 竹简卷轴</h3><p>竹片、绑绳、竖排正文</p></article>
+        <article class="template-card t-postcard"><div class="template-art"><span class="grain"></span><span class="fold-mark"></span><span class="edge-wear e1"></span><span class="edge-wear e2"></span><span class="smudge s1"></span><span class="smudge s2"></span></div><h3>16 旅行明信片</h3><p>分区、邮编框、纪念章</p></article>
+        <article class="template-card t-cyber"><div class="template-art"><span class="grain"></span><span class="fold-mark"></span><span class="edge-wear e1"></span><span class="edge-wear e2"></span><span class="smudge s1"></span><span class="smudge s2"></span></div><h3>17 赛博像素电传</h3><p>像素字体、荧光网格、编号</p></article>
+        <article class="template-card t-master"><div class="template-art"><span class="grain"></span><span class="fold-mark"></span><span class="edge-wear e1"></span><span class="edge-wear e2"></span><span class="smudge s1"></span><span class="smudge s2"></span></div><h3>18 生成器母版</h3><p>纹理、折痕、红线可叠加</p></article>
+      </div>
+    </section>
+
+    <section class="flow-band" id="flow">
+      <div class="section-heading">
+        <p class="kicker">OPERATION LOGIC</p>
+        <h2>页面层级与操作逻辑</h2>
+      </div>
+      <div class="flow-map">
+        <article>
+          <span>一级</span>
+          <h3>我的信箱</h3>
+          <p>信箱块、全局搜索、快速继续、备份入口、简洁模式。</p>
+        </article>
+        <article>
+          <span>二级</span>
+          <h3>信箱详情</h3>
+          <p>真实信件堆叠、邮寄状态、双人视角、日记与手账入口。</p>
+        </article>
+        <article>
+          <span>三级</span>
+          <h3>阅读 / 编辑</h3>
+          <p>拆信、分页、语音点击播放、撤销重做、层级与辅助线。</p>
+        </article>
+        <article>
+          <span>四级</span>
+          <h3>设置 / 模板</h3>
+          <p>信箱单元装饰、18 套信纸信封、备份导入、草稿恢复。</p>
+        </article>
+      </div>
+      <div class="prd-logic-board">
+        <article class="path-card primary-path">
+          <span class="path-tag">主路径 · 写信</span>
+          <h3>两级内进入编辑器</h3>
+          <ol>
+            <li>首页选择信箱或点击新建</li>
+            <li>进入编辑器，默认聚焦正文</li>
+            <li>自动草稿持续保存，顶部可见</li>
+            <li>保存、定时寄出或导出长图</li>
+          </ol>
+        </article>
+        <article class="path-card">
+          <span class="path-tag">主路径 · 读信</span>
+          <h3>信箱详情到沉浸阅读</h3>
+          <ol>
+            <li>堆叠浏览选择目标信件</li>
+            <li>首次触发蜡封拆信动画</li>
+            <li>语音气泡点击播放，BGM 自动压低</li>
+            <li>回信、编辑、导出、同步手账</li>
+          </ol>
+        </article>
+        <article class="path-card">
+          <span class="path-tag">慢递 · 状态流</span>
+          <h3>待寄不是列表，是时间仪式</h3>
+          <div class="delivery-track">
+            <span>已写完</span>
+            <span>投递中</span>
+            <span>到期送达</span>
+            <span>新来信</span>
+          </div>
+          <p>支持平邮 3-7 天、慢递 1-3 月、半年期随机，离线后下次打开自动补送达。</p>
+        </article>
+        <article class="path-card data-path">
+          <span class="path-tag">P0 · 数据安全</span>
+          <h3>让用户敢把真心放进来</h3>
+          <div class="backup-panel">
+            <b>25s 自动草稿</b>
+            <b>5 个历史版本</b>
+            <b>AES 加密备份</b>
+            <b>导入失败回滚</b>
+          </div>
+        </article>
+      </div>
+
+      <div class="prd-implementation-grid">
+        <section class="priority-lanes">
+          <h3>PRD 优先级落地顺序</h3>
+          <div class="lane p0"><b>P0</b><span>信箱基础、编辑器核心、撤销重做、草稿、备份、语音气泡</span></div>
+          <div class="lane p1"><b>P1</b><span>拆信动画、分页翻页、堆叠浏览、计划组件、全局搜索</span></div>
+          <div class="lane p2"><b>P2</b><span>慢递、信箱装饰、手账、日记、离线投递包、标签</span></div>
+          <div class="lane p3"><b>P3</b><span>18 模板接入、材质参数、移动端手势、个人印章、主题扩展</span></div>
+        </section>
+
+        <section class="mobile-spec-card">
+          <h3>移动端结构</h3>
+          <div class="phone-shell" aria-label="移动端 UI 结构示意">
+            <div class="phone-top">信箱</div>
+            <div class="phone-paper"></div>
+            <div class="phone-sheet">
+              <span>底部工具栏</span>
+              <b>文字</b><b>相片</b><b>录音</b><b>模板</b>
+            </div>
+            <div class="phone-tabs">
+              <span>信箱</span><span>写信</span><span>手账</span><span>我的</span>
+            </div>
+          </div>
+        </section>
+
+        <section class="state-system-card">
+          <h3>状态与反馈</h3>
+          <ul>
+            <li>录音不可用：隐藏入口并显示浏览器兼容提示</li>
+            <li>自动播放被拦截：降级为柔和语音气泡</li>
+            <li>IndexedDB 失效：提示媒体能力受限并降级</li>
+            <li>无信件/无搜索结果：显示引导性空状态</li>
+          </ul>
+        </section>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const tabs = document.querySelectorAll('.screen-tab');
+    const stages = document.querySelectorAll('.screen-stage');
+    tabs.forEach((tab) => {
+      tab.addEventListener('click', () => {
+        tabs.forEach((item) => item.classList.remove('active'));
+        stages.forEach((stage) => stage.classList.remove('active'));
+        tab.classList.add('active');
+        document.querySelector(`[data-stage="${tab.dataset.screen}"]`)?.classList.add('active');
+      });
+    });
+  </script>
+</body>
+</html>

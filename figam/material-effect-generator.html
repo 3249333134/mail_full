@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>真实书信材质生成样板</title>
+  <link rel="stylesheet" href="material-effect-generator.css">
+  <link rel="stylesheet" href="realistic-paper-system.css">
+</head>
+<body>
+  <header class="page-header">
+    <p class="eyebrow">Material Generation Targets</p>
+    <h1>真实书信材质效果生成样板</h1>
+    <p>根据参考图提炼暖光桌面、横线稿纸、博物馆旧信、红栏毛笔信纸四类真实材质，用于后续信纸/信封生成器的质感标准。</p>
+    <nav>
+      <a href="all-designs.html">设计总览</a>
+      <a href="real-letter-generator.html">真实信件生成器</a>
+      <a href="mailbox-decorator.html">信箱装饰</a>
+    </nav>
+  </header>
+
+  <main>
+    <section class="material-grid">
+      <article class="material-card">
+        <div class="card-copy">
+          <span>01</span>
+          <div>
+            <h2>暖光桌面钢笔墨水瓶</h2>
+            <p>台灯暖光、墨水瓶玻璃高光、钢笔前景投影、前后叠放信纸。</p>
+          </div>
+        </div>
+        <div class="scene warm-desk">
+          <div class="lamp-glow"></div>
+          <div class="back-paper handwritten">
+            <p>夜里灯下写字，墨水在纸上慢慢晕开。桌面很静，只有钢笔和墨水瓶的影子被拉得很长。</p>
+          </div>
+          <div class="front-paper handwritten">
+            <p>展信安。回家的时候，叶子已经落到了庭前。我把这一页写得很慢，像把一句话反复放回心里。</p>
+            <i>收</i>
+          </div>
+          <div class="ink-bottle">
+            <span></span>
+            <b></b>
+          </div>
+          <div class="fountain-pen"></div>
+          <div class="foreground-writing">愿你保重，万事平安。纸短情长，见字如晤。</div>
+        </div>
+      </article>
+
+      <article class="material-card">
+        <div class="card-copy">
+          <span>02</span>
+          <div>
+            <h2>横线扫描稿纸</h2>
+            <p>装订线、浅灰横线、密集手写、折痕、水渍和扫描颗粒。</p>
+          </div>
+        </div>
+        <div class="scene scanned-letter">
+          <aside>装<br>订<br>线</aside>
+          <div class="scan-sheet handwritten">
+            <p>回家的时候，叶子已经落到了庭前。其余的话一时说不清，只好先写这些。你也曾经过，冷雾夜归，而作为十几次死去又活出来的人，谁还能说这是寻常的命运。</p>
+            <p>我同从早渡过许多不能告诉你的日子，有时候也觉得，活着不过是把话继续写完。</p>
+            <p>注意保重自己的身体，别把一切都闷在心里。望来信时，愿你平安。</p>
+            <footer>93.10.24</footer>
+          </div>
+        </div>
+      </article>
+
+      <article class="material-card">
+        <div class="card-copy">
+          <span>03</span>
+          <div>
+            <h2>博物馆旧式竖排信纸</h2>
+            <p>粗布展陈背景、牛皮信封、红框竖排纸、大折痕和底部展签。</p>
+          </div>
+        </div>
+        <div class="scene archive-display">
+          <div class="archive-envelope">
+            <strong>华泽之先生大鉴</strong>
+            <em>江苏省立教育学院</em>
+          </div>
+          <div class="archive-letter handwritten">
+            <header>九月八日　大田医院便笺</header>
+            <p>泽之先生大鉴敬启者院北员工眷教育建始匆匆数语不成篇只愿先生珍重身体赴任以来日夕念念未知何时再晤纸短情长谨托此函附上近况敬请教安九月一日</p>
+          </div>
+          <label>高阳致华泽之信函</label>
+        </div>
+      </article>
+
+      <article class="material-card">
+        <div class="card-copy">
+          <span>04</span>
+          <div>
+            <h2>红栏毛笔信纸近景</h2>
+            <p>泛黄纸面、红色竖栏、毛笔飞白、墨迹颗粒和局部反光。</p>
+          </div>
+        </div>
+        <div class="scene brush-closeup">
+          <div class="red-rule-paper handwritten">
+            <p>怡君过一文要眺望范先生又见回去请问老母即叩毋庸记挂吾等日常提携庚先生又见</p>
+            <time>九月一日</time>
+          </div>
+          <div class="glare"></div>
+        </div>
+      </article>
+    </section>
+
+    <section class="implementation-note">
+      <h2>后续落地结构</h2>
+      <p>把材质拆成六层：灯光/桌面、纸张底纹、折痕破损、手写墨迹、实物道具、扫描/相机缺陷。编辑器里用滑杆控制旧化、墨迹、阴影和道具强度。</p>
+      <code>paperBase + agingLayer + ruleLayer + handwritingLayer + propsLayer + cameraLayer</code>
+    </section>
+  </main>
+</body>
+</html>

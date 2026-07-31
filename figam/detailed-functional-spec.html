@@ -1,0 +1,1402 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>信笺 - 详细功能规格与操作逻辑说明书</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    
+    :root {
+      --ink-deep: #1a1d25;
+      --ink-main: #2c3142;
+      --ink-sub: #5a6278;
+      --ink-light: #8b93a7;
+      --paper-warm: #faf6f0;
+      --paper-cream: #f5efe4;
+      --paper-aged: #ebe3d4;
+      --rose-warm: #c96567;
+      --rose-soft: #e8a5a6;
+      --leaf-deep: #4a7c59;
+      --gold-warm: #b8956a;
+      --night-deep: #2a334a;
+      --border-soft: rgba(42, 51, 74, 0.1);
+      --shadow-card: 0 2px 12px rgba(42, 51, 74, 0.06);
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+      background: var(--paper-warm);
+      color: var(--ink-main);
+      line-height: 1.75;
+      font-size: 14.5px;
+    }
+
+    .sidebar {
+      position: fixed;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      width: 280px;
+      background: white;
+      border-right: 1px solid var(--border-soft);
+      padding: 28px 0;
+      overflow-y: auto;
+      z-index: 100;
+    }
+
+    .sidebar-brand {
+      padding: 0 24px 20px;
+      border-bottom: 1px solid var(--border-soft);
+      margin-bottom: 16px;
+    }
+
+    .sidebar-brand h1 {
+      font-size: 17px;
+      font-weight: 600;
+      color: var(--ink-deep);
+      margin-bottom: 4px;
+    }
+
+    .sidebar-brand span {
+      font-size: 12px;
+      color: var(--ink-light);
+    }
+
+    .toc { list-style: none; padding: 0 10px; }
+    .toc > li { margin-bottom: 2px; }
+    .toc a {
+      display: block;
+      padding: 7px 14px;
+      font-size: 12.5px;
+      color: var(--ink-sub);
+      text-decoration: none;
+      border-radius: 6px;
+      transition: all 0.15s;
+    }
+    .toc a:hover { background: var(--paper-warm); color: var(--ink-deep); }
+    .toc > li > a { font-weight: 500; color: var(--ink-main); font-size: 13px; }
+    .toc ul { list-style: none; padding-left: 10px; }
+    .toc ul a { font-size: 12px; padding: 4px 14px; }
+
+    .main-content {
+      margin-left: 280px;
+      padding: 40px 56px 80px;
+      max-width: 1100px;
+    }
+
+    .doc-header {
+      border-bottom: 2px solid var(--ink-deep);
+      padding-bottom: 28px;
+      margin-bottom: 40px;
+    }
+    .doc-header .label {
+      font-size: 11px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--rose-warm);
+      font-weight: 500;
+      margin-bottom: 10px;
+    }
+    .doc-header h1 {
+      font-size: 32px;
+      font-weight: 700;
+      color: var(--ink-deep);
+      margin-bottom: 12px;
+    }
+    .doc-header .subtitle {
+      font-size: 15px;
+      color: var(--ink-sub);
+    }
+
+    .section {
+      margin-bottom: 48px;
+      scroll-margin-top: 24px;
+    }
+    .section h2 {
+      font-size: 22px;
+      font-weight: 600;
+      color: var(--ink-deep);
+      margin-bottom: 18px;
+      padding-bottom: 10px;
+      border-bottom: 1.5px solid var(--border-soft);
+    }
+    .section h3 {
+      font-size: 17px;
+      font-weight: 600;
+      color: var(--ink-deep);
+      margin: 24px 0 12px;
+      padding-left: 10px;
+      border-left: 3px solid var(--rose-warm);
+    }
+    .section h4 {
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--ink-main);
+      margin: 18px 0 8px;
+    }
+    .section p { margin-bottom: 10px; }
+    .section ul, .section ol { margin: 10px 0 10px 22px; }
+    .section li { margin-bottom: 5px; }
+
+    .spec-card {
+      background: white;
+      border-radius: 10px;
+      padding: 24px 28px;
+      box-shadow: var(--shadow-card);
+      border: 1px solid var(--border-soft);
+      margin: 16px 0;
+    }
+
+    .spec-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 16px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--border-soft);
+    }
+    .spec-header h4 {
+      font-size: 16px;
+      margin: 0;
+      color: var(--ink-deep);
+    }
+    .spec-id {
+      font-size: 11px;
+      font-family: "SF Mono", Consolas, monospace;
+      color: var(--rose-warm);
+      background: #fdf2f2;
+      padding: 3px 10px;
+      border-radius: 10px;
+      font-weight: 500;
+    }
+
+    .spec-meta {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      margin-bottom: 16px;
+      padding: 12px 16px;
+      background: var(--paper-warm);
+      border-radius: 8px;
+      font-size: 12.5px;
+    }
+    .spec-meta div strong {
+      display: block;
+      color: var(--ink-light);
+      font-weight: 500;
+      margin-bottom: 2px;
+      font-size: 11px;
+    }
+    .spec-meta div span {
+      color: var(--ink-main);
+      font-weight: 500;
+    }
+
+    .flow-steps {
+      counter-reset: step;
+      list-style: none;
+      margin: 12px 0;
+      padding: 0;
+    }
+    .flow-steps li {
+      counter-increment: step;
+      position: relative;
+      padding: 8px 0 8px 32px;
+      border-left: 2px solid var(--border-soft);
+      margin-left: 10px;
+      font-size: 13.5px;
+    }
+    .flow-steps li::before {
+      content: counter(step);
+      position: absolute;
+      left: -11px;
+      top: 8px;
+      width: 20px;
+      height: 20px;
+      background: var(--rose-warm);
+      color: white;
+      border-radius: 50%;
+      font-size: 11px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .flow-steps li:last-child {
+      border-left-color: transparent;
+    }
+
+    .state-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+      margin: 12px 0;
+    }
+    .state-table th {
+      background: var(--paper-cream);
+      padding: 10px 14px;
+      text-align: left;
+      font-weight: 600;
+      color: var(--ink-deep);
+      border-bottom: 2px solid var(--border-soft);
+      font-size: 12px;
+    }
+    .state-table td {
+      padding: 10px 14px;
+      border-bottom: 1px solid var(--border-soft);
+      vertical-align: top;
+    }
+
+    .edge-case {
+      background: #fdfaf5;
+      border-left: 3px solid var(--gold-warm);
+      padding: 12px 16px;
+      margin: 12px 0;
+      border-radius: 0 8px 8px 0;
+      font-size: 13px;
+    }
+    .edge-case strong {
+      color: var(--gold-warm);
+      display: block;
+      margin-bottom: 4px;
+      font-size: 12px;
+    }
+
+    .tip-box {
+      background: #fafdfb;
+      border-left: 3px solid var(--leaf-deep);
+      padding: 12px 16px;
+      margin: 12px 0;
+      border-radius: 0 8px 8px 0;
+      font-size: 13px;
+    }
+    .tip-box strong {
+      color: var(--leaf-deep);
+      display: block;
+      margin-bottom: 4px;
+      font-size: 12px;
+    }
+
+    .kbd {
+      display: inline-block;
+      padding: 1px 6px;
+      background: var(--paper-cream);
+      border: 1px solid var(--border-soft);
+      border-radius: 4px;
+      font-size: 11px;
+      font-family: "SF Mono", Consolas, monospace;
+      color: var(--ink-sub);
+    }
+
+    @media (max-width: 1024px) {
+      .sidebar { display: none; }
+      .main-content { margin-left: 0; padding: 28px 20px 60px; }
+      .spec-meta { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <nav class="sidebar">
+    <div class="sidebar-brand">
+      <h1>功能规格说明书</h1>
+      <span>Detailed Functional Spec V1.0</span>
+    </div>
+    <ul class="toc">
+      <li><a href="#intro">文档说明</a></li>
+      <li><a href="#mb">一、信箱管理系统</a>
+        <ul>
+          <li><a href="#mb-001">MB-001 信箱创建</a></li>
+          <li><a href="#mb-002">MB-002 信箱编辑删除</a></li>
+          <li><a href="#mb-005">MB-005 堆叠浏览</a></li>
+          <li><a href="#mb-009">MB-009 信箱装饰</a></li>
+        </ul>
+      </li>
+      <li><a href="#ed">二、信件编辑器</a>
+        <ul>
+          <li><a href="#ed-001">ED-001 三栏布局</a></li>
+          <li><a href="#ed-005">ED-005 文字编辑</a></li>
+          <li><a href="#ed-006">ED-006 图片插入</a></li>
+          <li><a href="#ed-007">ED-007 语音录制</a></li>
+          <li><a href="#ed-009">ED-009 撤销重做</a></li>
+          <li><a href="#ed-011">ED-011 辅助线吸附</a></li>
+          <li><a href="#ed-013">ED-013 组件嵌入</a></li>
+        </ul>
+      </li>
+      <li><a href="#rd">三、信件阅读器</a>
+        <ul>
+          <li><a href="#rd-001">RD-001~003 拆信动画</a></li>
+          <li><a href="#rd-005">RD-005 分页翻页</a></li>
+          <li><a href="#rd-008">RD-008 语音气泡</a></li>
+          <li><a href="#rd-011">RD-011 回信功能</a></li>
+        </ul>
+      </li>
+      <li><a href="#pl">四、计划组件系统</a>
+        <ul>
+          <li><a href="#pl-001">PL-001 年度3-in-1</a></li>
+          <li><a href="#pl-005">PL-005 逐级下钻</a></li>
+          <li><a href="#pl-010">PL-010 信纸嵌入</a></li>
+        </ul>
+      </li>
+      <li><a href="#sd">五、慢递与待寄系统</a>
+        <ul>
+          <li><a href="#sd-001">SD-001 定时发送</a></li>
+          <li><a href="#sd-005">SD-005 随机慢递</a></li>
+          <li><a href="#sd-009">SD-009 加密投递包</a></li>
+        </ul>
+      </li>
+      <li><a href="#ds">六、数据安全与备份</a>
+        <ul>
+          <li><a href="#ds-001">DS-001 自动草稿</a></li>
+          <li><a href="#ds-005">DS-005 备份导出</a></li>
+          <li><a href="#ds-008">DS-008 导入恢复</a></li>
+        </ul>
+      </li>
+    </ul>
+  </nav>
+
+  <main class="main-content">
+    <header class="doc-header" id="intro">
+      <div class="label">Detailed Functional Specification</div>
+      <h1>信笺 · 详细功能规格与操作逻辑说明书</h1>
+      <p class="subtitle">本文档对产品各功能模块的操作流程、状态流转、边界情况与交互细节进行详细定义，作为开发实现与测试验收的依据。</p>
+    </header>
+
+    <!-- 第一章：信箱管理 -->
+    <section class="section" id="mb">
+      <h2>一、信箱管理系统</h2>
+
+      <!-- MB-001 信箱创建 -->
+      <div class="spec-card" id="mb-001">
+        <div class="spec-header">
+          <h4>信箱创建</h4>
+          <span class="spec-id">MB-001 · P0</span>
+        </div>
+        <div class="spec-meta">
+          <div><strong>功能入口</strong><span>首页「+ 新建信箱」按钮 / 信箱总览页右上角</span></div>
+          <div><strong>触发方式</strong><span>点击按钮弹出创建表单</span></div>
+          <div><strong>前置条件</strong><span>无，首次使用引导创建</span></div>
+        </div>
+
+        <h4>操作流程</h4>
+        <ol class="flow-steps">
+          <li>用户点击「新建信箱」按钮，从右侧滑出创建面板（抽屉式，宽度 360px）</li>
+          <li>填写信箱名称（必填，2-20字，实时校验字数）</li>
+          <li>选择信箱图标：提供 12 个预设图标（信封、邮筒、心形、星星、书本、礼物等），默认信封</li>
+          <li>选择主题色：6 色可选（玫瑰红、墨蓝、墨绿、暖金、深紫、炭灰），默认玫瑰红</li>
+          <li>填写信箱描述（选填，最多 50 字，显示在信箱卡片副标题）</li>
+          <li>选择默认信纸样式：下拉选择，默认「暖白信纸」</li>
+          <li>点击「创建」按钮，面板收起，新信箱出现在列表最前面，有淡入动画</li>
+          <li>创建成功后顶部出现 Toast 提示「信箱创建成功」，持续 2 秒</li>
+        </ol>
+
+        <h4>字段规则</h4>
+        <table class="state-table">
+          <thead>
+            <tr><th>字段</th><th>规则</th><th>校验时机</th><th>错误提示</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>信箱名称</td><td>必填，2-20字符，不可全为空格</td><td>失焦 + 提交时</td><td>名称不能为空 / 名称不能超过20字</td></tr>
+            <tr><td>信箱描述</td><td>选填，最多50字符</td><td>输入时实时计数</td><td>超出时禁止继续输入</td></tr>
+            <tr><td>重名校验</td><td>同一用户下信箱名称不可重复</td><td>提交时</td><td>该信箱名称已存在</td></tr>
+          </tbody>
+        </table>
+
+        <div class="edge-case">
+          <strong>边界情况</strong>
+          信箱数量无上限，但超过 20 个时在创建时轻提示「信箱较多，建议整理归档」，不强制限制。
+        </div>
+      </div>
+
+      <!-- MB-002 信箱编辑删除 -->
+      <div class="spec-card" id="mb-002">
+        <div class="spec-header">
+          <h4>信箱编辑与删除</h4>
+          <span class="spec-id">MB-002 · P0</span>
+        </div>
+        <div class="spec-meta">
+          <div><strong>功能入口</strong><span>信箱卡片右键菜单 / 信箱设置页</span></div>
+          <div><strong>触发方式</strong><span>右键 / 点击设置图标</span></div>
+          <div><strong>前置条件</strong><span>信箱已存在</span></div>
+        </div>
+
+        <h4>编辑操作流程</h4>
+        <ol class="flow-steps">
+          <li>在信箱卡片上悬停，右上角出现「···」更多按钮</li>
+          <li>点击展开下拉菜单：编辑信箱、信箱设置、删除信箱</li>
+          <li>选择「编辑信箱」，弹出与创建相同的表单，预填充当前数据</li>
+          <li>修改后点击「保存」，实时更新信箱卡片外观</li>
+        </ol>
+
+        <h4>删除操作流程</h4>
+        <ol class="flow-steps">
+          <li>选择「删除信箱」，弹出确认对话框</li>
+          <li>对话框显示：信箱名称、信件数量、警告文案「删除后所有信件将一并移除」</li>
+          <li>提供两种选项：移入回收站（保留7天）、立即彻底删除</li>
+          <li>默认选中「移入回收站」，用户确认后执行</li>
+          <li>彻底删除需二次确认：输入信箱名称后才可点击删除</li>
+          <li>删除后信箱从列表消失，出现撤销 Toast（5秒内可撤销）</li>
+        </ol>
+
+        <div class="edge-case">
+          <strong>边界情况</strong>
+          最后一个信箱不可删除，删除按钮置灰并提示「至少保留一个信箱」。回收站中的信箱可在「设置 - 回收站」中恢复或清空。
+        </div>
+      </div>
+
+      <!-- MB-005 堆叠浏览 -->
+      <div class="spec-card" id="mb-005">
+        <div class="spec-header">
+          <h4>信件堆叠浏览</h4>
+          <span class="spec-id">MB-005 · P1</span>
+        </div>
+        <div class="spec-meta">
+          <div><strong>功能入口</strong><span>信箱详情页主区域</span></div>
+          <div><strong>触发方式</strong><span>进入信箱自动加载</span></div>
+          <div><strong>交互方式</strong><span>点击 / 拖拽 / 键盘 / 滚轮</span></div>
+        </div>
+
+        <h4>操作流程</h4>
+        <ol class="flow-steps">
+          <li>进入信箱详情，信件以层叠卡片形式展示，当前信件居中放大（100%）</li>
+          <li>前后各露出 1-2 封信的侧边（约 15% 宽度），有透明度渐变</li>
+          <li>切换方式一：点击左右两侧露出的信件，切换到对应信件</li>
+          <li>切换方式二：拖拽当前卡片向左/右，松手后吸附到目标位置</li>
+          <li>切换方式三：键盘左右方向键切换（信箱页面聚焦时生效）</li>
+          <li>切换方式四：鼠标滚轮横向滚动切换</li>
+          <li>切换动画：卡片位移 + 缩放 + 透明度变化，时长 300ms，ease-out</li>
+          <li>点击当前卡片中央区域 → 进入阅读器（触发拆信动画）</li>
+        </ol>
+
+        <h4>卡片信息展示</h4>
+        <table class="state-table">
+          <thead>
+            <tr><th>元素</th><th>展示规则</th><th>位置</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>信封外观</td><td>继承信箱主题色，显示信纸一角露出</td><td>卡片主体</td></tr>
+            <tr><td>信件标题</td><td>居中显示，无标题时显示「无题」</td><td>信封正面中部</td></tr>
+            <tr><td>日期</td><td>格式：YYYY年M月D日</td><td>信封右下角</td></tr>
+            <tr><td>未读标记</td><td>红色蜡封点，未读时显示</td><td>信封封盖处</td></tr>
+            <tr><td>附件标记</td><td>有录音显示声波图标，有照片显示相机图标</td><td>信封左下角</td></tr>
+          </tbody>
+        </table>
+
+        <div class="tip-box">
+          <strong>性能优化</strong>
+          超过 50 封信时采用虚拟渲染，只渲染当前及前后各 2 封，滚动时动态加载。首屏只加载最近 20 封的元数据。
+        </div>
+      </div>
+
+      <!-- MB-009 信箱装饰 -->
+      <div class="spec-card" id="mb-009">
+        <div class="spec-header">
+          <h4>信箱装饰系统</h4>
+          <span class="spec-id">MB-009 · P2</span>
+        </div>
+        <div class="spec-meta">
+          <div><strong>功能入口</strong><span>信箱设置 → 装饰外观</span></div>
+          <div><strong>触发方式</strong><span>进入装饰设置页</span></div>
+          <div><strong>实时预览</strong><span>左侧预览，右侧设置</span></div>
+        </div>
+
+        <h4>装饰元素分类</h4>
+        <table class="state-table">
+          <thead>
+            <tr><th>分类</th><th>可选样式</th><th>说明</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>信箱材质</td><td>铜制邮筒、木质信盒、牛皮档案袋、航空信封</td><td>决定信箱整体外观风格</td></tr>
+            <tr><td>蜡封章</td><td>无、玫瑰蜡封、火漆纹、家族纹章、心形印</td><td>显示在信封封口处</td></tr>
+            <tr><td>手写标签</td><td>无、竖排标签、横排便签、复古地址条</td><td>显示信箱名称的手写风格</td></tr>
+            <tr><td>邮戳</td><td>无、圆形邮戳、方形落地戳、航空戳</td><td>显示日期和虚拟邮局名</td></tr>
+            <tr><td>捆扎装饰</td><td>无、麻绳、丝带、皮筋</td><td>信件堆叠时的捆扎效果</td></tr>
+            <tr><td>照片夹</td><td>无、单张露出、多张散落</td><td>信箱旁露出的照片装饰</td></tr>
+          </tbody>
+        </table>
+
+        <h4>操作逻辑</h4>
+        <ol class="flow-steps">
+          <li>进入信箱设置的「装饰外观」标签页</li>
+          <li>左侧为实时预览区，显示当前装饰组合效果</li>
+          <li>右侧为分类选项，每个分类是一组单选按钮 + 缩略图</li>
+          <li>点击任一选项，左侧预览实时更新（150ms 过渡动画）</li>
+          <li>底部提供「随机组合」按钮，一键随机生成装饰搭配</li>
+          <li>点击「保存」应用设置，点击「重置」恢复默认</li>
+        </ol>
+      </div>
+    </section>
+
+    <!-- 第二章：信件编辑器 -->
+    <section class="section" id="ed">
+      <h2>二、信件编辑器</h2>
+
+      <!-- ED-001 三栏布局 -->
+      <div class="spec-card" id="ed-001">
+        <div class="spec-header">
+          <h4>三栏布局结构</h4>
+          <span class="spec-id">ED-001 · P0</span>
+        </div>
+
+        <h4>布局规则</h4>
+        <table class="state-table">
+          <thead>
+            <tr><th>区域</th><th>宽度</th><th>最小宽度</th><th>可折叠</th><th>内容</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>左侧工具轨</td><td>64px（收起）/ 220px（展开）</td><td>64px</td><td>是</td><td>页面缩略图、基础工具、组件库</td></tr>
+            <tr><td>中间画布区</td><td>自适应剩余空间</td><td>400px</td><td>否</td><td>信纸画布 + 顶部工具栏</td></tr>
+            <tr><td>右侧属性面板</td><td>280px</td><td>240px</td><td>是</td><td>选中元素属性、信纸设置</td></tr>
+          </tbody>
+        </table>
+
+        <h4>左侧工具轨详细结构</h4>
+        <ol class="flow-steps">
+          <li><strong>顶部：页面缩略图区</strong> — 垂直排列每页缩略图，当前页高亮。底部「+」按钮新增页面。拖拽可调整页面顺序。右键菜单：复制页、删除页、移动到。</li>
+          <li><strong>中部：基础工具组</strong> — 6个图标按钮：文字(T)、图片、录音、视频、贴图、组件。点击后在画布上点击/拖拽创建对应元素。</li>
+          <li><strong>底部：组件库</strong> — 点击展开组件面板，包含：日期组件、收信人、地点标签、年度计划、月计划、周计划、日计划、清单。拖拽到画布插入。</li>
+        </ol>
+
+        <h4>中间画布区交互</h4>
+        <ol class="flow-steps">
+          <li>信纸画布居中显示，有阴影和轻微透视感</li>
+          <li>顶部工具栏：当前样式名称（点击切换样式）、缩放百分比下拉、适应宽度按钮、网格开关</li>
+          <li>画布支持：拖拽移动元素、双击编辑文字、滚轮缩放画布、空格拖拽平移</li>
+          <li>选中元素时出现 8 个调整手柄 + 旋转手柄</li>
+        </ol>
+
+        <h4>右侧属性面板分段</h4>
+        <ol class="flow-steps">
+          <li><strong>信纸/封面切换</strong> — 顶部 Tab，切换编辑信纸正面或信封封面</li>
+          <li><strong>元素属性区</strong> — 无选中时显示信纸属性（样式、纸张、背景）；选中元素时显示对应属性</li>
+          <li><strong>层级与对齐</strong> — 置顶/置底/上移/下移 + 6种对齐方式</li>
+          <li><strong>定时寄出</strong> — 折叠区，设置发送时间和目标信箱</li>
+          <li><strong>草稿与版本</strong> — 显示最后保存时间，查看历史版本</li>
+        </ol>
+
+        <div class="tip-box">
+          <strong>响应式规则</strong>
+          窗口宽度 &lt; 1024px 时，左右面板自动收起为图标条，点击展开浮层。&lt; 768px 时改为底部工具栏 + 全屏画布。
+        </div>
+      </div>
+
+      <!-- ED-005 文字编辑 -->
+      <div class="spec-card" id="ed-005">
+        <div class="spec-header">
+          <h4>文字编辑</h4>
+          <span class="spec-id">ED-005 · P0</span>
+        </div>
+
+        <h4>创建与编辑流程</h4>
+        <ol class="flow-steps">
+          <li>点击左侧「T」文字工具 → 在画布上点击创建文本框，或拖拽指定大小</li>
+          <li>创建后自动进入编辑态，光标闪烁，可直接输入文字</li>
+          <li>点击画布空白处或按 <span class="kbd">Esc</span> 退出编辑态，回到选中态</li>
+          <li>双击文本框重新进入编辑态</li>
+          <li>选中文本框后拖拽移动，拖拽边角调整尺寸</li>
+          <li>文字超出文本框高度时，底部出现溢出标记（「…」）</li>
+        </ol>
+
+        <h4>文字属性面板</h4>
+        <table class="state-table">
+          <thead>
+            <tr><th>属性</th><th>选项</th><th>默认值</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>字体</td><td>书信宋体、毛笔行楷、钢笔手写、打字机、系统无衬线</td><td>书信宋体</td></tr>
+            <tr><td>字号</td><td>12px - 72px，步进 1px</td><td>16px</td></tr>
+            <tr><td>字重</td><td>常规 / 加粗</td><td>常规</td></tr>
+            <tr><td>行距</td><td>1.0 - 3.0，步进 0.1</td><td>1.8</td></tr>
+            <tr><td>字间距</td><td>-2px - 10px，步进 1px</td><td>0</td></tr>
+            <tr><td>文字颜色</td><td>取色器 + 预设色板（深墨/炭灰/玫瑰/墨绿/暖金）</td><td>深墨色</td></tr>
+            <tr><td>排列方向</td><td>横排 / 竖排（从右到左）</td><td>横排</td></tr>
+            <tr><td>对齐方式</td><td>左/中/右对齐 + 两端对齐</td><td>左对齐</td></tr>
+            <tr><td>首行缩进</td><td>开关 + 缩进量（2字符/自定义）</td><td>关闭</td></tr>
+          </tbody>
+        </table>
+
+        <h4>快捷键</h4>
+        <ul>
+          <li><span class="kbd">Ctrl</span> + <span class="kbd">B</span>：加粗</li>
+          <li><span class="kbd">Ctrl</span> + <span class="kbd">A</span>：全选当前文本框内文字</li>
+          <li><span class="kbd">Enter</span>：换行</li>
+          <li><span class="kbd">Shift</span> + <span class="kbd">Enter</span>：软换行（不换段）</li>
+        </ul>
+
+        <div class="edge-case">
+          <strong>竖排模式特殊规则</strong>
+          竖排时文字方向为 vertical-rl，标点自动调整为竖排格式。数字和英文自动旋转 90° 显示。行距变为字间距逻辑。
+        </div>
+      </div>
+
+      <!-- ED-006 图片插入 -->
+      <div class="spec-card" id="ed-006">
+        <div class="spec-header">
+          <h4>图片插入</h4>
+          <span class="spec-id">ED-006 · P0</span>
+        </div>
+
+        <h4>插入流程</h4>
+        <ol class="flow-steps">
+          <li>点击左侧图片工具 → 弹出文件选择器，或直接拖拽图片到画布</li>
+          <li>支持格式：JPG、PNG、WebP、GIF（静态显示首帧）</li>
+          <li>单张图片最大 10MB，超出时提示「图片过大，请压缩后上传」</li>
+          <li>插入后图片出现在画布中央，原始尺寸等比缩放到不超过信纸宽度的 80%</li>
+          <li>图片自动转换为 Base64 随信件数据存储</li>
+        </ol>
+
+        <h4>图片属性</h4>
+        <table class="state-table">
+          <thead>
+            <tr><th>属性</th><th>范围</th><th>说明</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>尺寸调整</td><td>拖拽边角手柄</td><td>默认等比缩放，按住 Shift 自由拉伸</td></tr>
+            <tr><td>圆角</td><td>0 - 50px</td><td>滑块调节，模拟照片圆角效果</td></tr>
+            <tr><td>透明度</td><td>0% - 100%</td><td>滑块调节</td></tr>
+            <tr><td>边框</td><td>无 / 白边 / 复古边框</td><td>白边模拟拍立得效果</td></tr>
+            <tr><td>阴影</td><td>无 / 轻投影 / 深投影</td><td>增加悬浮感</td></tr>
+            <tr><td>旋转</td><td>-180° ~ 180°</td><td>拖拽顶部旋转手柄，或输入精确角度</td></tr>
+          </tbody>
+        </table>
+
+        <div class="edge-case">
+          <strong>存储限制</strong>
+          单封信图片总大小超过 20MB 时，顶部出现黄色提示「信件体积较大，建议压缩图片」，但不强制限制。备份导出时大文件会显著增加备份体积。
+        </div>
+      </div>
+
+      <!-- ED-007 语音录制 -->
+      <div class="spec-card" id="ed-007">
+        <div class="spec-header">
+          <h4>语音录制</h4>
+          <span class="spec-id">ED-007 · P0</span>
+        </div>
+
+        <h4>录制流程</h4>
+        <ol class="flow-steps">
+          <li>点击左侧录音工具 → 画布中央出现录音面板</li>
+          <li>首次使用触发麦克风权限请求，浏览器原生弹窗</li>
+          <li>权限允许后：显示波形动画 + 录制时长计时 + 红色录制指示灯</li>
+          <li>点击「开始录制」按钮 → 倒计时 3 秒后正式开始</li>
+          <li>录制中可点击「暂停」暂停，点击「继续」恢复</li>
+          <li>点击「完成」结束录制 → 生成语音气泡元素放在画布上</li>
+          <li>点击「重录」清除当前录音重新开始</li>
+        </ol>
+
+        <h4>语音气泡属性</h4>
+        <table class="state-table">
+          <thead>
+            <tr><th>属性</th><th>选项</th><th>说明</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>气泡样式</td><td>简约线框 / 纸质便签 / 磁带造型</td><td>不同的视觉表现</td></tr>
+            <tr><td>气泡颜色</td><td>跟随主题色 / 自定义</td><td>默认玫瑰色</td></tr>
+            <tr><td>显示时长</td><td>显示 / 隐藏</td><td>气泡上是否显示录音时长</td></tr>
+            <tr><td>自动播放</td><td>开 / 关</td><td>阅读时是否自动播放（受浏览器策略限制）</td></tr>
+          </tbody>
+        </table>
+
+        <h4>技术参数</h4>
+        <ul>
+          <li>格式：WebM（Chrome/Edge）/ M4A（Safari），自动适配</li>
+          <li>采样率：44.1kHz</li>
+          <li>单声道录制</li>
+          <li>最长录制时长：10 分钟，到达时自动停止并提示</li>
+          <li>存储：Blob 格式存入 IndexedDB，与信件关联</li>
+        </ul>
+
+        <div class="edge-case">
+          <strong>权限拒绝处理</strong>
+          用户拒绝麦克风权限时，显示友好提示「需要麦克风权限才能录制语音」，提供「去设置开启」按钮（引导浏览器设置）和「使用文字代替」选项。
+        </div>
+      </div>
+
+      <!-- ED-009 撤销重做 -->
+      <div class="spec-card" id="ed-009">
+        <div class="spec-header">
+          <h4>撤销 / 重做栈</h4>
+          <span class="spec-id">ED-009 · P0</span>
+        </div>
+
+        <h4>入栈规则</h4>
+        <table class="state-table">
+          <thead>
+            <tr><th>操作类型</th><th>入栈时机</th><th>命令粒度</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>新增元素</td><td>元素创建完成时</td><td>单条命令</td></tr>
+            <tr><td>删除元素</td><td>确认删除时</td><td>单条命令</td></tr>
+            <tr><td>移动元素</td><td>拖拽结束（mouseup）时</td><td>整个拖拽算一次</td></tr>
+            <tr><td>缩放/旋转</td><td>拖拽结束时</td><td>整个调整算一次</td></tr>
+            <tr><td>属性修改</td><td>属性值确认后（失焦/滑块释放）</td><td>同类连续操作合并</td></tr>
+            <tr><td>文字输入</td><td>停止输入 1 秒后或换行时</td><td>连续输入合并为一条</td></tr>
+            <tr><td>多元素批量操作</td><td>操作完成时</td><td>批量操作算一条命令</td></tr>
+          </tbody>
+        </table>
+
+        <h4>栈规则</h4>
+        <ul>
+          <li>最大历史步数：50 步</li>
+          <li>超出 50 步时，最早的记录被丢弃（FIFO）</li>
+          <li>撤销后执行新操作 → 重做栈被清空（分支丢弃）</li>
+          <li>操作栈随草稿自动保存，刷新页面后可继续撤销</li>
+          <li>快捷键：<span class="kbd">Ctrl</span>+<span class="kbd">Z</span> 撤销，<span class="kbd">Ctrl</span>+<span class="kbd">Shift</span>+<span class="kbd">Z</span> / <span class="kbd">Ctrl</span>+<span class="kbd">Y</span> 重做</li>
+        </ul>
+
+        <div class="tip-box">
+          <strong>命令模式实现</strong>
+          每个操作封装为 Command 对象，包含 execute() 和 undo() 方法。移动/缩放等连续操作使用节流合并，避免每像素入栈。
+        </div>
+      </div>
+
+      <!-- ED-011 辅助线吸附 -->
+      <div class="spec-card" id="ed-011">
+        <div class="spec-header">
+          <h4>辅助线与吸附对齐</h4>
+          <span class="spec-id">ED-011 · P0</span>
+        </div>
+
+        <h4>吸附触发规则</h4>
+        <table class="state-table">
+          <thead>
+            <tr><th>吸附类型</th><th>触发条件</th><th>视觉反馈</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>左边缘对齐</td><td>当前元素左边与其他元素左边距离 ≤ 8px</td><td>红色垂直辅助线</td></tr>
+            <tr><td>右边缘对齐</td><td>当前元素右边与其他元素右边距离 ≤ 8px</td><td>红色垂直辅助线</td></tr>
+            <tr><td>水平中心对齐</td><td>两元素水平中心线距离 ≤ 8px</td><td>红色垂直虚线</td></tr>
+            <tr><td>顶部对齐</td><td>两元素顶部距离 ≤ 8px</td><td>红色水平辅助线</td></tr>
+            <tr><td>底部对齐</td><td>两元素底部距离 ≤ 8px</td><td>红色水平辅助线</td></tr>
+            <tr><td>垂直中心对齐</td><td>两元素垂直中心线距离 ≤ 8px</td><td>红色水平虚线</td></tr>
+            <tr><td>等间距分布</td><td>三个以上元素间距接近相等时</td><td>双向箭头间距标识</td></tr>
+          </tbody>
+        </table>
+
+        <h4>操作细节</h4>
+        <ol class="flow-steps">
+          <li>拖拽元素移动过程中实时计算与其他元素的位置关系</li>
+          <li>距离小于 8px 阈值时触发吸附，元素跳转到精确对齐位置</li>
+          <li>吸附后继续拖拽需先「挣脱」吸附区（移动超过 8px）才恢复自由拖拽</li>
+          <li>辅助线为 1px 实线，颜色 #c96567，带轻微发光效果</li>
+          <li>按住 <span class="kbd">Alt</span> 拖拽时临时禁用吸附</li>
+          <li>顶部工具栏有「吸附对齐」开关，可全局关闭</li>
+        </ol>
+      </div>
+
+      <!-- ED-013 组件嵌入 -->
+      <div class="spec-card" id="ed-013">
+        <div class="spec-header">
+          <h4>计划组件嵌入编辑</h4>
+          <span class="spec-id">ED-013 · P1</span>
+        </div>
+
+        <h4>插入流程</h4>
+        <ol class="flow-steps">
+          <li>左侧组件库中选择目标组件（年/月/周/日/清单）</li>
+          <li>拖拽到画布目标位置释放，组件以默认尺寸插入</li>
+          <li>组件作为一个整体元素存在，可移动、缩放、调整层级</li>
+          <li>选中组件时右侧属性面板显示组件专属设置</li>
+        </ol>
+
+        <h4>内部编辑模式</h4>
+        <ol class="flow-steps">
+          <li>双击组件进入内部编辑模式</li>
+          <li>画布其余区域添加 50% 黑色遮罩，组件区域高亮</li>
+          <li>组件内部变为可交互状态：可点击日期、输入任务、切换视图</li>
+          <li>左上角出现「返回信纸」面包屑按钮</li>
+          <li>点击遮罩区域或按 <span class="kbd">Esc</span> 退出内部编辑</li>
+          <li>编辑的数据实时同步到手账系统，右上角显示「已同步」标记</li>
+        </ol>
+
+        <h4>组件属性</h4>
+        <table class="state-table">
+          <thead>
+            <tr><th>属性</th><th>选项</th><th>说明</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>显示背景</td><td>开 / 关</td><td>关闭后组件透明，融入信纸</td></tr>
+            <tr><td>主题色</td><td>跟随信纸 / 自定义</td><td>组件强调色</td></tr>
+            <tr><td>显示边框</td><td>开 / 关</td><td>组件外框线</td></tr>
+            <tr><td>字体大小</td><td>小 / 中 / 大</td><td>组件内部文字缩放</td></tr>
+            <tr><td>默认视图</td><td>年/月/周/日（仅计划组件）</td><td>进入编辑时默认显示的视图</td></tr>
+          </tbody>
+        </table>
+
+        <div class="edge-case">
+          <strong>数据同步机制</strong>
+          组件数据与手账系统共享同一数据源，不是复制而是引用。在信纸中修改任务状态，手账页面同步更新。删除信纸中的组件不删除手账数据。
+        </div>
+      </div>
+    </section>
+
+    <!-- 第三章：信件阅读器 -->
+    <section class="section" id="rd">
+      <h2>三、信件阅读器</h2>
+
+      <!-- RD-001~003 拆信动画 -->
+      <div class="spec-card" id="rd-001">
+        <div class="spec-header">
+          <h4>拆信动画完整流程</h4>
+          <span class="spec-id">RD-001~003 · P1</span>
+        </div>
+
+        <h4>动画分阶段时序</h4>
+        <table class="state-table">
+          <thead>
+            <tr><th>阶段</th><th>时长</th><th>动画内容</th><th>音效</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>阶段一：蜡封裂开</td><td>0.2s</td><td>蜡封中心出现裂纹，向两侧延伸分叉，蜡块分两半微位移</td><td>轻微「咔」声（0.1s）</td></tr>
+            <tr><td>阶段二：蜡封滑落</td><td>0.25s</td><td>两半蜡封向左右两侧滑落并轻微旋转，带重力加速度下落感</td><td>「嗒」轻响（落地声）</td></tr>
+            <tr><td>阶段三：信封翻盖</td><td>0.35s</td><td>上盖沿顶部边缘向上翻开，角度从 0° → 110°，透视变形</td><td>纸张摩擦声（0.3s）</td></tr>
+            <tr><td>阶段四：信纸抽出</td><td>0.4s</td><td>信纸从信封中向上滑出，同时信封向后退并缩小淡出</td><td>纸张抽出声（0.3s）</td></tr>
+            <tr><td>阶段五：聚焦展开</td><td>0.3s</td><td>信纸放大到阅读尺寸，背景柔和变暗，操作栏淡入</td><td>无</td></tr>
+          </tbody>
+        </table>
+        <p style="font-size: 12.5px; color: var(--ink-light); margin-top: 8px;">总时长约 1.5 秒，阶段间有重叠过渡，非严格串行。</p>
+
+        <h4>跳过与重看机制</h4>
+        <ul>
+          <li>同一封信首次打开：完整播放拆信动画</li>
+          <li>同一封信第二次及以后打开：直接进入阅读态，跳过动画</li>
+          <li>阅读中点击「重新拆信」按钮：可重新播放一次拆信动画</li>
+          <li>设置中「始终播放拆信动画」开关：开启后每次都完整播放</li>
+          <li>动画播放中点击任意位置：跳过剩余动画，直接显示信件</li>
+        </ul>
+
+        <div class="edge-case">
+          <strong>音效策略</strong>
+          所有拆信音效在用户首次交互（点击）后才加载播放，规避浏览器自动播放限制。首次打开时静音播放动画，用户点击后后续信件带音效。
+        </div>
+      </div>
+
+      <!-- RD-005 分页翻页 -->
+      <div class="spec-card" id="rd-005">
+        <div class="spec-header">
+          <h4>分页翻页阅读</h4>
+          <span class="spec-id">RD-005 · P1</span>
+        </div>
+
+        <h4>翻页交互方式</h4>
+        <table class="state-table">
+          <thead>
+            <tr><th>操作方式</th><th>触发</th><th>适用平台</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>点击区域翻页</td><td>点击信纸左/右边缘 1/4 区域</td><td>桌面 + 移动端</td></tr>
+            <tr><td>拖拽翻页</td><td>按住信纸向左右拖拽，松手后吸附</td><td>桌面 + 移动端</td></tr>
+            <tr><td>键盘翻页</td><td><span class="kbd">←</span> / <span class="kbd">→</span> 方向键</td><td>桌面端</td></tr>
+            <tr><td>滚轮翻页</td><td>鼠标滚轮横向滚动</td><td>桌面端</td></tr>
+            <tr><td>进度条跳转</td><td>点击底部进度条任意位置</td><td>桌面 + 移动端</td></tr>
+          </tbody>
+        </table>
+
+        <h4>翻页动效</h4>
+        <ol class="flow-steps">
+          <li>当前页向翻出方向偏移，同时边缘出现卷曲阴影效果</li>
+          <li>下一页从另一侧滑入，带轻微透视角度</li>
+          <li>页面卷曲部分模拟纸张厚度和背面阴影</li>
+          <li>动画时长 400ms，缓动 ease-in-out</li>
+          <li>快速连续翻页时动画叠加，不排队等待</li>
+        </ol>
+
+        <h4>书签功能</h4>
+        <ol class="flow-steps">
+          <li>长按段落文字 → 弹出「添加书签」选项</li>
+          <li>添加后侧边书签栏出现一条记录，显示页码和前 20 字摘要</li>
+          <li>点击书签跳转到对应页码，高亮标记段落</li>
+          <li>书签可删除，可自定义备注文字</li>
+          <li>下次打开信件自动定位到上次阅读位置（自动书签）</li>
+        </ol>
+      </div>
+
+      <!-- RD-008 语音气泡 -->
+      <div class="spec-card" id="rd-008">
+        <div class="spec-header">
+          <h4>语音气泡交互与 BGM 混音</h4>
+          <span class="spec-id">RD-008 · P0</span>
+        </div>
+
+        <h4>语音气泡显示流程</h4>
+        <ol class="flow-steps">
+          <li>拆信动画完成后 0.5 秒，语音气泡从右下角淡入（透明度 0→1，上移 10px）</li>
+          <li>气泡显示：声波图标 + 「点击播放」文字 + 时长</li>
+          <li>用户点击气泡才开始播放（规避自动播放限制）</li>
+          <li>本会话内已授权过自动播放的，后续信件可自动淡入并播放</li>
+        </ol>
+
+        <h4>播放状态</h4>
+        <table class="state-table">
+          <thead>
+            <tr><th>状态</th><th>视觉表现</th><th>切换方式</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>待播放</td><td>静态声波图标 + 「点击播放」</td><td>点击进入播放中</td></tr>
+            <tr><td>播放中</td><td>动态波形动画 + 进度条 + 「暂停」</td><td>点击暂停 / 播放完毕自动停止</td></tr>
+            <tr><td>暂停</td><td>静态波形 + 进度停留在当前位置</td><td>点击继续播放</td></tr>
+            <tr><td>播放完毕</td><td>循环图标 + 「重新播放」</td><td>点击从头播放</td></tr>
+          </tbody>
+        </table>
+
+        <h4>BGM 混音逻辑</h4>
+        <ol class="flow-steps">
+          <li>信箱 BGM 以正常音量（默认 40%）持续播放</li>
+          <li>语音开始播放 → BGM 音量在 0.3s 内降至 15%（ducking 效果）</li>
+          <li>语音播放期间 BGM 保持低音量</li>
+          <li>语音播放结束 → BGM 在 0.5s 内淡回原音量</li>
+          <li>语音暂停超过 3 秒 → BGM 也淡回原音量</li>
+          <li>使用 Web Audio API 的 GainNode 实现音量平滑过渡</li>
+        </ol>
+
+        <div class="tip-box">
+          <strong>多语音处理</strong>
+          同一封信有多个语音气泡时，点击另一个会先暂停当前播放的，再播放新的。不同时播放多个语音。
+        </div>
+      </div>
+
+      <!-- RD-011 回信功能 -->
+      <div class="spec-card" id="rd-011">
+        <div class="spec-header">
+          <h4>回信功能</h4>
+          <span class="spec-id">RD-011 · P0</span>
+        </div>
+
+        <h4>操作流程</h4>
+        <ol class="flow-steps">
+          <li>阅读器底部操作栏点击「回信」按钮</li>
+          <li>跳转到编辑器，自动创建一封新信件</li>
+          <li>自动填充：收信人反转（原信的收信人变发信人）</li>
+          <li>自动继承：当前信箱、信纸样式</li>
+          <li>可选引用原文：顶部弹出「引用原文」开关，开启后在正文前添加引用块</li>
+          <li>引用格式：灰色分隔线 + 「—— 原信 ——」 + 缩进的原文摘要（前 200 字）</li>
+          <li>光标定位在引用块上方，用户可直接开始写回信</li>
+        </ol>
+
+        <h4>回信关联</h4>
+        <ul>
+          <li>回信保存后，原信的关联信件列表中自动添加这封回信</li>
+          <li>阅读器侧边栏显示「往来信件」时间线，可快速切换查看</li>
+          <li>回信链支持多级：A回B，B再回A，形成完整对话线程</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- 第四章：计划组件 -->
+    <section class="section" id="pl">
+      <h2>四、计划组件系统</h2>
+
+      <!-- PL-001 年度3-in-1 -->
+      <div class="spec-card" id="pl-001">
+        <div class="spec-header">
+          <h4>年度计划 3-in-1 视图</h4>
+          <span class="spec-id">PL-001 · P1</span>
+        </div>
+
+        <h4>三视图切换</h4>
+        <table class="state-table">
+          <thead>
+            <tr><th>视图</th><th>核心功能</th><th>切换方式</th></tr>
+          </thead>
+          <tbody>
+            <tr><td><strong>YEAR 年历视图</strong></td><td>12月色块总览，按类别标记事件</td><td>顶部 Tab 切换 / 默认视图</td></tr>
+            <tr><td><strong>NOTE 笔记视图</strong></td><td>年度目标、季度复盘自由书写</td><td>顶部 Tab 切换</td></tr>
+            <tr><td><strong>LIST 清单视图</strong></td><td>愿望/读书/观影等列表，勾选完成</td><td>顶部 Tab 切换</td></tr>
+          </tbody>
+        </table>
+
+        <h4>YEAR 视图操作逻辑</h4>
+        <ol class="flow-steps">
+          <li>12个月按季度排列（3×4 网格），每月一个卡片</li>
+          <li>每个月卡片内显示类别色点：日常(灰)、工作(蓝)、成长(绿)、重点(红)</li>
+          <li>点击月份卡片 → 下钻进入该月的月计划视图</li>
+          <li>右键/长按月份 → 快速添加月度标签（如「旅行月」「考试月」）</li>
+          <li>月份上的类别标记来自该月所有任务的类别统计，自动计算</li>
+          <li>顶部可切换年份：左右箭头 + 年份选择器</li>
+        </ol>
+
+        <h4>NOTE 视图操作逻辑</h4>
+        <ol class="flow-steps">
+          <li>富文本编辑区，支持标题、列表、加粗、分割线</li>
+          <li>预设分区模板：年度目标 · Q1复盘 · Q2复盘 · Q3复盘 · Q4复盘 · 年度关键词</li>
+          <li>点击分区标题快速跳转到对应位置</li>
+          <li>内容自动保存，无保存按钮</li>
+        </ol>
+
+        <h4>LIST 视图操作逻辑</h4>
+        <ol class="flow-steps">
+          <li>左侧清单列表：愿望清单、读书清单、观影清单（默认3个）+ 「+ 新建清单」</li>
+          <li>右侧显示当前清单项，每行：复选框 + 内容 + 完成日期</li>
+          <li>勾选后文字划线变灰，移到「已完成」分组</li>
+          <li>顶部显示完成进度：已完成 X / 共 Y 项 + 进度条</li>
+          <li>清单项可拖拽排序</li>
+        </ol>
+      </div>
+
+      <!-- PL-005 逐级下钻 -->
+      <div class="spec-card" id="pl-005">
+        <div class="spec-header">
+          <h4>年 → 月 → 周 → 日 逐级下钻</h4>
+          <span class="spec-id">PL-005 · P1</span>
+        </div>
+
+        <h4>导航层级</h4>
+        <table class="state-table">
+          <thead>
+            <tr><th>层级</th><th>进入方式</th><th>返回方式</th><th>核心内容</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>年视图</td><td>默认入口</td><td>-</td><td>12月总览 + 笔记 + 清单</td></tr>
+            <tr><td>月视图</td><td>点击年视图中某月份</td><td>顶部面包屑「年」</td><td>月历网格 + 本月任务列表</td></tr>
+            <tr><td>周视图</td><td>点击月视图中某周</td><td>面包屑「年 → 月」</td><td>七分栏周历 + 每日任务</td></tr>
+            <tr><td>日视图</td><td>点击月/周视图中某天</td><td>面包屑「年 → 月 → 周」</td><td>时间格 + 待办 + 复盘笔记</td></tr>
+          </tbody>
+        </table>
+
+        <h4>数据同步规则</h4>
+        <ul>
+          <li>所有任务统一存储，每个任务有日期字段</li>
+          <li>在日视图添加任务 → 自动出现在周视图、月视图、年视图的对应日期</li>
+          <li>在月视图标记完成 → 日视图同步更新状态</li>
+          <li>任务属性：标题、日期、时间（可选）、类别、备注、完成状态</li>
+          <li>跨天任务：设置开始和结束日期，在月视图上显示为横向条</li>
+        </ul>
+
+        <h4>月视图细节</h4>
+        <ol class="flow-steps">
+          <li>经典月历布局：周日/周一起始可设置</li>
+          <li>每格显示日期 + 任务数量小圆点（按类别颜色区分）</li>
+          <li>今日高亮（玫瑰色边框）</li>
+          <li>点击日期格 → 展开当日任务列表浮层，可快速增删</li>
+          <li>双击日期格 → 进入日视图</li>
+          <li>支持农历显示开关，传统节日自动标注</li>
+        </ol>
+
+        <h4>日视图细节</h4>
+        <ol class="flow-steps">
+          <li>左侧：时间轴（06:00 - 24:00），每小时一格，可拖拽创建时间段任务</li>
+          <li>右侧上部：今日待办清单，勾选完成</li>
+          <li>右侧下部：今日复盘笔记区，自由书写</li>
+          <li>底部：心情标签（5个表情可选）</li>
+        </ol>
+      </div>
+
+      <!-- PL-010 信纸嵌入机制 -->
+      <div class="spec-card" id="pl-010">
+        <div class="spec-header">
+          <h4>信纸嵌入编辑机制</h4>
+          <span class="spec-id">PL-010 ~ 013 · P1</span>
+        </div>
+
+        <h4>嵌入与退出流程</h4>
+        <ol class="flow-steps">
+          <li>编辑器左侧组件库拖拽计划组件到信纸</li>
+          <li>组件以卡片形式落在信纸上，可移动缩放</li>
+          <li>双击组件 → 进入内部编辑模式</li>
+          <li>进入时：信纸背景遮罩 50% 黑，组件上浮 z-index</li>
+          <li>组件内部交互与独立手账页面完全一致</li>
+          <li>退出方式：点击遮罩 / 按 Esc / 点击左上角「返回信纸」</li>
+          <li>退出后组件数据已保存，信纸画布恢复正常</li>
+        </ol>
+
+        <h4>尺寸自适应规则</h4>
+        <ul>
+          <li>组件宽度 &gt; 300px：完整显示所有元素</li>
+          <li>组件宽度 200-300px：隐藏次要信息，简化布局</li>
+          <li>组件宽度 &lt; 200px：仅显示标题和完成进度概览</li>
+          <li>高度自适应内容，最小高度 150px</li>
+        </ul>
+
+        <div class="tip-box">
+          <strong>数据引用而非复制</strong>
+          嵌入的组件是对手账数据的引用（Reference），不是快照。同一计划组件可插入多封信件，数据始终同步。删除信件中的组件不影响手账数据。
+        </div>
+      </div>
+    </section>
+
+    <!-- 第五章：慢递系统 -->
+    <section class="section" id="sd">
+      <h2>五、慢递与待寄系统</h2>
+
+      <!-- SD-001 定时发送 -->
+      <div class="spec-card" id="sd-001">
+        <div class="spec-header">
+          <h4>定时发送功能</h4>
+          <span class="spec-id">SD-001 ~ 004 · P2</span>
+        </div>
+
+        <h4>设置流程</h4>
+        <ol class="flow-steps">
+          <li>编辑器右侧属性面板 → 展开「定时寄出」折叠区</li>
+          <li>开启开关 → 显示日期时间选择器</li>
+          <li>选择寄出日期（日历选择）+ 具体时间（时分选择器）</li>
+          <li>可选：农历日期模式（勾选后按农历计算）</li>
+          <li>可选：纪念日快捷选择（生日/周年/节日预设）</li>
+          <li>选择目标信箱（默认当前信箱，可选其他信箱）</li>
+          <li>底部显示倒计时预览「将于 X 天后寄出」</li>
+          <li>保存信件后定时生效</li>
+        </ol>
+
+        <h4>信件状态流转</h4>
+        <table class="state-table">
+          <thead>
+            <tr><th>状态</th><th>触发条件</th><th>用户可见</th><th>可操作</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>草稿</td><td>新建信件未设置定时</td><td>编辑器中</td><td>编辑、删除</td></tr>
+            <tr><td>待寄出</td><td>设置了定时时间且未到</td><td>待寄列表 + 信箱中灰色显示</td><td>修改时间、取消定时、撤回编辑</td></tr>
+            <tr><td>撤回窗口</td><td>设置后 10 分钟内</td><td>待寄列表标记「可撤回」</td><td>一键撤回，回到草稿</td></tr>
+            <tr><td>投递中</td><td>超过撤回窗口后</td><td>待寄列表「投递中」</td><td>仅可查看，不可修改</td></tr>
+            <tr><td>已送达</td><td>到达设定时间</td><td>目标信箱中正常显示，标记「新」</td><td>阅读、回信等全部操作</td></tr>
+          </tbody>
+        </table>
+
+        <h4>自动送达机制</h4>
+        <ul>
+          <li>应用运行时：每分钟检查一次待寄列表，到达时间的信件自动标记已送达</li>
+          <li>应用关闭时：下次启动时批量检查，所有到期信件统一「派件」</li>
+          <li>离线期间到期的：下次打开时播放「新信到达」动画 + 提示音</li>
+          <li>使用本地通知（Notification API）：到期时如应用在后台，发送系统通知</li>
+        </ul>
+
+        <div class="edge-case">
+          <strong>时间准确性</strong>
+          基于本地系统时间，不依赖服务器。用户修改系统时间可能影响送达，但符合本地优先设计原则。撤回窗口（10分钟）是为了模拟「信件还在邮筒里可以拿回来」的真实感。
+        </div>
+      </div>
+
+      <!-- SD-005 随机慢递 -->
+      <div class="spec-card" id="sd-005">
+        <div class="spec-header">
+          <h4>随机慢递模式</h4>
+          <span class="spec-id">SD-005 ~ 007 · P2</span>
+        </div>
+
+        <h4>三种慢递档位</h4>
+        <table class="state-table">
+          <thead>
+            <tr><th>模式</th><th>随机范围</th><th>预计到达</th><th>进度显示</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>平邮</td><td>3 - 7 天</td><td>约一周内</td><td>显示「已寄出 X 天，预计还需 Y 天」</td></tr>
+            <tr><td>慢递</td><td>30 - 90 天（1-3个月）</td><td>1-3个月内随机</td><td>显示月份范围，不显示具体日期</td></tr>
+            <tr><td>半年期</td><td>90 - 180 天（3-6个月）</td><td>半年内某个时刻</td><td>只显示「投递中…」，不显示预计时间</td></tr>
+          </tbody>
+        </table>
+
+        <h4>随机算法规则</h4>
+        <ul>
+          <li>寄出时根据选择的模式生成一个随机天数（整数）</li>
+          <li>随机数生成后固定，不再变化</li>
+          <li>分布策略：正态分布偏中间值，避免总是最短或最长</li>
+          <li>用户看不到具体日期，只看到范围或模糊描述</li>
+          <li>「惊喜感」设计：半年期模式完全不显示进度，用户不知道哪天会到</li>
+        </ul>
+
+        <h4>投递中状态视觉</h4>
+        <ol class="flow-steps">
+          <li>信箱中出现一个「在路上」的信封：半透明、倾斜角度、有邮戳</li>
+          <li>悬停显示预计到达范围（平邮/慢递模式）</li>
+          <li>待寄列表中显示：模式标签、寄出时间、预计范围、进度条（平邮显示精确进度，慢递显示模糊进度）</li>
+          <li>到达当天：信箱出现「新信」动画 + 红色未读标记</li>
+        </ol>
+      </div>
+
+      <!-- SD-009 加密投递包 -->
+      <div class="spec-card" id="sd-009">
+        <div class="spec-header">
+          <h4>加密投递包（离线交换）</h4>
+          <span class="spec-id">SD-009 · P2</span>
+        </div>
+
+        <h4>导出投递包流程</h4>
+        <ol class="flow-steps">
+          <li>写完信后选择「生成投递包」</li>
+          <li>设置收件密码（4-16位），对方导入时需输入</li>
+          <li>可选：设置延迟打开时间（对方收到后也需等到时间才能拆信）</li>
+          <li>生成 .letter 后缀的加密文件（AES-256 加密）</li>
+          <li>文件包含：信件内容、所有媒体资源、元信息</li>
+          <li>用户手动通过任何渠道发送给对方（微信/邮件/U盘等）</li>
+        </ol>
+
+        <h4>导入投递包流程</h4>
+        <ol class="flow-steps">
+          <li>首页「导入投递包」入口，选择 .letter 文件</li>
+          <li>弹出密码输入框，输入收件密码</li>
+          <li>密码正确 → 预览信件摘要（寄件人、日期、是否定时）</li>
+          <li>选择目标信箱 → 确认导入</li>
+          <li>如设置了延迟打开：信件进入待寄状态，到时间才可阅读</li>
+          <li>未设置延迟：直接出现在信箱中，可立即拆信阅读</li>
+        </ol>
+
+        <div class="tip-box">
+          <strong>无后端设计</strong>
+          投递包是本地优先架构下的「离线信件交换」方案。应用本身不提供传输通道，用户使用自己的通信方式传递文件，应用只负责加密打包和解密读取。
+        </div>
+      </div>
+    </section>
+
+    <!-- 第六章：数据安全 -->
+    <section class="section" id="ds">
+      <h2>六、数据安全与备份</h2>
+
+      <!-- DS-001 自动草稿 -->
+      <div class="spec-card" id="ds-001">
+        <div class="spec-header">
+          <h4>自动草稿保存机制</h4>
+          <span class="spec-id">DS-001 ~ 004 · P0</span>
+        </div>
+
+        <h4>保存触发策略</h4>
+        <table class="state-table">
+          <thead>
+            <tr><th>触发方式</th><th>时机</th><th>说明</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>定时保存</td><td>每 25 秒</td><td>有未保存更改时才执行，空闲时跳过</td></tr>
+            <tr><td>空闲保存</td><td>停止输入 3 秒后</td><td>防抖触发，频繁输入时不累加保存</td></tr>
+            <tr><td>失焦保存</td><td>编辑器页面失去焦点时</td><td>切换标签页、最小化窗口等</td></tr>
+            <tr><td>关键操作保存</td><td>新增/删除页面、插入组件等大操作后</td><td>操作完成立即保存</td></tr>
+            <tr><td>手动保存</td><td>Ctrl+S / 点击保存按钮</td><td>用户主动触发</td></tr>
+          </tbody>
+        </table>
+
+        <h4>保存状态指示</h4>
+        <ul>
+          <li><strong>保存中</strong>：顶部显示「正在保存…」+ 加载小图标</li>
+          <li><strong>已保存</strong>：显示「已保存 · HH:MM」+ 对勾图标</li>
+          <li><strong>未保存更改</strong>：显示「有未保存更改」+ 圆点标记</li>
+          <li><strong>保存失败</strong>：红色警告「保存失败，请检查存储空间」</li>
+        </ul>
+
+        <h4>多版本保留</h4>
+        <ol class="flow-steps">
+          <li>每封信保留最近 5 个历史版本</li>
+          <li>版本间隔策略：1小时内只保留最新的，超过1小时生成新版本快照</li>
+          <li>版本信息：时间戳、字数、页面数</li>
+          <li>查看版本：右侧面板「历史版本」→ 列表展示 5 个版本</li>
+          <li>点击版本 → 预览该版本内容（只读）→ 可选择「恢复此版本」</li>
+          <li>恢复版本前自动将当前版本存为新版本（不丢失当前内容）</li>
+        </ol>
+
+        <h4>离开页面保护</h4>
+        <ul>
+          <li>有未保存更改时关闭/刷新页面 → 触发浏览器原生 beforeunload 确认弹窗</li>
+          <li>导航离开编辑器（返回信箱）→ 应用内确认弹窗「有未保存更改，确定离开？」</li>
+          <li>移动端右滑返回 → 同样触发确认</li>
+        </ul>
+
+        <div class="edge-case">
+          <strong>崩溃恢复</strong>
+          编辑器异常崩溃（页面卡死、浏览器闪退）后，下次打开同一封信时顶部弹出「检测到上次异常退出，是否恢复崩溃前草稿？」，提供恢复和丢弃选项。
+        </div>
+      </div>
+
+      <!-- DS-005 备份导出 -->
+      <div class="spec-card" id="ds-005">
+        <div class="spec-header">
+          <h4>全量备份导出</h4>
+          <span class="spec-id">DS-005 ~ 007 · P0</span>
+        </div>
+
+        <h4>导出流程</h4>
+        <ol class="flow-steps">
+          <li>设置页面 → 数据管理 → 「导出备份」</li>
+          <li>弹出导出选项面板：
+            <ul>
+              <li>导出范围：全部数据 / 指定信箱</li>
+              <li>包含媒体：是（完整备份，文件较大）/ 否（仅文字元数据，文件小）</li>
+              <li>密码加密：开启后设置密码，使用 AES-256 加密</li>
+            </ul>
+          </li>
+          <li>点击「生成备份」，显示进度条（大数据时分块处理）</li>
+          <li>生成完成后自动下载 .mailbak 后缀文件</li>
+          <li>文件名格式：信笺备份_YYYYMMDD_HHMM.mailbak</li>
+        </ol>
+
+        <h4>备份文件结构</h4>
+        <table class="state-table">
+          <thead>
+            <tr><th>数据块</th><th>内容</th><th>格式</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>meta</td><td>备份版本、导出时间、应用版本、数据范围</td><td>JSON</td></tr>
+            <tr><td>mailboxes</td><td>所有信箱配置（名称、图标、主题、装饰设置）</td><td>JSON Array</td></tr>
+            <tr><td>letters</td><td>所有信件元数据 + 页面结构 + 元素数据</td><td>JSON Array</td></tr>
+            <tr><td>media</td><td>图片、录音等媒体资源（可选）</td><td>Base64 / Blob</td></tr>
+            <tr><td>journals</td><td>手账计划数据、任务、笔记</td><td>JSON</td></tr>
+            <tr><td>settings</td><td>全局设置、偏好配置</td><td>JSON</td></tr>
+          </tbody>
+        </table>
+
+        <div class="tip-box">
+          <strong>增量备份</strong>
+          首次全量备份后，后续可选择增量备份（只导出上次备份以来的变更），文件更小。恢复时需要基础备份 + 增量链。
+        </div>
+      </div>
+
+      <!-- DS-008 导入恢复 -->
+      <div class="spec-card" id="ds-008">
+        <div class="spec-header">
+          <h4>备份导入与恢复</h4>
+          <span class="spec-id">DS-008 ~ 010 · P0</span>
+        </div>
+
+        <h4>导入流程</h4>
+        <ol class="flow-steps">
+          <li>设置 → 数据管理 → 「导入备份」</li>
+          <li>选择 .mailbak 文件，或拖拽文件到导入区域</li>
+          <li>如文件加密 → 弹出密码输入框</li>
+          <li>密码正确 / 无加密 → 显示备份摘要：
+            <ul>
+              <li>导出版本、导出时间</li>
+              <li>包含信箱数、信件数、媒体大小</li>
+              <li>版本兼容性检查（旧版本备份有升级提示）</li>
+            </ul>
+          </li>
+          <li>选择导入模式：
+            <ul>
+              <li><strong>合并模式</strong>（默认）：备份内容并入现有数据，同ID跳过</li>
+              <li><strong>覆盖模式</strong>：清空当前所有数据后导入（需二次确认）</li>
+            </ul>
+          </li>
+          <li>点击「开始导入」，显示进度条</li>
+          <li>导入完成 → 成功提示 + 导入统计（新增 X 封信，跳过 Y 封）</li>
+        </ol>
+
+        <h4>冲突处理规则（合并模式）</h4>
+        <table class="state-table">
+          <thead>
+            <tr><th>冲突场景</th><th>默认处理</th><th>可选处理</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>同ID信箱已存在</td><td>跳过，保留现有</td><td>覆盖 / 重命名导入</td></tr>
+            <tr><td>同ID信件已存在</td><td>跳过，保留现有</td><td>覆盖（更新为备份版本）</td></tr>
+            <tr><td>同名不同ID信箱</td><td>自动重命名（导入_原名）</td><td>合并到现有信箱</td></tr>
+          </tbody>
+        </table>
+
+        <h4>失败回滚机制</h4>
+        <ul>
+          <li>导入开始前自动创建当前数据的快照</li>
+          <li>导入过程中任何步骤失败 → 自动回滚到导入前状态</li>
+          <li>回滚完成后显示错误原因和建议</li>
+          <li>不会出现「导入了一半」的脏数据状态</li>
+        </ul>
+
+        <div class="edge-case">
+          <strong>版本兼容</strong>
+          备份文件带有应用版本号。导入旧版本备份时自动执行数据迁移脚本；导入新版本备份时提示「备份来自更高版本，可能无法完整导入，建议升级应用」。
+        </div>
+      </div>
+    </section>
+
+    <div class="info-card" style="margin-top: 40px; padding: 20px 24px; background: var(--paper-cream); border-radius: 10px;">
+      <p style="margin: 0; color: var(--ink-sub); font-size: 13px; text-align: center;">
+        — 本文档为 V1.0 版本，覆盖核心功能模块的详细操作逻辑 —<br>
+        手账系统、日记支线、全局搜索、移动端适配等模块将在后续版本补充
+      </p>
+    </div>
+  </main>
+</body>
+</html>

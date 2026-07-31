@@ -1,0 +1,214 @@
+{
+  "source": "D:\\prj\\sendbox\\taoyuan-main\\public\\assets\\sanshi-pixel-assets\\items\\atlases\\items-story-transparent.png",
+  "padding": 8,
+  "actions": {
+    "revolving_horse_lantern": {
+      "speed": 160,
+      "frames": [
+        {
+          "left": 0,
+          "top": 0,
+          "width": 313,
+          "height": 313,
+          "keepAll": true,
+          "padding": 8
+        }
+      ]
+    },
+    "reincarnation_light": {
+      "speed": 160,
+      "frames": [
+        {
+          "left": 313,
+          "top": 0,
+          "width": 314,
+          "height": 313,
+          "keepAll": true,
+          "padding": 8
+        }
+      ]
+    },
+    "bridal_sewing_kit": {
+      "speed": 160,
+      "frames": [
+        {
+          "left": 627,
+          "top": 0,
+          "width": 313,
+          "height": 313,
+          "keepAll": true,
+          "padding": 8
+        }
+      ]
+    },
+    "secret_command_scroll": {
+      "speed": 160,
+      "frames": [
+        {
+          "left": 940,
+          "top": 0,
+          "width": 314,
+          "height": 313,
+          "keepAll": true,
+          "padding": 8
+        }
+      ]
+    },
+    "sect_rules_bamboo_book": {
+      "speed": 160,
+      "frames": [
+        {
+          "left": 0,
+          "top": 313,
+          "width": 313,
+          "height": 314,
+          "keepAll": true,
+          "padding": 8
+        }
+      ]
+    },
+    "academy_grade_roster": {
+      "speed": 160,
+      "frames": [
+        {
+          "left": 313,
+          "top": 313,
+          "width": 314,
+          "height": 314,
+          "keepAll": true,
+          "padding": 8
+        }
+      ]
+    },
+    "exam_and_answer_slip": {
+      "speed": 160,
+      "frames": [
+        {
+          "left": 627,
+          "top": 313,
+          "width": 313,
+          "height": 314,
+          "keepAll": true,
+          "padding": 8
+        }
+      ]
+    },
+    "twig_bound_script": {
+      "speed": 160,
+      "frames": [
+        {
+          "left": 940,
+          "top": 313,
+          "width": 314,
+          "height": 314,
+          "keepAll": true,
+          "padding": 8
+        }
+      ]
+    },
+    "ceremonial_salt_cups": {
+      "speed": 160,
+      "frames": [
+        {
+          "left": 0,
+          "top": 627,
+          "width": 313,
+          "height": 313,
+          "keepAll": true,
+          "padding": 8
+        }
+      ]
+    },
+    "crane_incense_burner": {
+      "speed": 160,
+      "frames": [
+        {
+          "left": 313,
+          "top": 627,
+          "width": 314,
+          "height": 313,
+          "keepAll": true,
+          "padding": 8
+        }
+      ]
+    },
+    "poisonous_peach_branch": {
+      "speed": 160,
+      "frames": [
+        {
+          "left": 627,
+          "top": 627,
+          "width": 313,
+          "height": 313,
+          "keepAll": true,
+          "padding": 8
+        }
+      ]
+    },
+    "preserved_white_plum": {
+      "speed": 160,
+      "frames": [
+        {
+          "left": 940,
+          "top": 627,
+          "width": 314,
+          "height": 313,
+          "keepAll": true,
+          "padding": 8
+        }
+      ]
+    },
+    "folded_sky_lanterns": {
+      "speed": 160,
+      "frames": [
+        {
+          "left": 0,
+          "top": 940,
+          "width": 313,
+          "height": 314,
+          "keepAll": true,
+          "padding": 8
+        }
+      ]
+    },
+    "baby_name_maple_charm": {
+      "speed": 160,
+      "frames": [
+        {
+          "left": 313,
+          "top": 940,
+          "width": 314,
+          "height": 314,
+          "keepAll": true,
+          "padding": 8
+        }
+      ]
+    },
+    "betrothal_scrolls": {
+      "speed": 160,
+      "frames": [
+        {
+          "left": 627,
+          "top": 940,
+          "width": 313,
+          "height": 314,
+          "keepAll": true,
+          "padding": 8
+        }
+      ]
+    },
+    "scarred_half_mask": {
+      "speed": 160,
+      "frames": [
+        {
+          "left": 940,
+          "top": 940,
+          "width": 314,
+          "height": 314,
+          "keepAll": true,
+          "padding": 8
+        }
+      ]
+    }
+  }
+}

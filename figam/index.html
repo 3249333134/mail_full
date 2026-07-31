@@ -1,0 +1,528 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>信笺 UI 优化稿</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="realistic-paper-system.css">
+</head>
+<body>
+  <header class="handoff-header">
+    <div>
+      <p class="eyebrow">UI Handoff / 2026</p>
+      <h1>信笺体验优化稿</h1>
+    </div>
+    <nav class="frame-tabs" aria-label="设计稿切换">
+      <a href="#overview">总览</a>
+      <a href="#mailbox">信箱</a>
+      <a href="#editor">编辑器</a>
+      <a href="#planner">计划</a>
+      <a href="page-hierarchy.html">全功能层级</a>
+      <a href="next-step-design.html">下一步优化</a>
+      <a href="real-letter-generator.html">真实信件</a>
+      <a href="mailbox-decorator.html">信箱装饰</a>
+      <a href="all-designs.html">设计总览</a>
+    </nav>
+  </header>
+
+  <main class="figma-board">
+    <section class="design-frame" id="overview" aria-labelledby="overview-title">
+      <div class="frame-label">
+        <span>Desktop / Home</span>
+        <strong id="overview-title">信箱总览</strong>
+      </div>
+
+      <div class="app-shell">
+        <aside class="app-sidebar">
+          <div class="brand-lockup">
+            <span class="brand-mark">信</span>
+            <div>
+              <strong>信笺</strong>
+              <small>我的数字书信馆</small>
+            </div>
+          </div>
+
+          <button class="primary-action">新建信箱</button>
+
+          <nav class="mailbox-list" aria-label="信箱列表">
+            <button class="mailbox-pill active">
+              <span class="mailbox-icon rose">✉</span>
+              <span>
+                <strong>布雷诺来信</strong>
+                <small>25 封 · 日记入口</small>
+              </span>
+              <em>25</em>
+            </button>
+            <button class="mailbox-pill">
+              <span class="mailbox-icon ember">灯</span>
+              <span>
+                <strong>大梁来信</strong>
+                <small>4 封 · 古风叙事</small>
+              </span>
+              <em>4</em>
+            </button>
+            <button class="mailbox-pill">
+              <span class="mailbox-icon night">星</span>
+              <span>
+                <strong>摘星人来信</strong>
+                <small>15 封 · 夜色主题</small>
+              </span>
+              <em>15</em>
+            </button>
+            <button class="mailbox-pill">
+              <span class="mailbox-icon leaf">叶</span>
+              <span>
+                <strong>桃止来信</strong>
+                <small>11 封 · 双人视角</small>
+              </span>
+              <em>11</em>
+            </button>
+          </nav>
+
+          <div class="sidebar-note">
+            <span>今日</span>
+            <strong>2 封信件等待整理</strong>
+          </div>
+        </aside>
+
+        <section class="main-stage">
+          <div class="topbar">
+            <div>
+              <p class="eyebrow">Library</p>
+              <h2>我的信箱</h2>
+            </div>
+            <div class="toolbar-actions">
+              <button title="播放背景音乐">♪</button>
+              <button title="搜索信件">⌕</button>
+              <button title="筛选">筛选</button>
+            </div>
+          </div>
+
+          <div class="hero-grid">
+            <article class="feature-mailbox">
+              <div class="feature-copy">
+                <p class="eyebrow">正在阅读</p>
+                <h3>布雷诺来信</h3>
+                <p>以撒致缪宏谟的二十五封未寄出书信。保留纸张、日期、收信人与日记入口，让故事线更容易继续。</p>
+                <div class="meta-row">
+                  <span>25 封信</span>
+                  <span>47 页日记</span>
+                  <span>轻轻 BGM</span>
+                </div>
+              </div>
+              <img src="../assets/letters/brenuo/1.png" alt="布雷诺来信信纸预览">
+            </article>
+
+            <aside class="insight-panel">
+              <h3>快速继续</h3>
+              <div class="continue-card">
+                <span>第十七封</span>
+                <strong>仓库归来后的夜晚</strong>
+                <small>上次停在第 2 页</small>
+              </div>
+              <div class="mini-stats">
+                <span><strong>7</strong> 信箱</span>
+                <span><strong>85</strong> 信件</span>
+                <span><strong>2</strong> 待寄</span>
+              </div>
+            </aside>
+          </div>
+
+          <div class="section-head">
+            <div>
+              <h3>所有信箱</h3>
+              <p>用横向画廊承载情绪，用网格信息提高浏览效率。</p>
+            </div>
+            <button class="ghost-button">管理排序</button>
+          </div>
+
+          <div class="mailbox-grid">
+            <article class="mailbox-card selected">
+              <span class="mailbox-symbol rose">✉</span>
+              <h4>布雷诺来信</h4>
+              <p>以撒致缪宏谟的二十五封信</p>
+              <div><span>25 封</span><span>最近 2005-05-20</span></div>
+            </article>
+            <article class="mailbox-card">
+              <span class="mailbox-symbol night">星</span>
+              <h4>摘星人来信</h4>
+              <p>李平川致江宴的十五封信</p>
+              <div><span>15 封</span><span>夜色主题</span></div>
+            </article>
+            <article class="mailbox-card">
+              <span class="mailbox-symbol leaf">叶</span>
+              <h4>桃止来信</h4>
+              <p>戚凭川致江淮安的十封信</p>
+              <div><span>11 封</span><span>双视角</span></div>
+            </article>
+          </div>
+        </section>
+      </div>
+    </section>
+
+    <section class="design-frame" id="mailbox" aria-labelledby="mailbox-title">
+      <div class="frame-label">
+        <span>Desktop / Mailbox</span>
+        <strong id="mailbox-title">信件画廊</strong>
+      </div>
+
+      <div class="app-shell mailbox-screen">
+        <aside class="app-sidebar compact">
+          <button class="back-link">← 返回信箱</button>
+          <nav class="mailbox-list">
+            <button class="mailbox-pill active">
+              <span class="mailbox-icon rose">✉</span>
+              <span>
+                <strong>布雷诺来信</strong>
+                <small>25 封</small>
+              </span>
+              <em>25</em>
+            </button>
+            <button class="mailbox-pill">
+              <span class="mailbox-icon ash">剑</span>
+              <span>
+                <strong>陇平来信</strong>
+                <small>15 封</small>
+              </span>
+              <em>15</em>
+            </button>
+            <button class="mailbox-pill">
+              <span class="mailbox-icon leaf">叶</span>
+              <span>
+                <strong>桃止来信</strong>
+                <small>11 封</small>
+              </span>
+              <em>11</em>
+            </button>
+          </nav>
+          <button class="primary-action">新建信件</button>
+        </aside>
+
+        <section class="main-stage split-stage">
+          <div class="topbar">
+            <div>
+              <p class="eyebrow">Mailbox</p>
+              <h2>布雷诺来信</h2>
+              <p>以撒致缪宏谟的二十五封信</p>
+            </div>
+            <div class="toolbar-actions">
+              <button title="播放背景音乐">♪</button>
+              <button title="编辑信箱">✎</button>
+              <button title="删除信箱">删</button>
+            </div>
+          </div>
+
+          <div class="letter-workspace">
+            <div class="letter-stack" aria-label="信件堆叠预览">
+              <article class="envelope-card side left">
+                <span>远</span>
+                <h3>雨夜的思念</h3>
+                <p>未寄出 · 2000-04-20</p>
+              </article>
+              <article class="envelope-card active">
+                <span>收</span>
+                <h3>第十七封</h3>
+                <p>从废弃仓库回到广府住处当夜，纸张有被揉皱又展平的痕迹。</p>
+                <footer>
+                  <small>2005-04-22 · 周五</small>
+                  <button>阅读</button>
+                </footer>
+              </article>
+              <article class="envelope-card side right">
+                <span>旧</span>
+                <h3>第十八封</h3>
+                <p>山顶归来后</p>
+              </article>
+            </div>
+
+            <aside class="letter-detail-panel">
+              <p class="eyebrow">当前信件</p>
+              <h3>第十七封</h3>
+              <dl>
+                <div><dt>收信人</dt><dd>缪宏谟</dd></div>
+                <div><dt>日期</dt><dd>2005-04-22</dd></div>
+                <div><dt>状态</dt><dd>未寄出</dd></div>
+              </dl>
+              <div class="action-grid">
+                <button>阅读</button>
+                <button>编辑</button>
+                <button>导出</button>
+                <button>回信</button>
+              </div>
+              <div class="story-entry">
+                <strong>以撒的日记</strong>
+                <span>47 页 · 从这里进入支线阅读</span>
+              </div>
+            </aside>
+          </div>
+
+          <div class="timeline-strip" aria-label="信件时间线">
+            <span class="active">01</span>
+            <span>02</span>
+            <span>03</span>
+            <span>04</span>
+            <span>05</span>
+            <span>...</span>
+            <span>25</span>
+          </div>
+        </section>
+      </div>
+    </section>
+
+    <section class="design-frame" id="editor" aria-labelledby="editor-title">
+      <div class="frame-label">
+        <span>Desktop / Editor</span>
+        <strong id="editor-title">写信编辑器</strong>
+      </div>
+
+      <div class="editor-shell">
+        <header class="editor-topbar">
+          <button class="back-link">← 返回</button>
+          <div>
+            <h2>新建信件</h2>
+            <p>布雷诺来信 / 第 1 页 · 30 秒前已自动保存</p>
+          </div>
+          <div class="editor-actions">
+            <button class="ghost-button">撤销</button>
+            <button class="ghost-button">重做</button>
+            <button class="ghost-button">预览</button>
+            <button class="primary-action">保存</button>
+          </div>
+        </header>
+
+        <div class="editor-grid">
+          <aside class="tool-rail">
+            <section>
+              <h3>页面</h3>
+              <button class="page-thumb active">01</button>
+              <button class="page-thumb">02</button>
+              <button class="page-thumb add">+</button>
+            </section>
+            <section>
+              <h3>工具</h3>
+              <div class="tool-grid">
+                <button title="文字">T</button>
+                <button title="图片">图</button>
+                <button title="语音">声</button>
+                <button title="视频">影</button>
+                <button title="贴图">贴</button>
+                <button title="组件">组</button>
+              </div>
+            </section>
+            <section>
+              <h3>组件</h3>
+              <button class="component-row">日期</button>
+              <button class="component-row">收信人</button>
+              <button class="component-row">地点</button>
+              <button class="component-row featured">年度计划</button>
+              <button class="component-row">月计划</button>
+              <button class="component-row">周计划</button>
+              <button class="component-row">日计划</button>
+              <button class="component-row">清单</button>
+            </section>
+          </aside>
+
+          <main class="canvas-zone">
+            <div class="canvas-toolbar">
+              <span>信纸 / 复古文学</span>
+              <div>
+                <button>75%</button>
+                <button>适应</button>
+              </div>
+            </div>
+            <article class="paper-preview">
+              <div class="paper-date">2005.04.22 / 周五</div>
+              <h3>致 缪宏谟</h3>
+              <p>我把那张揉皱的纸重新铺平，像把一个夜晚的呼吸重新放回掌心。</p>
+              <p>灯光很低，窗外没有风。只有这封信还醒着，等我把没能说出口的话写完。</p>
+              <div class="inline-planner-card">
+                <div>
+                  <span>Year / Note / List</span>
+                  <strong>2026 年度计划</strong>
+                </div>
+                <small>12 月 · 4 类标签 · 可同步到手账</small>
+              </div>
+              <div class="stamp-mark">信</div>
+            </article>
+          </main>
+
+          <aside class="property-dock">
+            <div class="segmented">
+              <button class="active">信纸</button>
+              <button>封面</button>
+            </div>
+            <section>
+              <h3>文字属性</h3>
+              <label>字体 <select><option>宋体 / Serif</option></select></label>
+              <label>字号 <input value="18px"></label>
+              <label>行距 <input value="1.8"></label>
+            </section>
+            <section>
+              <h3>封面信息</h3>
+              <label>收信人 <input value="缪宏谟"></label>
+              <label>封印 <input value="收"></label>
+            </section>
+            <section>
+              <h3>层级与对齐</h3>
+              <div class="dock-button-grid">
+                <button>置顶</button>
+                <button>置底</button>
+                <button>左对齐</button>
+                <button>居中</button>
+              </div>
+            </section>
+            <section class="publish-card">
+              <strong>定时寄出</strong>
+              <span>可在保存前设置寄出时间</span>
+              <button class="ghost-button">设置时间</button>
+            </section>
+            <section class="publish-card safe">
+              <strong>草稿与备份</strong>
+              <span>保留 5 个自动保存版本，可导出完整信件包。</span>
+              <button class="ghost-button">导出备份</button>
+            </section>
+          </aside>
+        </div>
+      </div>
+    </section>
+
+    <section class="design-frame" id="planner" aria-labelledby="planner-title">
+      <div class="frame-label">
+        <span>Desktop / Planner Components</span>
+        <strong id="planner-title">手账计划组件</strong>
+      </div>
+
+      <div class="planner-shell">
+        <aside class="planner-library">
+          <div>
+            <p class="eyebrow">Component Library</p>
+            <h2>信纸内嵌组件</h2>
+          </div>
+          <button class="planner-item active">
+            <strong>年度计划 3-in-1</strong>
+            <span>YEAR / NOTE / LIST</span>
+          </button>
+          <button class="planner-item">
+            <strong>月计划</strong>
+            <span>农历、待办、复盘版式</span>
+          </button>
+          <button class="planner-item">
+            <strong>周计划</strong>
+            <span>七分栏 / 时间轴</span>
+          </button>
+          <button class="planner-item">
+            <strong>日计划</strong>
+            <span>时间格、待办、库房笔记</span>
+          </button>
+          <button class="planner-item">
+            <strong>清单页</strong>
+            <span>待办、购物、愿望、自定义</span>
+          </button>
+        </aside>
+
+        <main class="planner-stage">
+          <div class="planner-header">
+            <div>
+              <p class="eyebrow">Embedded Widget</p>
+              <h2>年度计划 3-in-1</h2>
+              <p>可拖拽进信纸，与手账数据联动，导出图片时完整保留。</p>
+            </div>
+            <div class="planner-toolbar">
+              <button>透明背景</button>
+              <button>同步手账</button>
+              <button>导出组件</button>
+            </div>
+          </div>
+
+          <div class="planner-canvas">
+            <article class="year-widget">
+              <header>
+                <div>
+                  <span>2026</span>
+                  <strong>Year Planner</strong>
+                </div>
+                <nav>
+                  <button class="active">YEAR</button>
+                  <button>NOTE</button>
+                  <button>LIST</button>
+                </nav>
+              </header>
+
+              <div class="category-legend">
+                <span class="dot daily"></span>日常
+                <span class="dot work"></span>工作
+                <span class="dot growth"></span>成长
+                <span class="dot focus"></span>重点
+              </div>
+
+              <div class="quarter-grid">
+                <section>
+                  <h3>Q1</h3>
+                  <div class="month-row"><span>JAN</span><em class="daily"></em><em class="work"></em></div>
+                  <div class="month-row"><span>FEB</span><em class="growth"></em></div>
+                  <div class="month-row"><span>MAR</span><em class="focus"></em><em class="daily"></em></div>
+                </section>
+                <section>
+                  <h3>Q2</h3>
+                  <div class="month-row"><span>APR</span><em class="work"></em></div>
+                  <div class="month-row active"><span>MAY</span><em class="focus"></em><em class="growth"></em></div>
+                  <div class="month-row"><span>JUN</span><em class="daily"></em></div>
+                </section>
+                <section>
+                  <h3>Q3</h3>
+                  <div class="month-row"><span>JUL</span><em class="growth"></em></div>
+                  <div class="month-row"><span>AUG</span><em class="work"></em><em class="focus"></em></div>
+                  <div class="month-row"><span>SEP</span><em class="daily"></em></div>
+                </section>
+                <section>
+                  <h3>Q4</h3>
+                  <div class="month-row"><span>OCT</span><em class="focus"></em></div>
+                  <div class="month-row"><span>NOV</span><em class="work"></em></div>
+                  <div class="month-row"><span>DEC</span><em class="daily"></em><em class="growth"></em></div>
+                </section>
+              </div>
+
+              <div class="planner-bottom">
+                <section>
+                  <h3>本月任务</h3>
+                  <label><input type="checkbox" checked> 完成信箱封面样式统一</label>
+                  <label><input type="checkbox"> 补齐日计划时间格</label>
+                  <label><input type="checkbox"> 备份全部信件数据</label>
+                </section>
+                <section>
+                  <h3>复盘</h3>
+                  <p>把计划组件做成可嵌入、可跳转、可导出的信纸内容，而不是独立页面。</p>
+                </section>
+              </div>
+            </article>
+          </div>
+        </main>
+
+        <aside class="planner-inspector">
+          <div class="segmented">
+            <button class="active">属性</button>
+            <button>联动</button>
+          </div>
+          <section>
+            <h3>组件设置</h3>
+            <label>版式 <select><option>PLAN 季度概览</option><option>TASK 打卡版</option><option>GOAL 目标版</option></select></label>
+            <label>月份 <input value="2026-05"></label>
+            <label>透明度 <input value="92%"></label>
+          </section>
+          <section>
+            <h3>数据同步</h3>
+            <div class="sync-row"><span>年计划</span><strong>已同步</strong></div>
+            <div class="sync-row"><span>月计划</span><strong>5 个任务</strong></div>
+            <div class="sync-row"><span>日计划</span><strong>2 个提醒</strong></div>
+          </section>
+          <section class="publish-card safe">
+            <strong>讨论重点</strong>
+            <span>组件要能拖拽、缩放、进入内部编辑，并与手账/日记数据互通。</span>
+          </section>
+        </aside>
+      </div>
+    </section>
+  </main>
+</body>
+</html>

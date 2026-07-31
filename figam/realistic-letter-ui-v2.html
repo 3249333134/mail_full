@@ -1,0 +1,1946 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>信笺 UI 真实信纸质感 V2</title>
+  <style>
+    :root {
+      --bg: #e7ded1;
+      --bg-deep: #d4c7b8;
+      --surface: rgba(255, 250, 240, 0.86);
+      --surface-solid: #fff8eb;
+      --ink: #211913;
+      --text: #5e5044;
+      --muted: #8b7b6c;
+      --line: rgba(74, 49, 31, 0.16);
+      --accent: #9f4f35;
+      --accent-dark: #542c20;
+      --red: #b44945;
+      --blue: #2f6174;
+      --green: #4d6656;
+      --paper: #efe0c3;
+      --paper-light: #fff3d9;
+      --paper-edge: #b8895d;
+      --shadow: 0 28px 80px rgba(42, 29, 19, 0.18);
+      --small-shadow: 0 16px 42px rgba(42, 29, 19, 0.13);
+      --radius: 18px;
+      font-family: "Noto Serif SC", "Songti SC", "SimSun", Georgia, serif;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      margin: 0;
+      color: var(--ink);
+      background:
+        linear-gradient(90deg, rgba(65, 43, 27, 0.035) 1px, transparent 1px),
+        linear-gradient(rgba(65, 43, 27, 0.032) 1px, transparent 1px),
+        repeating-linear-gradient(24deg, rgba(255, 255, 255, 0.18) 0 1px, transparent 1px 9px),
+        var(--bg);
+      background-size: 36px 36px, 36px 36px, auto, auto;
+      overflow-x: hidden;
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      background:
+        linear-gradient(180deg, rgba(255, 248, 231, 0.76), rgba(221, 207, 188, 0.68)),
+        repeating-linear-gradient(90deg, rgba(92, 59, 34, 0.025) 0 1px, transparent 1px 5px);
+      mix-blend-mode: multiply;
+      opacity: 0.65;
+      z-index: -1;
+    }
+
+    a {
+      color: inherit;
+      text-decoration: none;
+    }
+
+    img {
+      max-width: 100%;
+      display: block;
+    }
+
+    button {
+      font: inherit;
+    }
+
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 30;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 20px;
+      padding: 16px clamp(18px, 4vw, 46px);
+      background: rgba(255, 249, 238, 0.88);
+      border-bottom: 1px solid var(--line);
+      backdrop-filter: blur(18px);
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-width: 220px;
+    }
+
+    .brand-mark,
+    .index-mark {
+      display: grid;
+      place-items: center;
+      width: 42px;
+      height: 42px;
+      color: #fff6e8;
+      background: #231f1b;
+      border-radius: 10px;
+      font: 700 14px/1 Georgia, serif;
+    }
+
+    .brand strong {
+      display: block;
+      font-size: 20px;
+      line-height: 1.1;
+    }
+
+    .brand span {
+      display: block;
+      margin-top: 3px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .topbar nav,
+    .inline-actions,
+    .chips,
+    .template-tabs {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 9px;
+    }
+
+    .topbar a,
+    .chip,
+    .pill-link,
+    .template-tabs button,
+    .action-button {
+      min-height: 40px;
+      padding: 0 14px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.56);
+      color: var(--text);
+      cursor: pointer;
+      transition: transform 180ms ease, background 180ms ease, color 180ms ease, border-color 180ms ease, box-shadow 180ms ease;
+    }
+
+    .topbar a:hover,
+    .pill-link:hover,
+    .template-tabs button:hover,
+    .template-tabs button.active,
+    .action-button.primary {
+      color: #fff8ec;
+      background: var(--accent);
+      border-color: var(--accent);
+      box-shadow: 0 10px 28px rgba(159, 79, 53, 0.24);
+    }
+
+    .topbar a:focus-visible,
+    .pill-link:focus-visible,
+    button:focus-visible {
+      outline: 3px solid rgba(47, 97, 116, 0.34);
+      outline-offset: 3px;
+    }
+
+    .page {
+      width: min(1620px, calc(100% - 40px));
+      margin: 30px auto 70px;
+    }
+
+    .hero {
+      display: grid;
+      grid-template-columns: minmax(0, 0.95fr) minmax(520px, 1.05fr);
+      gap: 28px;
+      align-items: stretch;
+    }
+
+    .hero-copy,
+    .hero-board,
+    .section,
+    .lab-shell,
+    .matrix-card,
+    .mailbox-workbench,
+    .handoff {
+      background: var(--surface);
+      border: 1px solid rgba(255, 255, 255, 0.62);
+      border-radius: 24px;
+      box-shadow: var(--shadow);
+    }
+
+    .hero-copy {
+      padding: clamp(28px, 4vw, 54px);
+      overflow: hidden;
+    }
+
+    .eyebrow {
+      margin: 0 0 10px;
+      color: var(--accent);
+      font: 700 11px/1.3 Arial, sans-serif;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+
+    h1,
+    h2,
+    h3,
+    p {
+      margin-top: 0;
+    }
+
+    h1 {
+      max-width: 760px;
+      margin-bottom: 18px;
+      font-size: clamp(38px, 6vw, 88px);
+      line-height: 0.98;
+      letter-spacing: 0;
+    }
+
+    h2 {
+      margin-bottom: 12px;
+      font-size: clamp(26px, 3vw, 42px);
+      line-height: 1.12;
+    }
+
+    h3 {
+      margin-bottom: 8px;
+      font-size: 22px;
+      line-height: 1.24;
+    }
+
+    p {
+      color: var(--text);
+      line-height: 1.78;
+    }
+
+    .hero-copy > p:last-of-type {
+      max-width: 720px;
+      margin-bottom: 26px;
+      font-size: 17px;
+    }
+
+    .chips {
+      margin-bottom: 28px;
+    }
+
+    .chip {
+      min-height: 34px;
+      color: var(--accent-dark);
+      background: rgba(255, 243, 223, 0.8);
+    }
+
+    .quality-list {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+      margin-top: 28px;
+    }
+
+    .quality-list article {
+      padding: 15px;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: rgba(255, 255, 255, 0.42);
+    }
+
+    .quality-list strong {
+      display: block;
+      margin-bottom: 6px;
+      color: var(--ink);
+    }
+
+    .quality-list span {
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.6;
+    }
+
+    .hero-board {
+      position: relative;
+      min-height: 540px;
+      padding: 22px;
+      overflow: hidden;
+      background:
+        linear-gradient(135deg, rgba(76, 47, 30, 0.18), transparent 30%),
+        linear-gradient(180deg, rgba(255, 248, 234, 0.76), rgba(212, 194, 169, 0.66)),
+        var(--surface-solid);
+    }
+
+    .desk-collage {
+      position: relative;
+      min-height: 500px;
+      border-radius: 20px;
+      background:
+        linear-gradient(90deg, rgba(90, 55, 32, 0.18), transparent 22%, rgba(255, 255, 255, 0.2) 58%, rgba(75, 49, 32, 0.12)),
+        #c4aa8c;
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.38), 0 20px 56px rgba(43, 28, 18, 0.18);
+      overflow: hidden;
+    }
+
+    .desk-collage::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background:
+        repeating-linear-gradient(92deg, rgba(71, 45, 24, 0.055) 0 1px, transparent 1px 11px),
+        linear-gradient(120deg, rgba(255, 255, 255, 0.22), transparent 46%);
+      mix-blend-mode: multiply;
+      pointer-events: none;
+    }
+
+    .reference-photo {
+      position: absolute;
+      overflow: hidden;
+      background: #fff8ea;
+      border: 1px solid rgba(72, 48, 31, 0.18);
+      border-radius: 8px;
+      box-shadow: 0 20px 44px rgba(45, 31, 21, 0.24);
+      transform-origin: center;
+    }
+
+    .reference-photo.main {
+      left: 7%;
+      top: 9%;
+      width: 68%;
+      transform: rotate(-2.4deg);
+    }
+
+    .reference-photo.side {
+      right: 5%;
+      bottom: 7%;
+      width: 44%;
+      transform: rotate(4deg);
+    }
+
+    .reference-photo img {
+      width: 100%;
+      height: 100%;
+      aspect-ratio: 1817 / 1277;
+      object-fit: cover;
+      filter: sepia(0.08) contrast(1.04) saturate(0.94);
+    }
+
+    .photo-caption {
+      position: absolute;
+      left: 22px;
+      bottom: 20px;
+      z-index: 2;
+      max-width: 360px;
+      padding: 14px 16px;
+      color: #fff8ea;
+      background: rgba(35, 26, 20, 0.78);
+      border: 1px solid rgba(255, 255, 255, 0.16);
+      border-radius: 14px;
+      backdrop-filter: blur(12px);
+    }
+
+    .photo-caption strong {
+      display: block;
+      margin-bottom: 4px;
+    }
+
+    .photo-caption span {
+      color: rgba(255, 248, 234, 0.78);
+      font-size: 13px;
+      line-height: 1.65;
+    }
+
+    .section,
+    .lab-shell,
+    .mailbox-workbench,
+    .handoff {
+      margin-top: 28px;
+      padding: clamp(22px, 4vw, 36px);
+    }
+
+    .section-head {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 18px;
+      margin-bottom: 22px;
+    }
+
+    .section-head p {
+      max-width: 780px;
+      margin-bottom: 0;
+    }
+
+    .status-card {
+      flex: 0 0 auto;
+      max-width: 360px;
+      padding: 16px 18px;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      background: rgba(255, 255, 255, 0.44);
+      color: var(--text);
+      font-size: 14px;
+      line-height: 1.7;
+    }
+
+    .design-rail {
+      display: grid;
+      grid-template-columns: repeat(6, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .rail-card {
+      min-height: 132px;
+      padding: 16px;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.62), rgba(255, 244, 226, 0.42));
+      transition: transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease;
+    }
+
+    .rail-card:hover {
+      transform: translateY(-3px);
+      border-color: rgba(159, 79, 53, 0.38);
+      box-shadow: var(--small-shadow);
+    }
+
+    .rail-card span {
+      display: inline-grid;
+      place-items: center;
+      width: 34px;
+      height: 34px;
+      margin-bottom: 14px;
+      color: #fff8ec;
+      background: #24201d;
+      border-radius: 9px;
+      font: 700 12px/1 Arial, sans-serif;
+    }
+
+    .rail-card strong {
+      display: block;
+      margin-bottom: 8px;
+      font-size: 17px;
+    }
+
+    .rail-card small {
+      color: var(--muted);
+      line-height: 1.55;
+    }
+
+    .lab-shell {
+      display: grid;
+      grid-template-columns: minmax(290px, 360px) minmax(0, 1fr);
+      gap: 22px;
+      align-items: start;
+    }
+
+    .template-panel {
+      position: sticky;
+      top: 94px;
+      display: grid;
+      gap: 16px;
+      max-height: calc(100dvh - 116px);
+      overflow: auto;
+      padding-right: 4px;
+    }
+
+    .template-tabs button {
+      min-height: 42px;
+      border-radius: 12px;
+    }
+
+    .template-list {
+      display: grid;
+      gap: 10px;
+    }
+
+    .template-item {
+      display: grid;
+      grid-template-columns: 82px minmax(0, 1fr);
+      gap: 12px;
+      width: 100%;
+      min-height: 100px;
+      padding: 10px;
+      text-align: left;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      background: rgba(255, 255, 255, 0.5);
+      cursor: pointer;
+      transition: transform 160ms ease, border-color 160ms ease, box-shadow 160ms ease;
+    }
+
+    .template-item:hover,
+    .template-item.active {
+      transform: translateY(-2px);
+      border-color: rgba(159, 79, 53, 0.45);
+      box-shadow: 0 14px 34px rgba(42, 29, 19, 0.12);
+    }
+
+    .template-thumb {
+      width: 82px;
+      height: 82px;
+      overflow: hidden;
+      border-radius: 12px;
+      background: #d8c7b5;
+      box-shadow: inset 0 0 0 1px rgba(69, 43, 25, 0.12);
+    }
+
+    .template-thumb img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transform: scale(1.08);
+    }
+
+    .template-item strong,
+    .template-item span {
+      display: block;
+    }
+
+    .template-item strong {
+      margin: 4px 0 5px;
+      color: var(--ink);
+      font-size: 16px;
+    }
+
+    .template-item span {
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.55;
+    }
+
+    .preview-stage {
+      min-width: 0;
+    }
+
+    .stage-toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      margin-bottom: 18px;
+    }
+
+    .stage-toolbar h2 {
+      margin-bottom: 4px;
+    }
+
+    .stage-toolbar p {
+      margin-bottom: 0;
+      color: var(--muted);
+    }
+
+    .material-stage {
+      display: grid;
+      grid-template-columns: minmax(0, 1.18fr) minmax(280px, 0.82fr);
+      gap: 18px;
+      align-items: stretch;
+    }
+
+    .photo-table {
+      position: relative;
+      min-height: 640px;
+      padding: clamp(22px, 3vw, 42px);
+      overflow: hidden;
+      border: 1px solid rgba(255, 255, 255, 0.48);
+      border-radius: 22px;
+      background:
+        linear-gradient(90deg, rgba(52, 33, 20, 0.28), transparent 22%, rgba(255, 255, 255, 0.16) 56%, rgba(58, 38, 24, 0.24)),
+        repeating-linear-gradient(90deg, rgba(48, 31, 18, 0.05) 0 1px, transparent 1px 15px),
+        #b89874;
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.32), var(--small-shadow);
+    }
+
+    .photo-table::before {
+      content: "";
+      position: absolute;
+      inset: 8%;
+      background: rgba(255, 242, 213, 0.28);
+      filter: blur(36px);
+      transform: rotate(-10deg);
+      pointer-events: none;
+    }
+
+    .selected-object {
+      position: absolute;
+      overflow: hidden;
+      background: var(--paper);
+      border: 1px solid rgba(83, 55, 34, 0.26);
+      box-shadow: 0 28px 54px rgba(36, 22, 13, 0.28);
+      isolation: isolate;
+    }
+
+    .selected-object::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background:
+        linear-gradient(90deg, rgba(91, 56, 31, 0.18), transparent 3%, transparent 96%, rgba(91, 56, 31, 0.14)),
+        linear-gradient(180deg, rgba(255, 255, 255, 0.24), transparent 38%, rgba(91, 56, 31, 0.16)),
+        repeating-linear-gradient(16deg, rgba(47, 31, 18, 0.05) 0 1px, transparent 1px 8px);
+      mix-blend-mode: multiply;
+      pointer-events: none;
+      z-index: 3;
+    }
+
+    .selected-object img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      filter: sepia(0.05) contrast(1.02) saturate(0.95);
+    }
+
+    .selected-envelope {
+      left: 9%;
+      top: 10%;
+      width: min(47%, 520px);
+      aspect-ratio: 1.2 / 1;
+      border-radius: 10px;
+      transform: rotate(-7deg);
+      z-index: 4;
+    }
+
+    .selected-paper {
+      right: 8%;
+      bottom: 8%;
+      width: min(55%, 560px);
+      aspect-ratio: 0.74 / 1;
+      border-radius: 4px;
+      transform: rotate(4deg);
+      z-index: 5;
+    }
+
+    .paper-fold {
+      position: absolute;
+      inset: 0;
+      z-index: 4;
+      pointer-events: none;
+      background:
+        linear-gradient(90deg, transparent 48.5%, rgba(71, 45, 24, 0.16) 49.7%, rgba(255, 255, 255, 0.22) 50.5%, transparent 52%),
+        linear-gradient(180deg, transparent 49%, rgba(71, 45, 24, 0.15) 50%, rgba(255, 255, 255, 0.16) 51%, transparent 52%);
+      mix-blend-mode: multiply;
+    }
+
+    .desk-tool {
+      position: absolute;
+      z-index: 6;
+      border-radius: 999px;
+      box-shadow: 0 16px 28px rgba(34, 21, 13, 0.26);
+      transform: rotate(-18deg);
+    }
+
+    .desk-tool.pen {
+      left: 18%;
+      bottom: 18%;
+      width: 260px;
+      height: 12px;
+      background:
+        linear-gradient(90deg, #161513, #534538 26%, #181614 44%, #7e6f5f 56%, #211c18);
+    }
+
+    .desk-tool.ink {
+      right: 10%;
+      top: 10%;
+      width: 58px;
+      height: 72px;
+      border-radius: 16px 16px 22px 22px;
+      background:
+        linear-gradient(90deg, rgba(255, 255, 255, 0.34), transparent 30%),
+        linear-gradient(180deg, #211812, #0c0a08);
+      transform: rotate(4deg);
+    }
+
+    .pressed-flower {
+      position: absolute;
+      right: 6%;
+      bottom: 6%;
+      z-index: 7;
+      width: 96px;
+      height: 72px;
+      opacity: 0.82;
+      filter: drop-shadow(0 10px 12px rgba(58, 29, 23, 0.22));
+    }
+
+    .pressed-flower::before,
+    .pressed-flower::after {
+      content: "";
+      position: absolute;
+      border-radius: 60% 40% 55% 45%;
+      background: #b34b3d;
+    }
+
+    .pressed-flower::before {
+      left: 8px;
+      bottom: 8px;
+      width: 58px;
+      height: 42px;
+      transform: rotate(-18deg);
+    }
+
+    .pressed-flower::after {
+      right: 4px;
+      bottom: 3px;
+      width: 52px;
+      height: 34px;
+      background: #82392f;
+      transform: rotate(16deg);
+    }
+
+    .detail-panel {
+      display: grid;
+      gap: 14px;
+      min-height: 100%;
+    }
+
+    .detail-card,
+    .layer-card,
+    .operation-card {
+      padding: 18px;
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      background: rgba(255, 255, 255, 0.48);
+    }
+
+    .detail-card h3 {
+      margin-bottom: 10px;
+    }
+
+    .meta-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+      margin-top: 14px;
+    }
+
+    .meta-grid div {
+      padding: 12px;
+      border: 1px solid rgba(74, 49, 31, 0.12);
+      border-radius: 12px;
+      background: rgba(255, 248, 236, 0.66);
+    }
+
+    .meta-grid strong,
+    .meta-grid span {
+      display: block;
+    }
+
+    .meta-grid strong {
+      margin-bottom: 4px;
+      font-size: 13px;
+    }
+
+    .meta-grid span {
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.45;
+    }
+
+    .layer-bars {
+      display: grid;
+      gap: 10px;
+    }
+
+    .layer-bars li {
+      display: grid;
+      grid-template-columns: 86px minmax(0, 1fr) 42px;
+      gap: 10px;
+      align-items: center;
+      color: var(--text);
+      font-size: 13px;
+    }
+
+    .layer-bars ul {
+      display: contents;
+    }
+
+    .bar {
+      height: 8px;
+      overflow: hidden;
+      border-radius: 999px;
+      background: rgba(65, 43, 27, 0.1);
+    }
+
+    .bar i {
+      display: block;
+      height: 100%;
+      border-radius: inherit;
+      background: linear-gradient(90deg, var(--accent), #d8a95f);
+    }
+
+    .operation-flow {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 14px;
+      margin-top: 18px;
+    }
+
+    .operation-card {
+      min-height: 164px;
+    }
+
+    .operation-card .index-mark {
+      width: 38px;
+      height: 38px;
+      margin-bottom: 16px;
+    }
+
+    .operation-card p {
+      margin-bottom: 0;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .matrix-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 16px;
+    }
+
+    .matrix-card {
+      padding: 18px;
+      box-shadow: var(--small-shadow);
+    }
+
+    .matrix-card header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+
+    .matrix-card header span {
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .matrix-screen {
+      min-height: 290px;
+      padding: 16px;
+      border: 1px solid rgba(74, 49, 31, 0.14);
+      border-radius: 16px;
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.55), rgba(255, 244, 224, 0.48));
+    }
+
+    .screen-top {
+      height: 34px;
+      margin-bottom: 16px;
+      border-bottom: 1px solid rgba(74, 49, 31, 0.12);
+    }
+
+    .screen-row,
+    .screen-card,
+    .screen-panel {
+      border: 1px solid rgba(74, 49, 31, 0.12);
+      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.52);
+    }
+
+    .screen-row {
+      display: grid;
+      grid-template-columns: 44px minmax(0, 1fr) auto;
+      gap: 10px;
+      align-items: center;
+      min-height: 58px;
+      margin-bottom: 10px;
+      padding: 8px 10px;
+    }
+
+    .mini-envelope {
+      position: relative;
+      width: 42px;
+      height: 28px;
+      background: #f4dbc5;
+      border: 1px solid var(--accent);
+      border-radius: 4px;
+    }
+
+    .mini-envelope::before,
+    .mini-envelope::after {
+      content: "";
+      position: absolute;
+      top: 0;
+      width: 50%;
+      height: 100%;
+      border-top: 1px solid rgba(159, 79, 53, 0.5);
+    }
+
+    .mini-envelope::before {
+      left: 0;
+      transform: skewY(32deg);
+      transform-origin: top right;
+    }
+
+    .mini-envelope::after {
+      right: 0;
+      transform: skewY(-32deg);
+      transform-origin: top left;
+    }
+
+    .screen-row strong,
+    .screen-card strong,
+    .screen-panel strong {
+      display: block;
+      color: var(--ink);
+      font-size: 14px;
+    }
+
+    .screen-row small,
+    .screen-card small,
+    .screen-panel small {
+      display: block;
+      margin-top: 4px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.45;
+    }
+
+    .screen-badge {
+      display: inline-grid;
+      place-items: center;
+      min-width: 30px;
+      height: 24px;
+      padding: 0 8px;
+      color: #fff8ec;
+      background: var(--accent);
+      border-radius: 999px;
+      font-size: 12px;
+    }
+
+    .screen-card {
+      min-height: 86px;
+      margin-bottom: 10px;
+      padding: 12px;
+    }
+
+    .screen-panel {
+      padding: 12px;
+    }
+
+    .slider-line {
+      height: 8px;
+      margin: 12px 0;
+      border-radius: 999px;
+      background: linear-gradient(90deg, var(--accent) 0 68%, rgba(77, 102, 86, 0.22) 68%);
+    }
+
+    .mailbox-layout {
+      display: grid;
+      grid-template-columns: minmax(0, 1.05fr) minmax(360px, 0.95fr);
+      gap: 20px;
+      align-items: stretch;
+    }
+
+    .mailbox-canvas {
+      position: relative;
+      min-height: 520px;
+      padding: 26px;
+      border-radius: 22px;
+      border: 1px solid rgba(255, 255, 255, 0.52);
+      background:
+        linear-gradient(135deg, rgba(80, 50, 32, 0.2), transparent 28%),
+        linear-gradient(180deg, #d9c7af, #b99b7c);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.28), var(--small-shadow);
+      overflow: hidden;
+    }
+
+    .mailbox-unit {
+      position: relative;
+      width: min(620px, 100%);
+      min-height: 370px;
+      margin: 42px auto 0;
+      padding: 30px;
+      color: #fff8ec;
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      border-radius: 26px;
+      background:
+        linear-gradient(135deg, rgba(255, 255, 255, 0.18), transparent 34%),
+        linear-gradient(180deg, #7f4b35, #4a2d22);
+      box-shadow: 0 28px 64px rgba(37, 23, 15, 0.28);
+      overflow: hidden;
+      isolation: isolate;
+    }
+
+    .mailbox-unit::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background:
+        radial-gradient(circle at 22% 34%, rgba(255, 255, 255, 0.22), transparent 9%),
+        repeating-linear-gradient(92deg, rgba(255, 255, 255, 0.06) 0 1px, transparent 1px 8px);
+      opacity: 0.72;
+      mix-blend-mode: overlay;
+      pointer-events: none;
+    }
+
+    .unit-header {
+      position: relative;
+      z-index: 2;
+      display: flex;
+      justify-content: space-between;
+      gap: 18px;
+      margin-bottom: 34px;
+    }
+
+    .unit-header span,
+    .unit-meta {
+      color: rgba(255, 248, 236, 0.72);
+      font-size: 13px;
+    }
+
+    .unit-object {
+      position: relative;
+      z-index: 2;
+      display: grid;
+      grid-template-columns: 170px minmax(0, 1fr);
+      gap: 26px;
+      align-items: center;
+    }
+
+    .mailbox-model {
+      position: relative;
+      width: 170px;
+      height: 124px;
+      border: 2px solid rgba(255, 248, 236, 0.86);
+      border-radius: 20px 20px 12px 12px;
+      background: linear-gradient(180deg, #efd7bd, #cc9d78);
+      box-shadow: 0 18px 26px rgba(39, 23, 14, 0.22);
+    }
+
+    .mailbox-model::before {
+      content: "";
+      position: absolute;
+      left: 22px;
+      right: 22px;
+      top: 44px;
+      height: 2px;
+      background: rgba(86, 46, 30, 0.42);
+    }
+
+    .mailbox-model::after {
+      content: "";
+      position: absolute;
+      right: -26px;
+      top: 22px;
+      width: 18px;
+      height: 58px;
+      border-radius: 8px 8px 3px 3px;
+      background: #d35e59;
+      box-shadow: -8px 12px 0 rgba(62, 36, 24, 0.16);
+    }
+
+    .unit-copy h3 {
+      margin-bottom: 8px;
+      font-size: 32px;
+    }
+
+    .unit-copy p {
+      color: rgba(255, 248, 236, 0.78);
+    }
+
+    .wax {
+      position: absolute;
+      right: 30px;
+      bottom: 28px;
+      z-index: 2;
+      display: grid;
+      place-items: center;
+      width: 74px;
+      height: 74px;
+      color: rgba(255, 248, 236, 0.9);
+      border-radius: 50%;
+      background:
+        radial-gradient(circle at 34% 24%, rgba(255, 255, 255, 0.18), transparent 24%),
+        #a54436;
+      box-shadow: inset 0 -8px 14px rgba(70, 24, 19, 0.24), 0 12px 22px rgba(38, 19, 14, 0.26);
+      font-size: 30px;
+      font-family: "STXingkai", "KaiTi", "FangSong", serif;
+    }
+
+    .settings-panel {
+      display: grid;
+      gap: 14px;
+    }
+
+    .setting-group {
+      padding: 18px;
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      background: rgba(255, 255, 255, 0.48);
+    }
+
+    .setting-group h3 {
+      margin-bottom: 14px;
+    }
+
+    .swatches {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 10px;
+    }
+
+    .swatch {
+      min-height: 44px;
+      border: 1px solid rgba(52, 34, 22, 0.16);
+      border-radius: 12px;
+      background: var(--c);
+      cursor: pointer;
+    }
+
+    .option-list {
+      display: grid;
+      gap: 8px;
+    }
+
+    .option-list label {
+      display: grid;
+      grid-template-columns: 20px minmax(0, 1fr);
+      gap: 10px;
+      align-items: center;
+      min-height: 44px;
+      color: var(--text);
+      cursor: pointer;
+    }
+
+    .handoff-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    .handoff-grid a {
+      min-height: 126px;
+      padding: 18px;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      background: rgba(255, 255, 255, 0.5);
+      transition: transform 180ms ease, box-shadow 180ms ease;
+    }
+
+    .handoff-grid a:hover {
+      transform: translateY(-3px);
+      box-shadow: var(--small-shadow);
+    }
+
+    .handoff-grid strong,
+    .handoff-grid span {
+      display: block;
+    }
+
+    .handoff-grid strong {
+      margin-bottom: 8px;
+    }
+
+    .handoff-grid span {
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.6;
+    }
+
+    .brush {
+      font-family: "STXingkai", "KaiTi", "FangSong", "Songti SC", serif;
+      font-weight: 500;
+    }
+
+    .mono {
+      font-family: "Courier New", "SFMono-Regular", Consolas, monospace;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *,
+      *::before,
+      *::after {
+        scroll-behavior: auto !important;
+        transition-duration: 0.01ms !important;
+        animation-duration: 0.01ms !important;
+      }
+    }
+
+    @media (max-width: 1280px) {
+      .hero,
+      .lab-shell,
+      .mailbox-layout,
+      .material-stage {
+        grid-template-columns: 1fr;
+      }
+
+      .template-panel {
+        position: static;
+        max-height: none;
+      }
+
+      .design-rail,
+      .matrix-grid,
+      .operation-flow,
+      .handoff-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .hero-board {
+        min-height: 500px;
+      }
+    }
+
+    @media (max-width: 760px) {
+      .topbar {
+        position: static;
+        align-items: flex-start;
+        flex-direction: column;
+      }
+
+      .page {
+        width: min(100% - 24px, 720px);
+        margin-top: 16px;
+      }
+
+      h1 {
+        font-size: clamp(34px, 12vw, 54px);
+      }
+
+      .hero-copy,
+      .hero-board,
+      .section,
+      .lab-shell,
+      .mailbox-workbench,
+      .handoff {
+        border-radius: 18px;
+      }
+
+      .hero {
+        gap: 16px;
+      }
+
+      .hero-board {
+        min-height: 440px;
+        padding: 14px;
+      }
+
+      .desk-collage {
+        min-height: 410px;
+      }
+
+      .reference-photo.main {
+        left: 4%;
+        top: 8%;
+        width: 82%;
+      }
+
+      .reference-photo.side {
+        width: 62%;
+        right: 2%;
+        bottom: 12%;
+      }
+
+      .photo-caption {
+        left: 12px;
+        right: 12px;
+        max-width: none;
+      }
+
+      .quality-list,
+      .design-rail,
+      .matrix-grid,
+      .operation-flow,
+      .handoff-grid,
+      .meta-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .section-head,
+      .stage-toolbar {
+        flex-direction: column;
+      }
+
+      .status-card {
+        max-width: none;
+      }
+
+      .photo-table {
+        min-height: 560px;
+      }
+
+      .selected-envelope {
+        left: 8%;
+        top: 8%;
+        width: 72%;
+      }
+
+      .selected-paper {
+        right: 6%;
+        bottom: 8%;
+        width: 76%;
+      }
+
+      .desk-tool.pen {
+        width: 190px;
+        left: 8%;
+      }
+
+      .unit-object {
+        grid-template-columns: 1fr;
+      }
+
+      .mailbox-unit {
+        min-height: 500px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="all-designs.html" aria-label="返回 Figam 设计总览">
+      <span class="brand-mark">信</span>
+      <span>
+        <strong>真实信笺 UI V2</strong>
+        <span>tactile letter system / figam output</span>
+      </span>
+    </a>
+    <nav aria-label="页面导航">
+      <a href="#references">真实参考</a>
+      <a href="#templates">模板库</a>
+      <a href="#flow">页面层级</a>
+      <a href="#mailbox">信箱设置</a>
+      <a href="#handoff">交付文件</a>
+    </nav>
+  </header>
+
+  <main class="page">
+    <section class="hero">
+      <div class="hero-copy">
+        <p class="eyebrow">UI/UX Pro Max Translation</p>
+        <h1>把信纸和信封做成“可触摸的实物系统”</h1>
+        <p>这版不再把信件模板当作普通卡片，而是按真实书信照片重新拆层：桌面光线、纸张厚度、折痕破角、邮戳票据、手写密度、印章和封套结构都进入 UI 规则。用户看到的不是装饰图，而是一套可以选择、编辑、保存和导出的真实信件材质。</p>
+        <div class="chips" aria-label="设计关键词">
+          <span class="chip">真实纸张纹理</span>
+          <span class="chip">毛笔 / 钢笔 / 打字机字体</span>
+          <span class="chip">信箱单元装饰</span>
+          <span class="chip">模板可点击切换</span>
+          <span class="chip">移动端全屏画布</span>
+        </div>
+        <div class="inline-actions">
+          <a class="pill-link" href="real-letter-generator.html">打开原真实信件生成器</a>
+          <a class="pill-link" href="mailbox-decorator.html">打开信箱装饰工作台</a>
+          <a class="pill-link" href="figma-web-export.html">打开现有 HTML 总览</a>
+        </div>
+        <div class="quality-list">
+          <article>
+            <strong>设计系统取向</strong>
+            <span>复古档案感 + 真实摄影材质，减少纯扁平装饰，强化“纸在桌面上”的空间关系。</span>
+          </article>
+          <article>
+            <strong>交互取向</strong>
+            <span>模板选择、信箱设置和导出都保留 44px 以上触控目标，并提供清晰选中状态。</span>
+          </article>
+          <article>
+            <strong>字体取向</strong>
+            <span>标题用宋体/黑体稳住信息层级，信件正文按模板切换毛笔、楷体、仿宋、等宽像素风。</span>
+          </article>
+          <article>
+            <strong>材质取向</strong>
+            <span>信纸不只换底色，而是叠加纤维、压痕、边缘泛黄、折线、污渍、水渍和墨迹深浅。</span>
+          </article>
+        </div>
+      </div>
+
+      <div class="hero-board" id="references" aria-label="真实参考母版">
+        <div class="desk-collage">
+          <figure class="reference-photo main">
+            <img src="../mailfile/信封/综合设计.png" alt="信封真实设计综合参考">
+          </figure>
+          <figure class="reference-photo side">
+            <img src="../mailfile/信纸/1.png" alt="信纸真实材质综合参考">
+          </figure>
+          <div class="photo-caption">
+            <strong>这两张图作为 V2 的真实感标准</strong>
+            <span>从单张背景纹理升级为“实物层级”：照片视角、纸张边缘、折痕阴影、邮政信息和手写痕迹共同构成模板。</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" aria-labelledby="rail-title">
+      <div class="section-head">
+        <div>
+          <p class="eyebrow">Current Figam Integration</p>
+          <h2 id="rail-title">把现有 figam 内容整合成可落地的设计路线</h2>
+          <p>新页面沿用你当前已有的主流程、页面层级、真实信件生成器、信箱装饰和材质母版，把它们收束到一个更清晰的 UI 入口里。</p>
+        </div>
+        <div class="status-card">本页为新增输出，不覆盖原文件。可以直接双击打开，也可以从这里跳回现有设计稿。</div>
+      </div>
+      <div class="design-rail">
+        <a class="rail-card" href="index.html">
+          <span>01</span>
+          <strong>主流程 UI</strong>
+          <small>信箱首页、阅读、编辑器和计划组件。</small>
+        </a>
+        <a class="rail-card" href="page-hierarchy.html">
+          <span>02</span>
+          <strong>页面层级</strong>
+          <small>一级到四级页面结构和弹窗关系。</small>
+        </a>
+        <a class="rail-card" href="next-step-design.html">
+          <span>03</span>
+          <strong>操作逻辑</strong>
+          <small>自动播放、草稿、备份、慢递和移动端。</small>
+        </a>
+        <a class="rail-card" href="real-letter-generator.html">
+          <span>04</span>
+          <strong>真实模板</strong>
+          <small>18 种信封与信纸模板的原型。</small>
+        </a>
+        <a class="rail-card" href="mailbox-decorator.html">
+          <span>05</span>
+          <strong>信箱设置</strong>
+          <small>把整个信箱当作可装饰单元。</small>
+        </a>
+        <a class="rail-card" href="material-effect-generator.html">
+          <span>06</span>
+          <strong>材质母版</strong>
+          <small>暖光桌面、墨水、折痕和旧纸质感。</small>
+        </a>
+      </div>
+    </section>
+
+    <section class="lab-shell" id="templates" aria-label="真实信件模板库">
+      <aside class="template-panel">
+        <div>
+          <p class="eyebrow">Template Library</p>
+          <h2>18 个真实感模板入口</h2>
+          <p>点击左侧模板，右侧会切换信封或信纸实物预览。这里使用你当前 `mailfile` 里的真实素材图作为母版。</p>
+        </div>
+        <div class="template-tabs" role="tablist" aria-label="模板类型">
+          <button class="active" type="button" data-filter="all">全部</button>
+          <button type="button" data-filter="envelope">信封</button>
+          <button type="button" data-filter="paper">信纸</button>
+        </div>
+        <div class="template-list" id="templateList" aria-live="polite"></div>
+      </aside>
+
+      <section class="preview-stage">
+        <div class="stage-toolbar">
+          <div>
+            <p class="eyebrow">Clickable Material Preview</p>
+            <h2 id="stageTitle">旧邮戳叠放信封 + 80年代横线家书</h2>
+            <p id="stageSummary">把信封和信纸作为真实物件叠在桌面上，观察阴影、折痕和手写字体关系。</p>
+          </div>
+          <div class="inline-actions">
+            <button class="action-button" type="button" id="shuffleButton">随机搭配</button>
+            <button class="action-button primary" type="button" id="saveButton">保存为信箱默认</button>
+          </div>
+        </div>
+
+        <div class="material-stage">
+          <div class="photo-table" aria-label="真实信件桌面预览">
+            <div class="selected-object selected-envelope">
+              <img id="envelopeImage" src="../mailfile/信封/1.png" alt="当前信封模板">
+              <div class="paper-fold"></div>
+            </div>
+            <div class="selected-object selected-paper">
+              <img id="paperImage" src="../mailfile/信纸/2.png" alt="当前信纸模板">
+              <div class="paper-fold"></div>
+            </div>
+            <div class="desk-tool pen" aria-hidden="true"></div>
+            <div class="desk-tool ink" aria-hidden="true"></div>
+            <div class="pressed-flower" aria-hidden="true"></div>
+          </div>
+
+          <aside class="detail-panel">
+            <article class="detail-card">
+              <p class="eyebrow">Selected DNA</p>
+              <h3 id="detailTitle">旧邮戳叠放信封</h3>
+              <p id="detailDesc">多封叠放、圆戳、销票波纹、发黄破角，适合普通来信和旧档案入口。</p>
+              <div class="meta-grid">
+                <div>
+                  <strong>字体建议</strong>
+                  <span id="fontHint">楷体收件人 + 钢笔小字</span>
+                </div>
+                <div>
+                  <strong>适用页面</strong>
+                  <span id="pageHint">信箱卡片 / 阅读封面 / 模板详情</span>
+                </div>
+                <div>
+                  <strong>材质重点</strong>
+                  <span id="materialHint">邮戳压印、边缘阴影、旧纸黄斑</span>
+                </div>
+                <div>
+                  <strong>交互动作</strong>
+                  <span id="motionHint">拆信前轻微抬起，点击后纸张展开</span>
+                </div>
+              </div>
+            </article>
+
+            <article class="layer-card">
+              <p class="eyebrow">Realism Layers</p>
+              <h3>真实感分层参数</h3>
+              <div class="layer-bars">
+                <ul>
+                  <li><span>纸张纤维</span><span class="bar"><i style="width: 86%"></i></span><strong>86</strong></li>
+                  <li><span>折痕压痕</span><span class="bar"><i style="width: 78%"></i></span><strong>78</strong></li>
+                  <li><span>邮戳票据</span><span class="bar"><i style="width: 72%"></i></span><strong>72</strong></li>
+                  <li><span>手写密度</span><span class="bar"><i style="width: 82%"></i></span><strong>82</strong></li>
+                  <li><span>桌面阴影</span><span class="bar"><i style="width: 90%"></i></span><strong>90</strong></li>
+                </ul>
+              </div>
+            </article>
+
+            <article class="detail-card">
+              <p class="eyebrow">Typography</p>
+              <h3>字体系统</h3>
+              <p><span class="brush">毛笔/旧信正文用 STXingkai、KaiTi、FangSong 兜底；</span>钢笔信使用仿宋与蓝墨色；电报、赛博和打印件使用等宽字体。</p>
+            </article>
+          </aside>
+        </div>
+      </section>
+    </section>
+
+    <section class="section" id="flow" aria-labelledby="flow-title">
+      <div class="section-head">
+        <div>
+          <p class="eyebrow">Operation Logic</p>
+          <h2 id="flow-title">按一级到四级页面重排操作逻辑</h2>
+          <p>高频操作放到一级或二级；真实材质微调、导出格式和高级参数放进三级/四级，避免用户一进来就被复杂选项压住。</p>
+        </div>
+      </div>
+      <div class="operation-flow">
+        <article class="operation-card">
+          <span class="index-mark">01</span>
+          <h3>一级：我的信箱</h3>
+          <p>显示信箱单元、快速继续、最近来信、全局搜索。每个信箱都使用已保存的真实装饰。</p>
+        </article>
+        <article class="operation-card">
+          <span class="index-mark">02</span>
+          <h3>二级：信箱详情</h3>
+          <p>信件轮播、筛选标签、写信入口和信箱设置入口。信封真实材质作为核心视觉。</p>
+        </article>
+        <article class="operation-card">
+          <span class="index-mark">03</span>
+          <h3>三级：编辑器</h3>
+          <p>模板选择、正文书写、贴纸照片、录音提示、撤销重做、自动草稿和预览。</p>
+        </article>
+        <article class="operation-card">
+          <span class="index-mark">04</span>
+          <h3>四级：材质参数</h3>
+          <p>折痕、纸纤维、墨迹、邮戳、封套、导出长图和投递包封面等高级设置。</p>
+        </article>
+      </div>
+
+      <div class="matrix-grid" style="margin-top: 18px;">
+        <article class="matrix-card">
+          <header><strong>一级首页</strong><span>Mailbox Gallery</span></header>
+          <div class="matrix-screen">
+            <div class="screen-top"></div>
+            <div class="screen-row"><span class="mini-envelope"></span><span><strong>布雷诺来信</strong><small>真实旧纸封套</small></span><em class="screen-badge">25</em></div>
+            <div class="screen-row"><span class="mini-envelope"></span><span><strong>小王子来信</strong><small>红蜡封与玫瑰章</small></span><em class="screen-badge">11</em></div>
+            <div class="screen-card"><strong>快速继续</strong><small>上次读到第五封，点击回到阅读器。</small></div>
+          </div>
+        </article>
+        <article class="matrix-card">
+          <header><strong>二级信箱</strong><span>Letter Carousel</span></header>
+          <div class="matrix-screen">
+            <div class="screen-top"></div>
+            <div class="screen-card"><strong>立体信封轮播</strong><small>封套抬起、邮戳显示、左右滑动切换。</small></div>
+            <div class="screen-card"><strong>标签筛选</strong><small>未读、待回信、重要、自定义标签。</small></div>
+            <div class="screen-card"><strong>信箱设置</strong><small>进入整块单元装饰，不只是改图标。</small></div>
+          </div>
+        </article>
+        <article class="matrix-card">
+          <header><strong>三级编辑</strong><span>Canvas Editor</span></header>
+          <div class="matrix-screen">
+            <div class="screen-top"></div>
+            <div class="screen-card"><strong>模板选择</strong><small>信封、信纸、字体、照片叠放、印章。</small></div>
+            <div class="screen-card"><strong>基础能力</strong><small>撤销重做、对齐线、层级、自动草稿。</small></div>
+            <div class="slider-line"></div>
+            <div class="screen-panel"><strong>音频提示</strong><small>拆信后出现播放气泡，避免自动播放失效。</small></div>
+          </div>
+        </article>
+        <article class="matrix-card">
+          <header><strong>四级参数</strong><span>Material Drawer</span></header>
+          <div class="matrix-screen">
+            <div class="screen-top"></div>
+            <div class="screen-panel"><strong>纸张层</strong><small>纤维、折痕、破角、水渍、页号。</small></div>
+            <div class="screen-panel" style="margin-top:10px;"><strong>邮政层</strong><small>邮票、邮戳、编号、航邮边、地址线。</small></div>
+            <div class="screen-panel" style="margin-top:10px;"><strong>导出层</strong><small>长图、投递包、信箱封面、备份包。</small></div>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <section class="mailbox-workbench" id="mailbox" aria-labelledby="mailbox-title">
+      <div class="section-head">
+        <div>
+          <p class="eyebrow">Mailbox Unit Designer</p>
+          <h2 id="mailbox-title">信箱设置：整个块作为一个可装饰单元</h2>
+          <p>信箱不是单独图标加标题，而是一个可保存的整体组件。它会同步到左侧列表、首页卡片、信箱详情、快速继续和写信默认模板。</p>
+        </div>
+        <div class="status-card">推荐操作：选择材质，调整主色，添加邮戳/蜡封/挂件/贴纸，保存为信箱主题。</div>
+      </div>
+      <div class="mailbox-layout">
+        <div class="mailbox-canvas">
+          <div class="mailbox-unit">
+            <div class="unit-header">
+              <span>正在阅读</span>
+              <span>2002.05.20 / 25 封</span>
+            </div>
+            <div class="unit-object">
+              <div class="mailbox-model" aria-hidden="true"></div>
+              <div class="unit-copy">
+                <h3>布雷诺来信</h3>
+                <p>以撒致缪宏谟的二十五封信。主题使用旧纸、朱红蜡封、圆戳和桌面投影。</p>
+                <div class="unit-meta">同步到：首页卡片 / 信箱详情 / 阅读封面 / 写信模板</div>
+              </div>
+            </div>
+            <div class="wax">缪</div>
+          </div>
+        </div>
+        <aside class="settings-panel">
+          <article class="setting-group">
+            <h3>材质选择</h3>
+            <div class="option-list">
+              <label><input type="radio" name="material" checked> 旧纸封套：适合回忆、档案、家书</label>
+              <label><input type="radio" name="material"> 木盒信箱：适合收藏、慢递、双人信箱</label>
+              <label><input type="radio" name="material"> 透明档案袋：适合现代邮件和备份包</label>
+            </div>
+          </article>
+          <article class="setting-group">
+            <h3>主色与印章</h3>
+            <div class="swatches" aria-label="主题色">
+              <button class="swatch" type="button" style="--c:#9f4f35" aria-label="陶土红"></button>
+              <button class="swatch" type="button" style="--c:#2f6174" aria-label="航邮蓝"></button>
+              <button class="swatch" type="button" style="--c:#4d6656" aria-label="旧绿"></button>
+              <button class="swatch" type="button" style="--c:#b44945" aria-label="朱红"></button>
+              <button class="swatch" type="button" style="--c:#2b211c" aria-label="墨黑"></button>
+            </div>
+          </article>
+          <article class="setting-group">
+            <h3>装饰插槽</h3>
+            <div class="option-list">
+              <label><input type="checkbox" checked> 蜡封印章</label>
+              <label><input type="checkbox" checked> 邮戳与编号</label>
+              <label><input type="checkbox" checked> 桌面阴影和旧纸边缘</label>
+              <label><input type="checkbox"> 旧照片叠放</label>
+              <label><input type="checkbox"> 主题挂件</label>
+            </div>
+          </article>
+        </aside>
+      </div>
+    </section>
+
+    <section class="handoff" id="handoff" aria-labelledby="handoff-title">
+      <div class="section-head">
+        <div>
+          <p class="eyebrow">HTML Output</p>
+          <h2 id="handoff-title">输出到 figam 文件夹的可打开文件</h2>
+          <p>本页面是新的 UI 优化入口，同时保留到原始设计稿的跳转。你可以直接打开这个 HTML 查看 V2 真实信纸和信封设计方向。</p>
+        </div>
+      </div>
+      <div class="handoff-grid">
+        <a href="realistic-letter-ui-v2.html"><strong>realistic-letter-ui-v2.html</strong><span>本次新增的真实信纸/信封 UI V2 可点击样机。</span></a>
+        <a href="real-letter-generator.html"><strong>real-letter-generator.html</strong><span>原 18 种真实信件生成器模板页面。</span></a>
+        <a href="mailbox-decorator.html"><strong>mailbox-decorator.html</strong><span>信箱整体单元装饰与设置工作台。</span></a>
+        <a href="../mailfile/信封/综合设计.png"><strong>信封综合设计.png</strong><span>本次信封真实感参考母版。</span></a>
+        <a href="../mailfile/信纸/1.png"><strong>信纸/1.png</strong><span>本次信纸真实感参考母版。</span></a>
+        <a href="figma-file-html-export.html"><strong>figma-file-html-export.html</strong><span>之前导出的 Figma 文件级 HTML 页面。</span></a>
+        <a href="realistic-paper-system.css"><strong>realistic-paper-system.css</strong><span>现有全局纸张、折痕、污渍和信封材质层。</span></a>
+        <a href="all-designs.html"><strong>all-designs.html</strong><span>当前 figam 文件夹所有设计稿总览。</span></a>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const templates = [
+      {
+        type: "envelope",
+        title: "旧邮戳叠放信封",
+        file: "../mailfile/信封/1.png",
+        desc: "多封叠放、圆戳、销票波纹、发黄破角，适合普通来信和旧档案入口。",
+        font: "楷体收件人 + 钢笔小字",
+        page: "信箱卡片 / 阅读封面 / 模板详情",
+        material: "邮戳压印、边缘阴影、旧纸黄斑",
+        motion: "拆信前轻微抬起，点击后纸张展开"
+      },
+      {
+        type: "envelope",
+        title: "航邮蓝红边封",
+        file: "../mailfile/信封/2.png",
+        desc: "PAR AVION 标签、红蓝斜边、邮戳压线，适合跨地寄信和慢递投递。",
+        font: "英文等宽 + 手写签名",
+        page: "时光信箱 / 投递中状态",
+        material: "航邮边、邮票胶痕、地址线",
+        motion: "飞入式投递，落桌后轻微回弹"
+      },
+      {
+        type: "envelope",
+        title: "中式牛皮纸信封",
+        file: "../mailfile/信封/3.png",
+        desc: "红框地址栏、竖排题签、牛皮纸厚度，适合正式家书和古风剧情。",
+        font: "仿宋题签 + 毛笔收件人",
+        page: "古风信箱 / 正式信件",
+        material: "牛皮纸颗粒、红框褪色、角落磨损",
+        motion: "封套翻面，题签先进入视线"
+      },
+      {
+        type: "envelope",
+        title: "电报急件",
+        file: "../mailfile/信封/4.png",
+        desc: "表格、编号、STOP 断句、收发章，适合短促消息和高紧张剧情。",
+        font: "等宽打字机体",
+        page: "急件 / 通知 / 系统消息",
+        material: "低饱和纸张、编号油墨、机器压痕",
+        motion: "盖章闪现后停留"
+      },
+      {
+        type: "envelope",
+        title: "侨批红带封套",
+        file: "../mailfile/信封/5.png",
+        desc: "成叠纸边、红色束带、竖写姓名和汇款字样，适合沉重家书。",
+        font: "粗黑标题 + 毛笔题名",
+        page: "侨批主题 / 家族信箱",
+        material: "纸叠厚度、红带磨损、票据边缘",
+        motion: "红带先松开，再展示信封"
+      },
+      {
+        type: "envelope",
+        title: "旧票据批信",
+        file: "../mailfile/信封/6.png",
+        desc: "红栏表格、印章覆盖、脆纸扫描感，适合档案和审阅类信件。",
+        font: "仿宋小字 + 印章朱红",
+        page: "档案信 / 审阅信件",
+        material: "扫描噪点、折痕、表格线不均",
+        motion: "票据左右分开，露出正文"
+      },
+      {
+        type: "envelope",
+        title: "竖排照片家书",
+        file: "../mailfile/信封/7.png",
+        desc: "红色竖线、旧照片、航空边、桌面道具，接近 P7/P8 家书目标。",
+        font: "毛笔竖排 + 照片说明小字",
+        page: "阅读器 / 长信分页",
+        material: "照片压痕、纸面阴影、花瓣遮挡",
+        motion: "照片轻轻滑开，正文从下方出现"
+      },
+      {
+        type: "envelope",
+        title: "现代邮件材质",
+        file: "../mailfile/信封/8.png",
+        desc: "快递标签、条码、透明窗口、牛皮纸箱或档案袋材质。",
+        font: "系统无衬线 + 等宽条码",
+        page: "导出包 / 备份包 / 现代信件",
+        material: "标签纸、胶带、透明塑料窗口",
+        motion: "标签扫描线通过，进入预览"
+      },
+      {
+        type: "envelope",
+        title: "信封综合母版",
+        file: "../mailfile/信封/综合设计.png",
+        desc: "把 8 种信封真实结构集中成一张设计校准板，用来检查封套、邮戳、地址线、折痕和桌面阴影。",
+        font: "宋体说明 + 模板内继承字体",
+        page: "设计规范 / 模板总览 / 质感校准",
+        material: "真实照片层、邮政层、内容层、折痕层",
+        motion: "作为规范页静态展示，也可进入单模板细调"
+      },
+      {
+        type: "paper",
+        title: "80年代横线家书",
+        file: "../mailfile/信纸/2.png",
+        desc: "白纸横线、普通信封、钢尺压住、黑墨手写，适合生活感叙事。",
+        font: "钢笔手写风 + 仿宋",
+        page: "长信阅读 / 普通信纸",
+        material: "纸面压痕、蓝灰横线、钢尺阴影",
+        motion: "页面轻微展开，正文淡入"
+      },
+      {
+        type: "paper",
+        title: "红色竖栏信纸",
+        file: "../mailfile/信纸/3.png",
+        desc: "红色竖线、页号、轻微褶皱、空白可书写，适合中式长信。",
+        font: "楷体或行楷竖排",
+        page: "古风信 / 竖排编辑",
+        material: "红线错位、页角缺损、纸纤维",
+        motion: "从右向左翻页"
+      },
+      {
+        type: "paper",
+        title: "破损竖排情书",
+        file: "../mailfile/信纸/4.png",
+        desc: "泛黄、破洞、撕边、密集竖排毛笔字，有被保存多年的痕迹。",
+        font: "毛笔行书",
+        page: "情书 / 回忆信 / 档案信",
+        material: "撕裂边缘、水渍、纸洞和脏污",
+        motion: "由暗到明，像从盒子中取出"
+      },
+      {
+        type: "paper",
+        title: "撕边横线短笺",
+        file: "../mailfile/信纸/5.png",
+        desc: "手撕痕、撕裂上边、蓝色横线和日期签名，适合简短留言。",
+        font: "轻手写 + 日期小字",
+        page: "便笺 / 快速回复",
+        material: "撕孔、纸边翘起、短句留白",
+        motion: "从桌面右侧滑入"
+      },
+      {
+        type: "paper",
+        title: "修改痕迹稿纸",
+        file: "../mailfile/信纸/6.png",
+        desc: "草稿、圈改、划线、批注，适合编辑器里的撤销重做和修改历史。",
+        font: "钢笔手写 + 红笔批注",
+        page: "编辑器 / 草稿恢复",
+        material: "红圈、划线、正文密度高",
+        motion: "批注层逐层叠加"
+      },
+      {
+        type: "paper",
+        title: "钢笔蓝墨横线纸",
+        file: "../mailfile/信纸/7.png",
+        desc: "蓝黑钢笔、压痕、墨水扩散、信纸页眉，适合现代私信。",
+        font: "仿宋 + 蓝墨手写",
+        page: "现代信件 / 个人信纸",
+        material: "墨水晕染、压痕、蓝横线",
+        motion: "墨迹轻微显影"
+      },
+      {
+        type: "paper",
+        title: "航空薄信纸",
+        file: "../mailfile/信纸/8.png",
+        desc: "半透明薄纸、红蓝边、折叠痕、跨页地址线。",
+        font: "英文手写 + 中文小楷",
+        page: "跨国来信 / 时光慢递",
+        material: "半透明纸、折痕、跨页线",
+        motion: "折线展开成整张薄纸"
+      },
+      {
+        type: "paper",
+        title: "生成器真实母版",
+        file: "../mailfile/信纸/9.png",
+        desc: "可叠加纤维、折痕、破边、红线、横线和空白模式的母版。",
+        font: "按模板自动继承",
+        page: "高级参数 / 材质抽屉",
+        material: "纤维、折痕、破边、脏污开关",
+        motion: "参数滑块调整后即时预览"
+      },
+      {
+        type: "paper",
+        title: "综合设计母版",
+        file: "../mailfile/信纸/1.png",
+        desc: "真实信纸判断标准总览，作为所有信纸模板的质感校准图。",
+        font: "宋体标题 + 各类手写字体",
+        page: "设计规范 / 视觉校准",
+        material: "边缘、线条、字重、修改痕迹",
+        motion: "作为静态规范页，不参与拆信动效"
+      }
+    ];
+
+    const state = {
+      filter: "all",
+      envelope: templates.find((item) => item.type === "envelope"),
+      paper: templates.find((item) => item.type === "paper")
+    };
+
+    const templateList = document.getElementById("templateList");
+    const envelopeImage = document.getElementById("envelopeImage");
+    const paperImage = document.getElementById("paperImage");
+    const stageTitle = document.getElementById("stageTitle");
+    const stageSummary = document.getElementById("stageSummary");
+    const detailTitle = document.getElementById("detailTitle");
+    const detailDesc = document.getElementById("detailDesc");
+    const fontHint = document.getElementById("fontHint");
+    const pageHint = document.getElementById("pageHint");
+    const materialHint = document.getElementById("materialHint");
+    const motionHint = document.getElementById("motionHint");
+
+    function renderTemplates() {
+      const visible = templates.filter((item) => state.filter === "all" || item.type === state.filter);
+      templateList.innerHTML = "";
+      visible.forEach((item, index) => {
+        const button = document.createElement("button");
+        const isActive = item === state.envelope || item === state.paper;
+        button.className = `template-item${isActive ? " active" : ""}`;
+        button.type = "button";
+        button.setAttribute("aria-label", `选择模板：${item.title}`);
+        button.innerHTML = `
+          <span class="template-thumb"><img src="${item.file}" alt="${item.title}" loading="lazy"></span>
+          <span>
+            <strong>${String(index + 1).padStart(2, "0")} ${item.title}</strong>
+            <span>${item.desc}</span>
+          </span>
+        `;
+        button.addEventListener("click", () => selectTemplate(item));
+        templateList.appendChild(button);
+      });
+    }
+
+    function selectTemplate(item) {
+      if (item.type === "envelope") {
+        state.envelope = item;
+      } else {
+        state.paper = item;
+      }
+      updateStage(item);
+      renderTemplates();
+    }
+
+    function updateStage(focused = state.envelope) {
+      envelopeImage.src = state.envelope.file;
+      envelopeImage.alt = state.envelope.title;
+      paperImage.src = state.paper.file;
+      paperImage.alt = state.paper.title;
+      stageTitle.textContent = `${state.envelope.title} + ${state.paper.title}`;
+      stageSummary.textContent = `${state.envelope.desc} 搭配 ${state.paper.title}，用于校准信封和信纸在同一桌面光线下的真实感。`;
+      detailTitle.textContent = focused.title;
+      detailDesc.textContent = focused.desc;
+      fontHint.textContent = focused.font;
+      pageHint.textContent = focused.page;
+      materialHint.textContent = focused.material;
+      motionHint.textContent = focused.motion;
+    }
+
+    document.querySelectorAll(".template-tabs button").forEach((button) => {
+      button.addEventListener("click", () => {
+        document.querySelectorAll(".template-tabs button").forEach((item) => item.classList.remove("active"));
+        button.classList.add("active");
+        state.filter = button.dataset.filter;
+        renderTemplates();
+      });
+    });
+
+    document.getElementById("shuffleButton").addEventListener("click", () => {
+      const envelopes = templates.filter((item) => item.type === "envelope");
+      const papers = templates.filter((item) => item.type === "paper");
+      state.envelope = envelopes[Math.floor(Math.random() * envelopes.length)];
+      state.paper = papers[Math.floor(Math.random() * papers.length)];
+      updateStage(state.envelope);
+      renderTemplates();
+    });
+
+    document.getElementById("saveButton").addEventListener("click", () => {
+      const button = document.getElementById("saveButton");
+      const original = button.textContent;
+      button.textContent = "已保存到信箱默认";
+      window.setTimeout(() => {
+        button.textContent = original;
+      }, 1600);
+    });
+
+    renderTemplates();
+    updateStage();
+  </script>
+</body>
+</html>

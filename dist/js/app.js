@@ -1,0 +1,3120 @@
+/* ========================================
+   信笺 — 应用主入口 / 路由
+   ======================================== */
+
+const App = {
+  currentView: 'home',
+  currentMailboxId: null,
+  currentLetterId: null,
+  mailboxActiveIndex: {},
+  diaryTotalPages: 47,
+  diaryCurrentPage: 1,
+
+  _bgmList: [
+    { id: 'default', name: '凯尔特民谣', src: 'mailfile/bgm/maksymmalko-medieval-irish-celtic-ireland-music-311693.mp3' },
+    { id: 'qingqing', name: '轻轻', src: 'mailfile/bgm/轻轻（Cover 张靓颖）_爱给网_aigei_com.mp3' }
+  ],
+
+  _mailboxDefaultBgm: {
+    'mailbox-brenuo': 'qingqing',
+    'mailbox-daliang': 'qingqing',
+    'mailbox-tianzhu': 'qingqing',
+    'mailbox-rugu': 'qingqing',
+    'mailbox-taozhi': 'qingqing',
+    'mailbox-zhaixing': 'qingqing',
+    'mailbox-xiaowangzi': 'qingqing'
+  },
+
+  init() {
+    AuthManager.init();
+
+    this.bindAuthEvents();
+
+    const currentUser = AuthManager.getCurrentUser();
+    if (currentUser) {
+      const sharedMailboxId = AuthManager.getSharedMailboxId(currentUser.id);
+      if (sharedMailboxId) {
+        this._enterSharedMailboxMode(sharedMailboxId);
+      } else {
+        this.showAppView();
+      }
+    } else {
+      this.showLoginView();
+    }
+
+    STORAGE.initDB().then(() => {
+      MailboxManager.initSampleData();
+      this.bindGlobalEvents();
+      this.initDiary();
+      this.initBGM();
+      this.initMailboxModal();
+      this.initJournal();
+      this.initScheduledLetters();
+      this.initScheduleModal();
+      this.initPerspectiveSwitch();
+
+      console.log('信笺已启动 ✉');
+    }).catch(err => {
+      console.warn('IndexedDB 初始化失败，将使用 localStorage 模式:', err);
+      this.bindGlobalEvents();
+      this.initMailboxModal();
+      this.initJournal();
+    });
+  },
+
+  showLoginView() {
+    document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+    document.getElementById('login-view').classList.add('active');
+    this.currentView = 'login';
+    history.replaceState({ view: 'login', params: {} }, '', '#login');
+    this._updateSidebarUserInfo();
+  },
+
+  showAppView() {
+    document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+    document.getElementById('home-view').classList.add('active');
+    this.currentView = 'home';
+    history.replaceState({ view: 'home', params: {} }, '', '#home');
+    this.renderHome();
+    this._updateSidebarUserInfo();
+  },
+
+  bindAuthEvents() {
+    const loginBtn = document.getElementById('login-btn');
+    if (loginBtn) {
+      loginBtn.addEventListener('click', () => this._handleLogin());
+    }
+
+    const loginForm = document.getElementById('login-form');
+    if (loginForm) {
+      loginForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        this._handleLogin();
+      });
+    }
+
+    const registerBtn = document.getElementById('register-btn');
+    if (registerBtn) {
+      registerBtn.addEventListener('click', () => this._handleRegister());
+    }
+
+    const registerForm = document.getElementById('register-form');
+    if (registerForm) {
+      registerForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        this._handleRegister();
+      });
+    }
+
+    const switchToRegister = document.getElementById('switch-to-register');
+    if (switchToRegister) {
+      switchToRegister.addEventListener('click', () => this._showRegisterForm());
+    }
+
+    const switchToLogin = document.getElementById('switch-to-login');
+    if (switchToLogin) {
+      switchToLogin.addEventListener('click', () => this._showLoginForm());
+    }
+
+    const presetBtns = document.querySelectorAll('.preset-btn');
+    presetBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        const username = btn.dataset.username;
+        this._handlePresetLogin(username);
+      });
+    });
+
+    const guestBtn = document.getElementById('guest-mode-btn');
+    if (guestBtn) {
+      guestBtn.addEventListener('click', () => this._handleGuestMode());
+    }
+
+    const logoutBtn = document.getElementById('logout-btn');
+    if (logoutBtn) {
+      logoutBtn.addEventListener('click', () => this._handleLogout());
+    }
+
+    const mailboxLogoutBtn = document.getElementById('mailbox-logout-btn');
+    if (mailboxLogoutBtn) {
+      mailboxLogoutBtn.addEventListener('click', () => this._handleLogout());
+    }
+
+    const switchAccountBtn = document.getElementById('switch-account-btn');
+    if (switchAccountBtn) {
+      switchAccountBtn.addEventListener('click', () => this._handleSwitchAccount());
+    }
+
+    const mailboxSwitchBtn = document.getElementById('mailbox-switch-account-btn');
+    if (mailboxSwitchBtn) {
+      mailboxSwitchBtn.addEventListener('click', () => this._handleSwitchAccount());
+    }
+
+    const guestLoginBtn = document.getElementById('guest-login-btn');
+    if (guestLoginBtn) {
+      guestLoginBtn.addEventListener('click', () => this._handleGuestToLogin());
+    }
+
+    const mailboxGuestLoginBtn = document.getElementById('mailbox-guest-login-btn');
+    if (mailboxGuestLoginBtn) {
+      mailboxGuestLoginBtn.addEventListener('click', () => this._handleGuestToLogin());
+    }
+  },
+
+  _handleLogin() {
+    const username = document.getElementById('login-username').value.trim();
+    const password = document.getElementById('login-password').value;
+    const errorEl = document.getElementById('login-error');
+
+    const result = AuthManager.login(username, password);
+    if (result.success) {
+      this._hideError(errorEl);
+      this._onLoginSuccess(result.user);
+    } else {
+      this._showError(errorEl, result.message);
+    }
+  },
+
+  _handleRegister() {
+    const username = document.getElementById('register-username').value.trim();
+    const password = document.getElementById('register-password').value;
+    const password2 = document.getElementById('register-password2').value;
+    const errorEl = document.getElementById('register-error');
+
+    if (password !== password2) {
+      this._showError(errorEl, '两次输入的密码不一致');
+      return;
+    }
+
+    const result = AuthManager.register(username, password);
+    if (result.success) {
+      this._hideError(errorEl);
+      const loginResult = AuthManager.login(username, password);
+      if (loginResult.success) {
+        this._onLoginSuccess(loginResult.user);
+      }
+    } else {
+      this._showError(errorEl, result.message);
+    }
+  },
+
+  _handlePresetLogin(displayName) {
+    let username = '';
+    let password = '123456';
+
+    if (displayName === '修璟') {
+      username = 'xiujing';
+    } else if (displayName === '萱宣') {
+      username = 'xuanxuan';
+    }
+
+    if (username) {
+      const result = AuthManager.login(username, password);
+      if (result.success) {
+        this._hideError(document.getElementById('login-error'));
+        this._onLoginSuccess(result.user);
+      } else {
+        this._showError(document.getElementById('login-error'), result.message || '登录失败，请重试');
+      }
+    }
+  },
+
+  _handleGuestMode() {
+    AuthManager.logout();
+    this.showAppView();
+  },
+
+  _handleGuestToLogin() {
+    this.showLoginView();
+  },
+
+  _handleLogout() {
+    if (!confirm('确定要退出登录吗？')) return;
+    AuthManager.logout();
+    this.showLoginView();
+  },
+
+  _handleSwitchAccount() {
+    const currentUser = AuthManager.getCurrentUser();
+    if (!currentUser) return;
+
+    let targetUsername = '';
+    let targetDisplayName = '';
+
+    if (currentUser.role === 'xiu-jing') {
+      targetUsername = 'xuanxuan';
+      targetDisplayName = '萱宣';
+    } else if (currentUser.role === 'xuan-xuan') {
+      targetUsername = 'xiujing';
+      targetDisplayName = '修璟';
+    } else {
+      return;
+    }
+
+    this._showSwitchToast(`正在切换到 ${targetDisplayName}...`);
+
+    setTimeout(() => {
+      AuthManager.logout();
+      const result = AuthManager.login(targetUsername, '123456');
+      if (result.success) {
+        this._onAccountSwitched(result.user);
+      }
+    }, 600);
+  },
+
+  _onAccountSwitched(user) {
+    this._updateSidebarUserInfo();
+
+    const sharedMailboxId = AuthManager.getSharedMailboxId(user.id);
+    if (sharedMailboxId) {
+      STORAGE.initSharedMailbox();
+    }
+
+    if (this.currentView === 'home') {
+      this.renderHome();
+    } else if (this.currentView === 'mailbox' && this.currentMailboxId) {
+      this.renderMailboxView(this.currentMailboxId);
+    } else {
+      this._syncMapCharacter(user.role);
+    }
+
+    this._showSwitchToast(`已切换到 ${user.displayName}`, 1500);
+  },
+
+  _showSwitchToast(message, duration = 2000) {
+    const toast = document.getElementById('account-switch-toast');
+    const toastText = document.getElementById('switch-toast-text');
+    if (!toast || !toastText) return;
+
+    toastText.textContent = message;
+    toast.classList.add('show');
+
+    if (this._switchToastTimer) {
+      clearTimeout(this._switchToastTimer);
+    }
+
+    if (duration > 0) {
+      this._switchToastTimer = setTimeout(() => {
+        toast.classList.remove('show');
+        this._switchToastTimer = null;
+      }, duration);
+    }
+  },
+
+  _syncMapCharacter(userRole) {
+    if (typeof window.gameMapRenderer === 'undefined' || !window.gameMapRenderer) return;
+
+    const isXiejianMailbox = this.currentMailboxId === 'mailbox-xiejian';
+    if (isXiejianMailbox) return;
+
+    let playerChar = '';
+    let partnerChar = '';
+
+    if (userRole === 'xiu-jing') {
+      playerChar = 'xiu-jing';
+      partnerChar = 'xuan-xuan';
+    } else if (userRole === 'xuan-xuan') {
+      playerChar = 'xuan-xuan';
+      partnerChar = 'xiu-jing';
+    } else {
+      return;
+    }
+
+    if (window.gameMapRenderer.setCharacter) {
+      window.gameMapRenderer.setCharacter(playerChar);
+    }
+
+    if (window.gameMapRenderer.multiplayerMode) {
+      if (window.gameMapRenderer.switchMap) {
+        window.gameMapRenderer.switchMap(5);
+        const maps = window.gameMapRenderer.getMaps();
+        const mapNameEl = document.getElementById('map-name');
+        if (mapNameEl && maps[5]) {
+          mapNameEl.textContent = maps[5].name;
+        }
+      }
+      if (window.gameMapRenderer.setCategory) {
+        window.gameMapRenderer.setCategory('hanmen');
+      }
+      return;
+    }
+
+    if (window.gameMapRenderer.setPartner) {
+      setTimeout(() => {
+        window.gameMapRenderer.setPartner(partnerChar);
+      }, 300);
+    }
+    if (window.gameMapRenderer.switchMap) {
+      window.gameMapRenderer.switchMap(5);
+      const maps = window.gameMapRenderer.getMaps();
+      const mapNameEl = document.getElementById('map-name');
+      if (mapNameEl && maps[5]) {
+        mapNameEl.textContent = maps[5].name;
+      }
+    }
+    if (window.gameMapRenderer.toggleDuetMode && !window.gameMapRenderer.duetMode) {
+      setTimeout(() => {
+        window.gameMapRenderer.toggleDuetMode();
+        const duetToggleBtn = document.getElementById('duet-toggle-btn');
+        if (duetToggleBtn) {
+          duetToggleBtn.textContent = '退出双人模式';
+        }
+        const duetSection = document.getElementById('duet-section');
+        if (duetSection) {
+          duetSection.style.display = 'block';
+        }
+      }, 500);
+    }
+    if (window.gameMapRenderer.setCategory) {
+      window.gameMapRenderer.setCategory('hanmen');
+      const charTabs = document.querySelectorAll('.char-tab');
+      charTabs.forEach(t => {
+        t.classList.remove('active');
+        if (t.dataset.category === 'hanmen') t.classList.add('active');
+      });
+      const characterGrid = document.getElementById('character-grid');
+      if (characterGrid && window.gameMapRenderer.getCharactersForCategory) {
+        const characters = window.gameMapRenderer.getCharactersForCategory('hanmen');
+        characterGrid.innerHTML = '';
+        characters.forEach(char => {
+          const btn = document.createElement('button');
+          btn.className = 'character-card';
+          btn.dataset.char = char.id;
+          if (char.id === window.gameMapRenderer.selectedCharacter) {
+            btn.classList.add('active');
+          }
+          let subtitle = char.sect || '';
+          btn.innerHTML = `
+            <div class="char-avatar" data-char-id="${char.id}">${char.name.charAt(0)}</div>
+            <div class="char-info">
+              <span class="char-name">${char.name}</span>
+              ${subtitle ? `<span class="char-subtitle">${subtitle}</span>` : ''}
+            </div>
+          `;
+          btn.addEventListener('click', () => {
+            document.querySelectorAll('.character-card').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            window.gameMapRenderer.setCharacter(char.id);
+          });
+          characterGrid.appendChild(btn);
+        });
+      }
+    }
+  },
+
+  _onLoginSuccess(user) {
+    const sharedMailboxId = AuthManager.getSharedMailboxId(user.id);
+    if (sharedMailboxId) {
+      this._enterSharedMailboxMode(sharedMailboxId);
+    } else {
+      this.showAppView();
+    }
+  },
+
+  _enterSharedMailboxMode(mailboxId) {
+    STORAGE.initSharedMailbox();
+    const sharedMailbox = STORAGE.loadSharedMailbox(mailboxId);
+    if (sharedMailbox) {
+      const existingMailboxes = STORAGE.loadMailboxes();
+      const exists = existingMailboxes.find(m => m.id === mailboxId);
+      if (!exists) {
+        existingMailboxes.push(sharedMailbox);
+        STORAGE.saveMailboxes(existingMailboxes);
+      }
+    }
+    this.showAppView();
+  },
+
+  _showLoginForm() {
+    document.getElementById('login-form').style.display = '';
+    document.getElementById('register-form').style.display = 'none';
+    document.querySelector('.auth-switch').style.display = '';
+    document.getElementById('register-switch').style.display = 'none';
+    document.querySelector('.preset-accounts').style.display = '';
+    document.querySelector('.guest-mode').style.display = '';
+  },
+
+  _showRegisterForm() {
+    document.getElementById('login-form').style.display = 'none';
+    document.getElementById('register-form').style.display = '';
+    document.querySelector('.auth-switch').style.display = 'none';
+    document.getElementById('register-switch').style.display = '';
+    document.querySelector('.preset-accounts').style.display = 'none';
+    document.querySelector('.guest-mode').style.display = 'none';
+  },
+
+  _showError(element, message) {
+    if (element) {
+      element.textContent = message;
+      element.style.display = 'block';
+    }
+  },
+
+  _hideError(element) {
+    if (element) {
+      element.style.display = 'none';
+    }
+  },
+
+  _updateSidebarUserInfo() {
+    const user = AuthManager.getCurrentUser();
+    const isLoggedIn = AuthManager.isLoggedIn();
+
+    const userNameEl = document.getElementById('user-name');
+    const userRoleEl = document.getElementById('user-role');
+    const userAvatarEl = document.getElementById('user-avatar');
+    const logoutBtn = document.getElementById('logout-btn');
+
+    if (userNameEl) userNameEl.textContent = user ? user.displayName : '访客';
+    if (userRoleEl) {
+      if (user) {
+        if (user.role === 'xiu-jing') {
+          userRoleEl.textContent = '修璟';
+        } else if (user.role === 'xuan-xuan') {
+          userRoleEl.textContent = '萱宣';
+        } else {
+          userRoleEl.textContent = '用户';
+        }
+      } else {
+        userRoleEl.textContent = '访客模式';
+      }
+    }
+    if (userAvatarEl) {
+      if (user) {
+        if (user.role === 'xiu-jing') {
+          userAvatarEl.textContent = '🌸';
+        } else if (user.role === 'xuan-xuan') {
+          userAvatarEl.textContent = '🍃';
+        } else {
+          userAvatarEl.textContent = '👤';
+        }
+      } else {
+        userAvatarEl.textContent = '👤';
+      }
+    }
+    if (logoutBtn) logoutBtn.style.display = isLoggedIn ? '' : 'none';
+
+    const switchAccountBtn = document.getElementById('switch-account-btn');
+    const isPresetUser = user && (user.role === 'xiu-jing' || user.role === 'xuan-xuan');
+    if (switchAccountBtn) switchAccountBtn.style.display = isPresetUser ? '' : 'none';
+
+    const guestLoginBtn = document.getElementById('guest-login-btn');
+    if (guestLoginBtn) guestLoginBtn.style.display = isLoggedIn ? 'none' : '';
+
+    const mailboxUserNameEl = document.getElementById('mailbox-user-name');
+    const mailboxUserRoleEl = document.getElementById('mailbox-user-role');
+    const mailboxUserAvatarEl = document.getElementById('mailbox-user-avatar');
+    const mailboxLogoutBtn = document.getElementById('mailbox-logout-btn');
+
+    if (mailboxUserNameEl) mailboxUserNameEl.textContent = user ? user.displayName : '访客';
+    if (mailboxUserRoleEl) {
+      if (user) {
+        if (user.role === 'xiu-jing') {
+          mailboxUserRoleEl.textContent = '修璟';
+        } else if (user.role === 'xuan-xuan') {
+          mailboxUserRoleEl.textContent = '萱宣';
+        } else {
+          mailboxUserRoleEl.textContent = '用户';
+        }
+      } else {
+        mailboxUserRoleEl.textContent = '访客模式';
+      }
+    }
+    if (mailboxUserAvatarEl) {
+      if (user) {
+        if (user.role === 'xiu-jing') {
+          mailboxUserAvatarEl.textContent = '🌸';
+        } else if (user.role === 'xuan-xuan') {
+          mailboxUserAvatarEl.textContent = '🍃';
+        } else {
+          mailboxUserAvatarEl.textContent = '👤';
+        }
+      } else {
+        mailboxUserAvatarEl.textContent = '👤';
+      }
+    }
+    if (mailboxLogoutBtn) mailboxLogoutBtn.style.display = isLoggedIn ? '' : 'none';
+
+    const mailboxSwitchBtn = document.getElementById('mailbox-switch-account-btn');
+    if (mailboxSwitchBtn) mailboxSwitchBtn.style.display = isPresetUser ? '' : 'none';
+
+    const mailboxGuestLoginBtn = document.getElementById('mailbox-guest-login-btn');
+    if (mailboxGuestLoginBtn) mailboxGuestLoginBtn.style.display = isLoggedIn ? 'none' : '';
+  },
+
+  initMobileSidebar() {
+    const homeToggle = document.getElementById('home-menu-toggle');
+    const homeSidebar = document.getElementById('sidebar');
+    const homeOverlay = document.getElementById('home-sidebar-overlay');
+    const homeCloseBtn = document.getElementById('home-close-sidebar');
+    
+    const mailboxToggle = document.getElementById('mailbox-menu-toggle');
+    const mailboxSidebar = document.getElementById('mailbox-sidebar');
+    const mailboxOverlay = document.getElementById('mailbox-sidebar-overlay');
+    const mailboxCloseBtn = document.getElementById('mailbox-close-sidebar');
+    
+    const openSidebar = (sidebar, overlay) => {
+      if (sidebar && overlay) {
+        sidebar.classList.add('open');
+        overlay.classList.add('active');
+        document.body.style.overflow = 'hidden';
+      }
+    };
+    
+    const closeSidebar = (sidebar, overlay) => {
+      if (sidebar && overlay) {
+        sidebar.classList.remove('open');
+        overlay.classList.remove('active');
+        document.body.style.overflow = '';
+      }
+    };
+    
+    if (homeToggle && homeSidebar && homeOverlay) {
+      homeToggle.addEventListener('click', (e) => {
+        e.stopPropagation();
+        openSidebar(homeSidebar, homeOverlay);
+      });
+    }
+    
+    if (homeCloseBtn && homeSidebar && homeOverlay) {
+      homeCloseBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        closeSidebar(homeSidebar, homeOverlay);
+      });
+    }
+    
+    if (homeOverlay && homeSidebar) {
+      homeOverlay.addEventListener('click', () => {
+        closeSidebar(homeSidebar, homeOverlay);
+      });
+    }
+    
+    if (mailboxToggle && mailboxSidebar && mailboxOverlay) {
+      mailboxToggle.addEventListener('click', (e) => {
+        e.stopPropagation();
+        openSidebar(mailboxSidebar, mailboxOverlay);
+      });
+    }
+    
+    if (mailboxCloseBtn && mailboxSidebar && mailboxOverlay) {
+      mailboxCloseBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        closeSidebar(mailboxSidebar, mailboxOverlay);
+      });
+    }
+    
+    if (mailboxOverlay && mailboxSidebar) {
+      mailboxOverlay.addEventListener('click', () => {
+        closeSidebar(mailboxSidebar, mailboxOverlay);
+      });
+    }
+    
+    const sidebarNavItems = document.querySelectorAll('.sidebar-nav-item');
+    sidebarNavItems.forEach(item => {
+      item.addEventListener('click', () => {
+        closeSidebar(homeSidebar, homeOverlay);
+        closeSidebar(mailboxSidebar, mailboxOverlay);
+      });
+    });
+  },
+
+  bindGlobalEvents() {
+    // 移动端侧边栏控制
+    this.initMobileSidebar();
+    
+    // 信封点击打开
+    const envelope = document.getElementById('envelope');
+    if (envelope) {
+      envelope.addEventListener('click', () => this.openEnvelope());
+    }
+
+    // 首页新增信箱按钮
+    const homeNewMailboxBtn = document.getElementById('home-new-mailbox-btn');
+    if (homeNewMailboxBtn) {
+      homeNewMailboxBtn.addEventListener('click', () => {
+        this.showCreateMailboxModal();
+      });
+    }
+
+    // 首页新手账按钮
+    const newDiaryBtn = document.getElementById('new-diary-btn');
+    if (newDiaryBtn) {
+      newDiaryBtn.addEventListener('click', () => {
+        this._createNewDiary();
+      });
+    }
+
+    // 信箱详情页新建信件按钮
+    const newLetterBtn = document.getElementById('new-letter-btn');
+    if (newLetterBtn) {
+      newLetterBtn.addEventListener('click', () => {
+        this.navigate('editor', { mailboxId: this.currentMailboxId });
+      });
+    }
+
+    // 移动端新建信件按钮
+    const mobileNewLetterBtn = document.getElementById('mobile-new-letter-btn');
+    if (mobileNewLetterBtn) {
+      mobileNewLetterBtn.addEventListener('click', () => {
+        this.navigate('editor', { mailboxId: this.currentMailboxId });
+      });
+    }
+
+    // 移动端发送信件按钮 - 发送到对方信箱
+    const mobileSendBtn = document.getElementById('mobile-send-btn');
+    if (mobileSendBtn) {
+      mobileSendBtn.addEventListener('click', () => {
+        this._sendLetterToPartner();
+      });
+    }
+
+    // 阅读页编辑信件按钮
+    const editLetterBtn = document.getElementById('edit-letter-btn');
+    if (editLetterBtn) {
+      editLetterBtn.addEventListener('click', () => {
+        if (this.currentLetterId) {
+          this.navigate('editor', { letterId: this.currentLetterId });
+        }
+      });
+    }
+
+    // 返回按钮 - 统一点击信笺logo回到首页
+    document.getElementById('back-to-home').addEventListener('click', () => {
+      this.navigate('home');
+    });
+    document.getElementById('back-to-mailbox').addEventListener('click', () => {
+      this.navigate('home');
+    });
+    document.getElementById('back-from-style').addEventListener('click', () => {
+      this.navigate('home');
+    });
+    document.getElementById('back-from-reader').addEventListener('click', () => {
+      this.navigate('home');
+    });
+
+    // 阅读器导出
+    document.getElementById('export-btn').addEventListener('click', async () => {
+      if (this.currentLetterId) {
+        const dataUrl = await STORAGE.exportLetterAsImage(this.currentLetterId);
+        if (dataUrl) {
+          const a = document.createElement('a');
+          a.href = dataUrl;
+          a.download = `信笺-${this.currentLetterId.slice(0, 8)}.png`;
+          a.click();
+        }
+      }
+    });
+
+    // 录音按钮
+    document.getElementById('record-btn').addEventListener('click', () => {
+      this.toggleRecord();
+    });
+    document.getElementById('record-play-btn').addEventListener('click', () => {
+      this.playRecord();
+    });
+    document.getElementById('record-rerecord-btn').addEventListener('click', () => {
+      this.rerecord();
+    });
+
+    // 点击信纸空白区域取消选择
+    document.getElementById('paper-canvas').addEventListener('click', (e) => {
+      if (e.target === e.currentTarget) {
+        Editor.selectElement(null);
+      }
+    });
+
+    // 监听浏览器后退/前进按钮
+    window.addEventListener('popstate', (e) => this.handlePopState(e));
+
+    // 回信按钮
+    const replyBtn = document.getElementById('reply-btn');
+    if (replyBtn) {
+      replyBtn.addEventListener('click', () => this.replyToLetter());
+    }
+
+    // 手账入口
+    const journalEntry = document.getElementById('journal-entry');
+    if (journalEntry) {
+      journalEntry.addEventListener('click', () => this.navigate('journal'));
+    }
+
+    // 手账返回按钮
+    const backFromJournal = document.getElementById('back-from-journal');
+    if (backFromJournal) {
+      backFromJournal.addEventListener('click', () => this.navigate('home'));
+    }
+
+    // 手账阅读页返回
+    const backFromJournalReader = document.getElementById('back-from-journal-reader');
+    if (backFromJournalReader) {
+      backFromJournalReader.addEventListener('click', () => {
+        Journal.close();
+        this.navigate('home');
+      });
+    }
+
+    // 待寄信件入口
+    const scheduledEntry = document.getElementById('scheduled-entry');
+    if (scheduledEntry) {
+      scheduledEntry.addEventListener('click', () => this.navigate('scheduled'));
+    }
+
+    // 待寄信件返回
+    const backFromScheduled = document.getElementById('back-from-scheduled');
+    if (backFromScheduled) {
+      backFromScheduled.addEventListener('click', () => this.navigate('home'));
+    }
+
+    // 双人视角切换
+    const perspectiveBtns = document.querySelectorAll('.perspective-btn');
+    perspectiveBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        const perspective = btn.dataset.perspective;
+        this.switchPerspective(perspective);
+      });
+    });
+  },
+
+  navigate(view, params = {}, addToHistory = true) {
+    // 隐藏所有视图
+    document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+    // 隐藏信封层
+    this.hideEnvelopeOverlay();
+
+    // 停止之前的录音播放（无论进入还是离开阅读器）
+    this.stopAudioPlayback();
+
+    const previousView = this.currentView;
+    this.currentView = view;
+
+    switch (view) {
+      case 'home':
+        document.getElementById('home-view').classList.add('active');
+        this.renderHome();
+        this.switchViewBGM('home');
+        break;
+
+      case 'mailbox':
+        this.currentMailboxId = params.mailboxId;
+        if (params.mailboxId) STORAGE.saveLastMailboxId(params.mailboxId);
+        document.getElementById('mailbox-view').classList.add('active');
+        this.renderMailboxView(this.currentMailboxId);
+        this.switchViewBGM('mailbox');
+        break;
+
+      case 'editor':
+        document.getElementById('editor-view').classList.add('active');
+        if (params.mailboxId) {
+          Editor.mailboxId = params.mailboxId;
+        }
+        Editor.init(params.letterId);
+        break;
+
+      case 'style-select':
+        this.currentMailboxId = params.mailboxId;
+        document.getElementById('style-select-view').classList.add('active');
+        this.renderStyleSelect();
+        break;
+
+      case 'reader':
+        this.currentLetterId = params.letterId;
+        { 
+          let letter = null;
+          const allMailboxes = MailboxManager.getMailboxes();
+          for (const mb of allMailboxes) {
+            const letters = MailboxManager.loadMailboxLetters(mb.id);
+            const found = letters.find(x => x.id === params.letterId);
+            if (found) {
+              letter = found;
+              this.currentMailboxId = mb.id;
+              break;
+            }
+          }
+          if (letter) STORAGE.saveLastLetter(letter); 
+        }
+        document.getElementById('reader-view').classList.add('active');
+        this.renderReader(params.letterId);
+        // 显示信封动画并自动打开
+        if (params.showEnvelope !== false) {
+          this.showEnvelopeOverlay(params.letterId, true);
+        }
+        break;
+
+      case 'journal':
+        document.getElementById('journal-view').classList.add('active');
+        Journal.renderList();
+        break;
+
+      case 'journal-reader':
+        document.getElementById('journal-reader-view').classList.add('active');
+        break;
+
+      case 'scheduled':
+        document.getElementById('scheduled-view').classList.add('active');
+        this.renderScheduledList();
+        break;
+    }
+
+    window.scrollTo(0, 0);
+
+    // 将导航操作推入浏览器历史记录
+    if (addToHistory && previousView) {
+      const state = { view, params };
+      const url = '#' + view;
+      history.pushState(state, '', url);
+    }
+  },
+
+  // 停止阅读器相关的音频播放（不停止BGM）
+  stopAudioPlayback() {
+    // 停止录音播放
+    if (this._recordAudio) {
+      this._recordAudio.pause();
+      this._recordAudio.currentTime = 0;
+      this._recordAudio = null;
+    }
+    // 停止媒体录制
+    if (this._mediaRecorder && this._mediaRecorder.state !== 'inactive') {
+      this._mediaRecorder.stop();
+    }
+    // 清除录音定时器
+    if (this._recordTimer) {
+      clearInterval(this._recordTimer);
+      this._recordTimer = null;
+    }
+  },
+
+  // 浏览器返回按钮触发
+  handlePopState(event) {
+    if (this._handlingPopState) return;
+    this._handlingPopState = true;
+
+    const state = event.state;
+    if (state && state.view) {
+      // 传入 addToHistory=false 避免循环入栈
+      this.navigate(state.view, state.params || {}, false);
+    } else {
+      // 没有状态时回到首页
+      this.navigate('home', {}, false);
+    }
+
+    setTimeout(() => {
+      this._handlingPopState = false;
+    }, 100);
+  },
+
+  showEnvelopeOverlay(letterId, autoOpen = false) {
+    const overlay = document.getElementById('envelope-overlay');
+    const envelope = document.getElementById('envelope');
+    if (!overlay || !envelope) return;
+
+    // 重置信封状态
+    envelope.classList.remove('opening');
+    overlay.classList.remove('closing');
+    overlay.classList.add('active');
+
+    this._pendingLetterId = letterId;
+
+    // 自动打开信封
+    if (autoOpen) {
+      setTimeout(() => {
+        this.openEnvelope();
+      }, 300);
+    }
+  },
+
+  hideEnvelopeOverlay() {
+    const overlay = document.getElementById('envelope-overlay');
+    if (!overlay) return;
+    overlay.classList.remove('active');
+    overlay.classList.remove('closing');
+  },
+
+  openEnvelope() {
+    const envelope = document.getElementById('envelope');
+    const overlay = document.getElementById('envelope-overlay');
+    if (!envelope || !overlay) return;
+
+    if (envelope.classList.contains('opening')) return;
+
+    envelope.classList.add('opening');
+
+    // 动画结束后隐藏信封层并显示信件
+    setTimeout(() => {
+      overlay.classList.add('closing');
+      setTimeout(() => {
+        this.hideEnvelopeOverlay();
+        // 信封动画结束后1.5s自动播放录音
+        if (this._recordBlob && this._currentRecordLetterId) {
+          setTimeout(() => {
+            this.playRecord();
+          }, 1500);
+        }
+      }, 500);
+    }, 1200);
+  },
+
+  renderHome() {
+    const sidebarNav = document.getElementById('sidebar-nav');
+    const galleryTrack = document.getElementById('gallery-track');
+    const galleryIndicators = document.getElementById('gallery-indicators');
+
+    if (sidebarNav) {
+      MailboxManager.renderSidebarNav(sidebarNav);
+    }
+
+    // 兼容旧版画廊渲染（隐藏状态下仍渲染，保持引用有效）
+    if (galleryTrack) {
+      MailboxManager.renderGalleryTrack(galleryTrack, galleryIndicators, (mailboxId) => {
+        this.navigate('mailbox', { mailboxId });
+      });
+    }
+
+    // === 新增：正在阅读 / 快速继续 / 信箱网格 ===
+    this._renderHeroGrid();
+    this._renderDiaryGrid();
+    this._renderMailboxGrid();
+    this._initMapView();
+  },
+
+  _renderHeroGrid() {
+    const mailboxes = MailboxManager.getMailboxes();
+    if (!mailboxes.length) return;
+
+    // "正在阅读"：取上次访问的信箱，或第一个信箱
+    const lastMailboxId = STORAGE.loadLastMailboxId ? STORAGE.loadLastMailboxId() : null;
+    const featureMb = mailboxes.find(m => m.id === lastMailboxId) || mailboxes[0];
+    const letters = MailboxManager.loadMailboxLetters(featureMb.id);
+
+    const nameEl = document.getElementById('feature-mailbox-name');
+    const descEl = document.getElementById('feature-mailbox-desc');
+    const metaEl = document.getElementById('feature-mailbox-meta');
+    const previewEl = document.getElementById('feature-mailbox-preview');
+    const featureCard = document.getElementById('feature-mailbox');
+
+    if (nameEl) nameEl.textContent = featureMb.name;
+    if (descEl) descEl.textContent = featureMb.description || '';
+    if (metaEl) {
+      const diaryCount = featureMb.hasDiary ? '47 页日记' : '';
+      const bgmLabel = featureMb.bgm ? 'BGM' : '';
+      metaEl.innerHTML = [
+        `${letters.length} 封信`,
+        diaryCount,
+        bgmLabel
+      ].filter(Boolean).map(t => `<span>${t}</span>`).join('');
+    }
+    if (previewEl) {
+      const iconSvg = MailboxManager._getMailboxIconSVG ? MailboxManager._getMailboxIconSVG(featureMb) : '';
+      previewEl.innerHTML = iconSvg || `<span class="feature-icon-fallback">✉</span>`;
+    }
+    if (featureCard) {
+      featureCard.onclick = () => this.navigate('mailbox', { mailboxId: featureMb.id });
+      featureCard.style.cursor = 'pointer';
+    }
+
+    // "快速继续"：取上次访问的信件
+    const continueCard = document.getElementById('continue-card');
+    const continueTitle = document.getElementById('continue-letter-title');
+    const continueMailbox = document.getElementById('continue-mailbox-name');
+    const continueHint = document.getElementById('continue-hint');
+    const lastLetter = STORAGE.loadLastLetter ? STORAGE.loadLastLetter() : null;
+
+    if (lastLetter && lastLetter.id) {
+      const lastMb = mailboxes.find(m => m.id === lastLetter.mailboxId);
+      if (continueTitle) continueTitle.textContent = lastLetter.letterTitle || lastLetter.recipient || '一封信';
+      if (continueMailbox) continueMailbox.textContent = lastMb ? lastMb.name : '';
+      if (continueHint) continueHint.textContent = '点击继续阅读';
+      if (continueCard) {
+        continueCard.onclick = () => {
+          this.navigate('mailbox', { mailboxId: lastLetter.mailboxId });
+        };
+        continueCard.style.cursor = 'pointer';
+      }
+    }
+
+    // mini-stats
+    const statsEl = document.getElementById('mini-stats');
+    if (statsEl) {
+      let totalLetters = 0;
+      const allMailboxes = MailboxManager.getMailboxes();
+      for (const mb of allMailboxes) {
+        totalLetters += MailboxManager.loadMailboxLetters(mb.id).length;
+      }
+      const scheduled = 0;
+      statsEl.innerHTML = `
+        <span><strong>${mailboxes.length}</strong> 信箱</span>
+        <span><strong>${totalLetters}</strong> 信件</span>
+        <span><strong>${scheduled}</strong> 待寄</span>
+      `;
+    }
+  },
+
+  _renderDiaryGrid() {
+    const grid = document.getElementById('diary-grid');
+    const emptyEl = document.getElementById('diary-empty');
+    if (!grid) return;
+
+    const journals = STORAGE.loadJournals ? STORAGE.loadJournals() : [];
+
+    if (journals.length === 0) {
+      if (emptyEl) {
+        emptyEl.style.display = 'flex';
+      }
+      return;
+    }
+
+    if (emptyEl) {
+      emptyEl.style.display = 'none';
+    }
+
+    grid.innerHTML = journals.map(j => {
+      const dayCount = j.pages ? j.pages.length : 0;
+      const updatedAt = j.updatedAt ? new Date(j.updatedAt).toLocaleDateString('zh-CN') : '';
+      const icon = j.icon || '📓';
+      return `
+        <article class="diary-card" data-journal-id="${j.id}">
+          <div class="diary-card-icon">${icon}</div>
+          <h4>${j.name || '未命名手账'}</h4>
+          <p>${j.description || '记录生活点滴'}</p>
+          <div class="diary-card-meta">
+            <span>${dayCount} 页</span>
+            ${updatedAt ? `<span>${updatedAt}</span>` : ''}
+          </div>
+        </article>
+      `;
+    }).join('');
+
+    grid.querySelectorAll('.diary-card').forEach(card => {
+      card.addEventListener('click', () => {
+        const journalId = card.dataset.journalId;
+        this._openDiary(journalId);
+      });
+    });
+  },
+
+  _openDiary(journalId) {
+    const journal = STORAGE.loadJournal ? STORAGE.loadJournal(journalId) : null;
+    if (!journal) return;
+    if (this.openDiary) {
+      this.openDiary(journal);
+    }
+  },
+
+  _createNewDiary() {
+    const name = prompt('请输入手账名称：', '我的手账');
+    if (!name) return;
+
+    const newJournal = {
+      id: 'journal_' + Date.now(),
+      name: name,
+      description: '记录生活点滴',
+      icon: '📓',
+      pages: [],
+      createdAt: Date.now(),
+      updatedAt: Date.now()
+    };
+
+    if (STORAGE.saveJournal) {
+      STORAGE.saveJournal(newJournal);
+      this._renderDiaryGrid();
+    }
+  },
+
+  // === 地图视图 ===
+  _initMapView() {
+    const toggleBtns = document.querySelectorAll('.view-toggle-btn');
+    const gridEl = document.getElementById('mailbox-grid');
+    const mapEl = document.getElementById('map-view-container');
+
+    toggleBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        const view = btn.dataset.view;
+        toggleBtns.forEach(b => b.classList.toggle('active', b === btn));
+        if (view === 'map') {
+          gridEl.style.display = 'none';
+          mapEl.style.display = 'block';
+          this._renderMap();
+          this._setupMapInteractions();
+        } else {
+          gridEl.style.display = 'grid';
+          mapEl.style.display = 'none';
+        }
+      });
+    });
+
+    const resetBtn = document.getElementById('map-reset-btn');
+    if (resetBtn) {
+      resetBtn.addEventListener('click', () => this._resetMapView());
+    }
+  },
+
+  _renderMap() {
+    const svg = document.getElementById('map-svg');
+    if (!svg) return;
+
+    const width = 1000;
+    const height = 500;
+
+    const continentsG = document.getElementById('map-continents');
+    if (continentsG && typeof MapSystem !== 'undefined') {
+      continentsG.innerHTML = MapSystem.continents.map(cont => {
+        const path = MapSystem.generateContinentPath(cont, width, height);
+        return `<path d="${path}" class="map-continent"/>`;
+      }).join('');
+    }
+
+    const mountainsG = document.getElementById('map-mountains');
+    if (mountainsG && typeof MapSystem !== 'undefined') {
+      const mountainPaths = MapSystem.generateMountainPaths(width, height);
+      mountainsG.innerHTML = `<path d="${mountainPaths}" class="map-mountain"/>`;
+    }
+
+    const desertsG = document.getElementById('map-deserts');
+    if (desertsG && typeof MapSystem !== 'undefined') {
+      desertsG.innerHTML = MapSystem.generateDesertDots(width, height);
+    }
+
+    this._renderMapMailboxMarkers();
+    this._renderMapDeliveryPaths();
+  },
+
+  _renderMapMailboxMarkers() {
+    const markersG = document.getElementById('map-mailbox-markers');
+    if (!markersG || typeof MapSystem === 'undefined') return;
+
+    const mailboxes = MailboxManager.getMailboxes();
+    const width = 1000;
+    const height = 500;
+
+    markersG.innerHTML = mailboxes.filter(mb => mb.location).map(mb => {
+      const { x, y } = MapSystem.latLngToXY(mb.location.lat, mb.location.lng, width, height);
+      const letters = MailboxManager.loadMailboxLetters(mb.id);
+      const unreadCount = letters.length;
+      const yOffset = 0;
+      const postboxY = y + yOffset;
+
+      return `
+        <g class="map-mailbox-marker" data-mailbox-id="${mb.id}" transform="translate(${x}, ${postboxY})">
+          <circle class="hit-area" cx="0" cy="-16" r="28" fill="transparent" stroke="none"/>
+          <g class="mailbox-postbox">
+            <rect x="-12" y="-32" width="24" height="30" rx="3" fill="${mb.cardAccent || mb.accent}" stroke="#5c4a35" stroke-width="1.5"/>
+            <rect x="-3" y="-38" width="6" height="8" fill="${mb.cardAccent || mb.accent}" stroke="#5c4a35" stroke-width="0.8"/>
+            <rect x="-9" y="-25" width="18" height="2" fill="#5c4a35" opacity="0.3"/>
+            <circle cx="0" cy="-14" r="3" fill="#5c4a35" opacity="0.5"/>
+          </g>
+          ${unreadCount > 0 ? `
+            <circle cx="12" cy="-32" r="10" class="mailbox-unread-badge"/>
+            <text x="12" y="-29" class="mailbox-unread-text">${unreadCount > 9 ? '9+' : unreadCount}</text>
+          ` : ''}
+          <text x="0" y="16" class="mailbox-label">${mb.location.placeName || mb.name}</text>
+        </g>
+      `;
+    }).join('');
+
+    markersG.querySelectorAll('.map-mailbox-marker').forEach(marker => {
+      const mailboxId = marker.dataset.mailboxId;
+      const tooltip = document.getElementById('map-tooltip');
+      const mapContainer = document.getElementById('map-view-container');
+
+      marker.addEventListener('mouseenter', (e) => {
+        if (this._mapEditMode) return;
+        const mb = mailboxes.find(m => m.id === mailboxId);
+        if (!mb || !tooltip) return;
+        const letters = allLetters.filter(l => l.mailboxId === mb.id);
+        tooltip.innerHTML = `
+          <h4>${mb.name}</h4>
+          <p>${mb.description || ''}</p>
+          <div class="tooltip-meta">
+            <span>📍 ${mb.location?.region || ''}</span>
+            <span>✉️ ${letters.length} 封</span>
+          </div>
+        `;
+        tooltip.classList.add('visible');
+      });
+
+      marker.addEventListener('mousemove', (e) => {
+        if (this._mapEditMode || !tooltip || !mapContainer) return;
+        const rect = mapContainer.getBoundingClientRect();
+        tooltip.style.left = (e.clientX - rect.left + 15) + 'px';
+        tooltip.style.top = (e.clientY - rect.top + 15) + 'px';
+      });
+
+      marker.addEventListener('mouseleave', () => {
+        if (tooltip) tooltip.classList.remove('visible');
+      });
+
+      marker.addEventListener('click', () => {
+        if (this._mapEditMode) return;
+        this.navigate('mailbox', { mailboxId });
+      });
+    });
+  },
+
+  _renderMapDeliveryPaths() {
+    const pathsG = document.getElementById('map-delivery-paths');
+    if (!pathsG || typeof MapSystem === 'undefined') return;
+
+    let deliveringLetters = [];
+    const allMailboxes = MailboxManager.getMailboxes();
+    for (const mb of allMailboxes) {
+      const letters = MailboxManager.loadMailboxLetters(mb.id);
+      deliveringLetters = deliveringLetters.concat(
+        letters.filter(l => l.delivery && l.delivery.status === 'delivering')
+      );
+    }
+
+    if (deliveringLetters.length === 0) {
+      pathsG.innerHTML = '';
+      return;
+    }
+
+    const mailboxes = MailboxManager.getMailboxes();
+    const width = 1000;
+    const height = 500;
+
+    pathsG.innerHTML = deliveringLetters.map((letter, idx) => {
+      const fromMb = mailboxes.find(m => m.id === letter.delivery.fromMailboxId);
+      const toMb = mailboxes.find(m => m.id === letter.delivery.toMailboxId);
+      if (!fromMb?.location || !toMb?.location) return '';
+
+      const start = MapSystem.latLngToXY(fromMb.location.lat, fromMb.location.lng, width, height);
+      const end = MapSystem.latLngToXY(toMb.location.lat, toMb.location.lng, width, height);
+      const offset = (idx - deliveringLetters.length / 2) * 20;
+      const path = MapSystem.generateCurvePath(start.x, start.y, end.x, end.y, 60 + offset);
+      const method = MapSystem.deliveryMethods[letter.delivery.method];
+      const color = method?.color || '#c77';
+      const progress = letter.delivery.currentProgress || 0;
+      const currentPos = MapSystem.getPointOnCurve(start.x, start.y, end.x, end.y, progress, 60 + offset);
+
+      const traveledPath = MapSystem.generateCurvePath(start.x, start.y, end.x, end.y, 60 + offset);
+      const pathLength = this._estimatePathLength(start.x, start.y, end.x, end.y, 60 + offset);
+      const dashOffset = pathLength * (1 - progress);
+
+      return `
+        <path d="${path}" class="delivery-path" stroke="${color}" stroke-width="1.5"/>
+        <path d="${traveledPath}" class="delivery-path-traveled" stroke="${color}" stroke-width="2"
+              stroke-dasharray="${pathLength}" stroke-dashoffset="${dashOffset}"/>
+        <g class="delivery-envelope" transform="translate(${currentPos.x}, ${currentPos.y})">
+          <rect x="-10" y="-6" width="20" height="12" rx="1" fill="#faf5f0" stroke="${color}" stroke-width="1"/>
+          <path d="M -10 -6 L 0 2 L 10 -6" fill="none" stroke="${color}" stroke-width="0.8"/>
+        </g>
+      `;
+    }).join('');
+  },
+
+  _estimatePathLength(x1, y1, x2, y2, offset) {
+    const midX = (x1 + x2) / 2;
+    const midY = (y1 + y2) / 2;
+    const dx = x2 - x1;
+    const dy = y2 - y1;
+    const dist = Math.sqrt(dx * dx + dy * dy);
+    if (dist === 0) return 0;
+    const perpX = -dy / dist * offset;
+    const perpY = dx / dist * offset;
+    const cpX = midX + perpX;
+    const cpY = midY + perpY;
+    const chord = dist;
+    const controlDist = Math.sqrt((cpX - midX) ** 2 + (cpY - midY) ** 2);
+    return chord * (1 + controlDist / dist * 0.4);
+  },
+
+  _setupMapInteractions() {
+    const svg = document.getElementById('map-svg');
+    const mapContainer = document.getElementById('map-view-container');
+    if (!svg || !mapContainer || this._mapInteractionsSetup) return;
+    this._mapInteractionsSetup = true;
+
+    const state = {
+      scale: 1.8,
+      offsetX: 0,
+      offsetY: 0,
+      isDragging: false,
+      isEditMode: false,
+      draggingMarker: null,
+      markerStartX: 0,
+      markerStartY: 0,
+      dragClientStartX: 0,
+      dragClientStartY: 0,
+      startOffsetX: 0,
+      startOffsetY: 0
+    };
+
+    const mapGroups = svg.querySelectorAll('#map-continents, #map-mountains, #map-deserts, #map-delivery-paths, #map-mailbox-markers');
+
+    const updateTransform = () => {
+      mapGroups.forEach(el => {
+        el.setAttribute('transform', `translate(${state.offsetX}, ${state.offsetY}) scale(${state.scale})`);
+      });
+    };
+
+    const getMarkerTranslate = (marker) => {
+      const transform = marker.getAttribute('transform');
+      const match = transform.match(/translate\(([^,]+),\s*([^)]+)\)/);
+      if (match) {
+        return { x: parseFloat(match[1]), y: parseFloat(match[2]) };
+      }
+      return { x: 0, y: 0 };
+    };
+
+    const clientDeltaToSvgDelta = (dx, dy) => {
+      const rect = svg.getBoundingClientRect();
+      const svgDx = dx * (1000 / rect.width) / state.scale;
+      const svgDy = dy * (500 / rect.height) / state.scale;
+      return { dx: svgDx, dy: svgDy };
+    };
+
+    const xyToLatLng = (x, y) => {
+      const width = 1000;
+      const height = 500;
+      const lng = (x / width) * 360 - 180;
+      const yRatio = (height / 2 - y) / (width / (2 * Math.PI));
+      const lat = (2 * Math.atan(Math.exp(yRatio)) - Math.PI / 2) * (180 / Math.PI);
+      return { lat: Math.max(-85, Math.min(85, lat)), lng };
+    };
+
+    svg.addEventListener('mousedown', (e) => {
+      if (e.target.closest('.map-mailbox-marker')) return;
+      state.isDragging = true;
+      state.dragClientStartX = e.clientX;
+      state.dragClientStartY = e.clientY;
+      state.startOffsetX = state.offsetX;
+      state.startOffsetY = state.offsetY;
+      svg.style.cursor = 'grabbing';
+    });
+
+    window.addEventListener('mousemove', (e) => {
+      if (state.isDragging) {
+        const dx = e.clientX - state.dragClientStartX;
+        const dy = e.clientY - state.dragClientStartY;
+        state.offsetX = state.startOffsetX + dx;
+        state.offsetY = state.startOffsetY + dy;
+        updateTransform();
+      }
+      if (state.draggingMarker) {
+        const dx = e.clientX - state.dragClientStartX;
+        const dy = e.clientY - state.dragClientStartY;
+        const { dx: svgDx, dy: svgDy } = clientDeltaToSvgDelta(dx, dy);
+        const newX = state.markerStartX + svgDx;
+        const newY = state.markerStartY + svgDy;
+        state.draggingMarker.setAttribute('transform', `translate(${newX}, ${newY})`);
+      }
+    });
+
+    window.addEventListener('mouseup', (e) => {
+      if (state.draggingMarker) {
+        const marker = state.draggingMarker;
+        const mailboxId = marker.dataset.mailboxId;
+        const { x, y } = getMarkerTranslate(marker);
+        const { lat, lng } = xyToLatLng(x, y);
+        this._updateMailboxLocation(mailboxId, lat, lng);
+        state.draggingMarker = null;
+      }
+      state.isDragging = false;
+      svg.style.cursor = state.isEditMode ? 'default' : 'grab';
+    });
+
+    svg.addEventListener('wheel', (e) => {
+      e.preventDefault();
+      const delta = e.deltaY > 0 ? 0.92 : 1.08;
+      const newScale = Math.max(0.4, Math.min(4, state.scale * delta));
+      const rect = svg.getBoundingClientRect();
+      const mouseX = e.clientX - rect.left;
+      const mouseY = e.clientY - rect.top;
+      const svgX = (mouseX / rect.width) * 1000;
+      const svgY = (mouseY / rect.height) * 500;
+      state.offsetX = mouseX - svgX * newScale * (rect.width / 1000);
+      state.offsetY = mouseY - svgY * newScale * (rect.height / 500);
+      state.scale = newScale;
+      updateTransform();
+    });
+
+    const editBtn = document.getElementById('map-edit-btn');
+    const editHint = document.getElementById('map-edit-hint');
+    if (editBtn) {
+      editBtn.addEventListener('click', () => {
+        state.isEditMode = !state.isEditMode;
+        this._mapEditMode = state.isEditMode;
+        mapContainer.classList.toggle('editing', state.isEditMode);
+        editBtn.classList.toggle('active', state.isEditMode);
+        editBtn.textContent = state.isEditMode ? '✅ 完成编辑' : '✏️ 编辑位置';
+        if (editHint) editHint.classList.toggle('visible', state.isEditMode);
+        svg.style.cursor = state.isEditMode ? 'default' : 'grab';
+
+        const markers = svg.querySelectorAll('.map-mailbox-marker');
+        markers.forEach(marker => {
+          marker.classList.toggle('editing', state.isEditMode);
+        });
+      });
+    }
+
+    const onMarkerMouseDown = (e) => {
+      if (!state.isEditMode) return;
+      e.stopPropagation();
+      e.preventDefault();
+      const marker = e.currentTarget;
+      state.draggingMarker = marker;
+      const { x, y } = getMarkerTranslate(marker);
+      state.markerStartX = x;
+      state.markerStartY = y;
+      state.dragClientStartX = e.clientX;
+      state.dragClientStartY = e.clientY;
+    };
+
+    const setupMarkerEvents = () => {
+      const markers = svg.querySelectorAll('.map-mailbox-marker');
+      markers.forEach(marker => {
+        marker.addEventListener('mousedown', onMarkerMouseDown);
+      });
+    };
+
+    const origRender = this._renderMapMailboxMarkers.bind(this);
+    this._renderMapMailboxMarkers = () => {
+      origRender();
+      setupMarkerEvents();
+    };
+
+    setTimeout(() => {
+      setupMarkerEvents();
+    }, 200);
+
+    this._mapReset = () => {
+      state.scale = 1.8;
+      const rect = svg.getBoundingClientRect();
+      if (rect.width > 0) {
+        state.offsetX = (rect.width - 1000 * state.scale) / 2;
+        state.offsetY = (rect.height - 500 * state.scale) / 2;
+      }
+      updateTransform();
+    };
+
+    setTimeout(() => {
+      const rect = svg.getBoundingClientRect();
+      if (rect.width > 0) {
+        state.offsetX = (rect.width - 1000 * state.scale) / 2;
+        state.offsetY = (rect.height - 500 * state.scale) / 2;
+        updateTransform();
+      }
+    }, 50);
+  },
+
+  _resetMapView() {
+    if (this._mapReset) {
+      this._mapReset();
+    }
+  },
+
+  _updateMailboxLocation(mailboxId, lat, lng) {
+    const mailboxes = MailboxManager.getMailboxes();
+    const mb = mailboxes.find(m => m.id === mailboxId);
+    if (!mb) return;
+
+    const location = mb.location || {};
+    MailboxManager.updateMailbox(mailboxId, {
+      location: {
+        ...location,
+        lat: parseFloat(lat.toFixed(2)),
+        lng: parseFloat(lng.toFixed(2))
+      }
+    });
+
+    if (this.currentView === 'home' && this._mapViewVisible) {
+      this._renderMapMailboxMarkers();
+    }
+  },
+
+  _renderMailboxGrid() {
+    const grid = document.getElementById('mailbox-grid');
+    if (!grid) return;
+    const mailboxes = MailboxManager.getMailboxes();
+
+    grid.innerHTML = mailboxes.map(mb => {
+      const letters = MailboxManager.loadMailboxLetters(mb.id);
+      const iconSvg = MailboxManager._getMailboxIconSVG ? MailboxManager._getMailboxIconSVG(mb) : '';
+      return `
+        <article class="mailbox-card" data-mailbox-id="${mb.id}">
+          <span class="mailbox-symbol">${iconSvg || '✉'}</span>
+          <h4>${mb.name} ${mb.isShared ? '<span class="shared-badge-card">共享</span>' : ''}</h4>
+          <p>${mb.description || ''}</p>
+          <div class="mailbox-card-meta">
+            <span>${letters.length} 封</span>
+          </div>
+        </article>
+      `;
+    }).join('');
+
+    grid.querySelectorAll('.mailbox-card').forEach(card => {
+      card.addEventListener('click', () => {
+        this.navigate('mailbox', { mailboxId: card.dataset.mailboxId });
+      });
+    });
+  },
+
+  _getActiveCardIndex(cards, wrapper) {
+    let activeIndex = 0;
+    const viewCenter = wrapper.scrollLeft + wrapper.clientWidth / 2;
+    cards.forEach((card, idx) => {
+      const cardCenter = card.offsetLeft + card.offsetWidth / 2;
+      if (Math.abs(cardCenter - viewCenter) < card.offsetWidth / 2) {
+        activeIndex = idx;
+      }
+    });
+    return activeIndex;
+  },
+
+  renderMailboxView(mailboxId) {
+    const mailboxes = MailboxManager.getMailboxes();
+    const mailbox = mailboxes.find(m => m.id === mailboxId);
+    if (!mailbox) return;
+
+    this.currentMailboxId = mailboxId;
+
+    // 初始化双人邮箱UI
+    this._setupDualMailbox(mailbox);
+
+    // 应用信箱背景
+    const mailboxView = document.getElementById('mailbox-view');
+    const galleryMain = mailboxView?.querySelector('.gallery-main');
+    if (galleryMain && mailbox.bgGradient) {
+      galleryMain.style.background = mailbox.bgGradient;
+    }
+
+    // 更新标题
+    const titleEl = document.getElementById('mailbox-title');
+    const descEl = document.getElementById('mailbox-desc');
+    if (titleEl) {
+      titleEl.textContent = mailbox.name;
+    }
+    if (descEl) descEl.textContent = mailbox.desc;
+
+    // 绑定编辑按钮
+    const editBtn = document.getElementById('mailbox-edit-btn');
+    if (editBtn) {
+      editBtn.onclick = (e) => {
+        e.stopPropagation();
+        this.showEditMailboxModal(mailboxId);
+      };
+    }
+
+    // 绑定删除按钮
+    const deleteBtn = document.getElementById('mailbox-delete-btn');
+    if (deleteBtn) {
+      deleteBtn.onclick = (e) => {
+        e.stopPropagation();
+        if (!confirm(`确定要删除信箱"${mailbox.name}"吗？\n该信箱中的所有信件也将被删除。`)) return;
+
+        // 删除该信箱的所有信件
+        if (MailboxManager.isSharedMailbox(mailboxId)) {
+          STORAGE.saveSharedLetters(mailboxId, []);
+        } else {
+          const allLetters = STORAGE.loadLetters();
+          const remainingLetters = allLetters.filter(l => l.mailboxId !== mailboxId);
+          STORAGE.saveLetters(remainingLetters);
+        }
+
+        // 删除信箱
+        const remainingMailboxes = mailboxes.filter(m => m.id !== mailboxId);
+        STORAGE.saveMailboxes(remainingMailboxes);
+
+        // 返回主页
+        this.navigate('home');
+      };
+    }
+
+    // 视角切换逻辑
+    const viewSwitch = document.getElementById('view-switch');
+    if (viewSwitch) {
+      const mailboxView = document.getElementById('mailbox-view');
+      const mainContainer = mailboxView?.querySelector('.gallery-main');
+      
+      if (mainContainer && !viewSwitch.dataset.bound) {
+        viewSwitch.dataset.bound = 'true';
+        const viewBtns = viewSwitch.querySelectorAll('.view-btn');
+        
+        viewBtns.forEach(btn => {
+          btn.addEventListener('click', () => {
+            const view = btn.dataset.view;
+            
+            viewBtns.forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            
+            mainContainer.classList.remove('letters-mode', 'diary-mode', 'map-mode');
+            mainContainer.classList.add(`${view}-mode`);
+            
+            if (view === 'diary') {
+              if (typeof App.openDiary === 'function') {
+                App.openDiary();
+              }
+            }
+            
+            if (view === 'map') {
+              App.checkAndInitGameMap();
+            }
+          });
+        });
+      }
+      
+      if (mainContainer) {
+        mainContainer.classList.remove('diary-mode', 'map-mode');
+        mainContainer.classList.add('letters-mode');
+        const activeBtn = viewSwitch.querySelector('.view-btn[data-view="letters"]');
+        if (activeBtn) {
+          viewSwitch.querySelectorAll('.view-btn').forEach(b => b.classList.remove('active'));
+          activeBtn.classList.add('active');
+        }
+      }
+    }
+
+    // 渲染左侧信箱列表
+    const sidebarNav = document.getElementById('mailbox-sidebar-nav');
+    if (sidebarNav) {
+      MailboxManager.renderSidebarNav(sidebarNav, mailboxId);
+    }
+
+    // 渲染右侧信件画廊
+    const letterTrack = document.getElementById('letter-list');
+    const indicators = document.getElementById('letters-indicators');
+
+    if (letterTrack) {
+      const letters = MailboxManager.loadMailboxLetters(mailboxId);
+      letterTrack.innerHTML = '';
+
+      if (letters.length === 0) {
+        const empty = document.createElement('div');
+        empty.className = 'letters-empty';
+        empty.innerHTML = `
+          <div class="letters-empty-icon">✉️</div>
+          <p>还没有信件哦<br/>点击左侧"新建信件"开始写第一封信吧</p>
+        `;
+        letterTrack.appendChild(empty);
+        if (indicators) indicators.innerHTML = '';
+      } else {
+        let activeIndex = this.mailboxActiveIndex[mailboxId] || 0;
+        if (activeIndex >= letters.length) activeIndex = 0;
+        const cardElements = [];
+        
+        letters.forEach((letter, index) => {
+          const cardWrap = document.createElement('div');
+          cardWrap.className = 'letter-gallery-card';
+          cardWrap.dataset.index = index;
+          cardWrap.dataset.id = letter.id;
+
+          const card = document.createElement('div');
+          card.className = 'letter-card';
+          card.dataset.id = letter.id;
+          card.style.setProperty('--card-accent', mailbox.cardAccent || mailbox.accent);
+          card.style.setProperty('--card-accent-dark', MailboxManager._darkenColor(mailbox.cardAccent || mailbox.accent, 0.2));
+
+          const dateInfo = MailboxManager._parseDate(letter.date);
+          const preview = letter.subtitle || letter.letterTitle || letter.elements?.find(e => e.type === 'text')?.content?.substring(0, 50) || '';
+          const authorDisplay = MailboxManager.getLetterAuthorDisplay(letter);
+          const isMyLetter = MailboxManager.isMyLetter(letter);
+          const authorClass = isMyLetter ? 'letter-author-mine' : 'letter-author-other';
+
+          card.innerHTML = `
+            <div class="letter-card-body">
+              <div class="letter-card-seal">
+                ${(letter.recipient || '收').charAt(0).toUpperCase()}
+              </div>
+              <h3 class="letter-card-title">${letter.title || letter.letterTitle || '无标题信件'}</h3>
+              <p class="letter-card-preview">${preview ? preview + '...' : '暂无预览'}</p>
+              <div class="letter-card-meta">
+                <span class="letter-date">${dateInfo.month} ${dateInfo.day}, ${dateInfo.year}</span>
+              </div>
+              <div class="letter-card-author ${authorClass}">
+                ${authorDisplay}
+              </div>
+            </div>
+          `;
+
+          cardWrap.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const clickedIndex = parseInt(cardWrap.dataset.index);
+            
+            if (clickedIndex === activeIndex) {
+              this.mailboxActiveIndex[mailboxId] = activeIndex;
+              this.navigate('reader', { letterId: letter.id, showEnvelope: true });
+            } else {
+              activeIndex = clickedIndex;
+              this.mailboxActiveIndex[mailboxId] = activeIndex;
+              _updateLayout();
+            }
+          });
+
+          cardWrap.appendChild(card);
+          letterTrack.appendChild(cardWrap);
+          cardElements.push(cardWrap);
+        });
+
+        const _updateLayout = () => {
+          this._updateStackLayout(cardElements, activeIndex, indicators);
+        };
+
+        _updateLayout();
+
+        // 左右箭头按钮
+        const prevBtn = document.getElementById('letters-prev');
+        const nextBtn = document.getElementById('letters-next');
+
+        if (prevBtn) {
+          prevBtn.onclick = (e) => {
+            e.stopPropagation();
+            if (activeIndex > 0) {
+              activeIndex--;
+              this.mailboxActiveIndex[mailboxId] = activeIndex;
+              _updateLayout();
+            }
+          };
+        }
+
+        if (nextBtn) {
+          nextBtn.onclick = (e) => {
+            e.stopPropagation();
+            if (activeIndex < cardElements.length - 1) {
+              activeIndex++;
+              this.mailboxActiveIndex[mailboxId] = activeIndex;
+              _updateLayout();
+            }
+          };
+        }
+
+        // 圆点指示器点击
+        if (indicators) {
+          indicators.addEventListener('click', (e) => {
+            const dot = e.target.closest('.gallery-dot');
+            if (dot) {
+              const idx = parseInt(dot.dataset.index);
+              activeIndex = idx;
+              this.mailboxActiveIndex[mailboxId] = activeIndex;
+              _updateLayout();
+            }
+          });
+        }
+      }
+    }
+  },
+
+  _updateStackLayout(cards, activeIndex, indicators) {
+    cards.forEach((card, index) => {
+      card.classList.remove('active', 'prev', 'next', 'far-prev', 'far-next', 'hidden-left', 'hidden-right');
+      
+      const diff = index - activeIndex;
+      
+      if (diff === 0) {
+        card.classList.add('active');
+      } else if (diff === -1) {
+        card.classList.add('prev');
+      } else if (diff === 1) {
+        card.classList.add('next');
+      } else if (diff === -2) {
+        card.classList.add('far-prev');
+      } else if (diff === 2) {
+        card.classList.add('far-next');
+      } else if (diff < -2) {
+        card.classList.add('hidden-left');
+      } else if (diff > 2) {
+        card.classList.add('hidden-right');
+      }
+    });
+
+    if (indicators) {
+      indicators.innerHTML = '';
+      cards.forEach((_, index) => {
+        const dot = document.createElement('div');
+        dot.className = 'gallery-dot' + (index === activeIndex ? ' active' : '');
+        dot.dataset.index = index;
+        indicators.appendChild(dot);
+      });
+    }
+  },
+
+  renderStyleSelect() {
+    const grid = document.getElementById('style-grid');
+    const styles = [
+      { id: 'vintage-literary', icon: '📖', name: '文艺复古', desc: '日期、时间、星期，书籍式排版' },
+      { id: 'modern-minimal', icon: '📄', name: '现代简约', desc: '干净留白，现代排版' },
+      { id: 'cute-doodle', icon: '🎨', name: '可爱手绘', desc: '圆角边框，手绘装饰' },
+      { id: 'japanese-vertical', icon: '🎋', name: '日式和风', desc: '竖排文字，和纸纹理' },
+      { id: 'floral', icon: '🌸', name: '花语信纸', desc: '粉色花边框，浪漫温柔' },
+      { id: 'night-letter', icon: '🌙', name: '夜书信纸', desc: '星空闪烁，静谧夜色' },
+      { id: 'kraft', icon: '📦', name: '牛皮纸复古', desc: '做旧质感，怀旧温度' },
+      { id: 'ocean', icon: '🌊', name: '海洋风', desc: '海浪波光，清新自由' }
+    ];
+
+    grid.innerHTML = styles.map(s => `
+      <div class="style-card" data-style="${s.id}">
+        <div class="style-card-icon">${s.icon}</div>
+        <div class="style-card-name">${s.name}</div>
+        <div class="style-card-desc">${s.desc}</div>
+      </div>
+    `).join('');
+
+    grid.querySelectorAll('.style-card').forEach(card => {
+      card.addEventListener('click', () => {
+        const style = card.dataset.style;
+        Editor.paperStyle = style;
+        Editor.mailboxId = this.currentMailboxId;
+        this.navigate('editor', {});
+      });
+    });
+  },
+
+  _initMultiplayer(mailboxId) {
+    if (!mailboxId || !window.gameMapRenderer) return;
+
+    const currentUser = AuthManager.getCurrentUser();
+    if (!currentUser) return;
+
+    const sharedMailbox = STORAGE.loadSharedMailbox(mailboxId);
+    const isShared = sharedMailbox && sharedMailbox.members && sharedMailbox.members.length > 1;
+
+    if (!isShared) {
+      return;
+    }
+
+    if (typeof MultiplayerSync === 'undefined') {
+      return;
+    }
+
+    window.gameMapRenderer.setMultiplayerMode(true);
+
+    const characterId = currentUser.role || 'xiu-jing';
+
+    window.gameMapRenderer.loadCharacter(characterId).then(() => {
+      this._updateMultiplayerUI(true);
+
+      MultiplayerSync.on('join', (player) => {
+        if (!window.gameMapRenderer) return;
+        window.gameMapRenderer.addRemotePlayer(
+          player.userId,
+          player.characterId,
+          player.x,
+          player.y
+        );
+        this._updateOnlinePlayersList();
+      });
+
+      MultiplayerSync.on('leave', (data) => {
+        if (!window.gameMapRenderer) return;
+        window.gameMapRenderer.removeRemotePlayer(data.userId);
+        this._updateOnlinePlayersList();
+      });
+
+      MultiplayerSync.on('update', (player) => {
+        if (!window.gameMapRenderer) return;
+        window.gameMapRenderer.updateRemotePlayer(player.userId, player);
+      });
+
+      MultiplayerSync.on('action', (data) => {
+        if (!window.gameMapRenderer) return;
+        window.gameMapRenderer.playRemoteAction(data.userId, data.action);
+      });
+
+      MultiplayerSync.on('interact', (data) => {
+        if (!window.gameMapRenderer) return;
+        if (data.toUserId === currentUser.id) {
+          window.gameMapRenderer.handleRemoteInteract(data.fromUserId, data.actionType);
+        }
+      });
+
+      MultiplayerSync.on('chat', (data) => {
+        if (!window.gameMapRenderer) return;
+        window.gameMapRenderer.showChatBubble(data.userId, data.content);
+        this._handleRemoteChat(data, currentUser);
+      });
+
+      MultiplayerSync.init(mailboxId, currentUser);
+
+      const player = window.gameMapRenderer.player;
+      MultiplayerSync.broadcastState({
+        characterId: currentUser.role || window.gameMapRenderer.selectedCharacter,
+        x: player.x,
+        y: player.y,
+        direction: player.direction,
+        action: player.action,
+        frame: player.frame,
+        moving: player.moving
+      });
+
+      const onlinePlayers = MultiplayerSync.getOnlinePlayers();
+      for (const [userId, player] of Object.entries(onlinePlayers)) {
+        if (userId === currentUser.id) continue;
+        window.gameMapRenderer.addRemotePlayer(
+          userId,
+          player.characterId,
+          player.x,
+          player.y
+        );
+        window.gameMapRenderer.updateRemotePlayer(userId, player);
+      }
+
+      this._updateOnlinePlayersList();
+
+      window.multiplayerInteractCallback = (toUserId, actionType) => {
+        if (typeof MultiplayerSync !== 'undefined') {
+          MultiplayerSync.broadcastInteract(toUserId, actionType);
+        }
+      };
+
+      this._wrapPlayAction();
+      this._bindVisibilityChange();
+      this._bindBeforeUnload();
+
+      this._startStateSync();
+      this._bindChatInput();
+      this._startDuetActionPanel();
+    });
+  },
+
+  _destroyMultiplayer() {
+    this._stopStateSync();
+    this._unbindVisibilityChange();
+    this._unbindBeforeUnload();
+
+    if (typeof MultiplayerSync !== 'undefined') {
+      MultiplayerSync.destroy();
+    }
+    if (window.gameMapRenderer) {
+      window.gameMapRenderer.setMultiplayerMode(false);
+      for (const userId of Object.keys(window.gameMapRenderer.remotePlayers || {})) {
+        window.gameMapRenderer.removeRemotePlayer(userId);
+      }
+    }
+
+    window.multiplayerInteractCallback = null;
+
+    this._updateMultiplayerUI(false);
+  },
+
+  _updateMultiplayerUI(isMultiplayer) {
+    const currentCharSection = document.getElementById('current-character-section');
+    const guestCharSection = document.getElementById('guest-character-section');
+    const onlinePlayersPanel = document.getElementById('online-players-panel');
+    const chatInputContainer = document.getElementById('chat-input-container');
+    const currentUser = AuthManager.getCurrentUser();
+    const isLoggedIn = !!currentUser;
+
+    if (isMultiplayer && isLoggedIn) {
+      if (currentCharSection) currentCharSection.style.display = 'block';
+      if (guestCharSection) guestCharSection.style.display = 'none';
+      if (onlinePlayersPanel) onlinePlayersPanel.style.display = 'block';
+      if (chatInputContainer) chatInputContainer.style.display = 'flex';
+      this._updateCurrentCharacterInfo();
+    } else {
+      if (currentCharSection) currentCharSection.style.display = 'none';
+      if (guestCharSection) guestCharSection.style.display = 'block';
+      if (onlinePlayersPanel) onlinePlayersPanel.style.display = 'none';
+      if (chatInputContainer) chatInputContainer.style.display = 'none';
+    }
+  },
+
+  _bindMultiplayerSettings() {
+    const settingsBtn = document.getElementById('multiplayer-settings-btn');
+    const settingsPanel = document.getElementById('multiplayer-settings-panel');
+    const closeBtn = document.getElementById('mp-close-btn');
+    const connectBtn = document.getElementById('mp-connect-btn');
+    const disconnectBtn = document.getElementById('mp-disconnect-btn');
+    const serverUrlInput = document.getElementById('mp-server-url');
+    const roomIdInput = document.getElementById('mp-room-id');
+    const statusEl = document.getElementById('mp-status');
+
+    if (!settingsBtn) return;
+
+    // 打开/关闭设置面板
+    settingsBtn.addEventListener('click', () => {
+      if (settingsPanel.style.display === 'none') {
+        settingsPanel.style.display = 'block';
+        this._updateMultiplayerStatus();
+        // 加载已保存的设置
+        if (typeof MultiplayerSync !== 'undefined') {
+          const savedUrl = MultiplayerSync.getServerUrl();
+          if (savedUrl) serverUrlInput.value = savedUrl;
+          const savedRoom = MultiplayerSync.getRoomId();
+          if (savedRoom) roomIdInput.value = savedRoom;
+        }
+      } else {
+        settingsPanel.style.display = 'none';
+      }
+    });
+
+    if (closeBtn) {
+      closeBtn.addEventListener('click', () => {
+        settingsPanel.style.display = 'none';
+      });
+    }
+
+    // 连接按钮
+    if (connectBtn) {
+      connectBtn.addEventListener('click', () => {
+        const serverUrl = serverUrlInput.value.trim();
+        const roomId = roomIdInput.value.trim();
+
+        if (!serverUrl) {
+          if (statusEl) {
+            statusEl.textContent = '请输入服务器地址';
+            statusEl.className = 'mp-status';
+          }
+          return;
+        }
+
+        if (!roomId) {
+          if (statusEl) {
+            statusEl.textContent = '请输入房间号';
+            statusEl.className = 'mp-status';
+          }
+          return;
+        }
+
+        if (typeof MultiplayerSync === 'undefined') {
+          if (statusEl) {
+            statusEl.textContent = '同步模块未加载';
+            statusEl.className = 'mp-status';
+          }
+          return;
+        }
+
+        if (statusEl) {
+          statusEl.textContent = '连接中...';
+          statusEl.className = 'mp-status connecting';
+        }
+
+        // 设置服务器地址和房间号
+        MultiplayerSync.setServerUrl(serverUrl);
+        MultiplayerSync.setRoomId(roomId);
+
+        // 重新初始化多人连接
+        const currentUser = AuthManager.getCurrentUser();
+        if (currentUser && this.currentMailboxId) {
+          this._destroyMultiplayer();
+          setTimeout(() => {
+            this._initMultiplayer(this.currentMailboxId);
+
+            // 等待连接结果
+            setTimeout(() => {
+              this._updateMultiplayerStatus();
+            }, 2000);
+          }, 100);
+        }
+      });
+    }
+
+    // 断开按钮
+    if (disconnectBtn) {
+      disconnectBtn.addEventListener('click', () => {
+        this._destroyMultiplayer();
+        this._updateMultiplayerStatus();
+      });
+    }
+  },
+
+  _updateMultiplayerStatus() {
+    const statusEl = document.getElementById('mp-status');
+    const connectBtn = document.getElementById('mp-connect-btn');
+    const disconnectBtn = document.getElementById('mp-disconnect-btn');
+    const settingsBtn = document.getElementById('multiplayer-settings-btn');
+
+    if (!statusEl) return;
+
+    if (typeof MultiplayerSync === 'undefined') {
+      statusEl.textContent = '同步模块未加载';
+      statusEl.className = 'mp-status';
+      return;
+    }
+
+    if (MultiplayerSync.isConnected()) {
+      const room = MultiplayerSync.getRoomId();
+      const players = Object.keys(MultiplayerSync.getOnlinePlayers()).length;
+      statusEl.textContent = `已连接 | 房间: ${room} | 在线: ${players + 1}人`;
+      statusEl.className = 'mp-status connected';
+      if (connectBtn) connectBtn.style.display = 'none';
+      if (disconnectBtn) disconnectBtn.style.display = 'block';
+      if (settingsBtn) settingsBtn.classList.add('connected');
+    } else {
+      statusEl.textContent = '未连接';
+      statusEl.className = 'mp-status';
+      if (connectBtn) connectBtn.style.display = 'block';
+      if (disconnectBtn) disconnectBtn.style.display = 'none';
+      if (settingsBtn) settingsBtn.classList.remove('connected');
+    }
+  },
+
+  _updateOnlinePlayersList() {
+    const listEl = document.getElementById('online-players-list');
+    if (!listEl) return;
+
+    const currentUser = AuthManager.getCurrentUser();
+    if (!currentUser) return;
+
+    let allPlayers = [];
+
+    allPlayers.push({
+      userId: currentUser.id,
+      name: currentUser.username || currentUser.name || '我',
+      isSelf: true,
+      isOnline: true,
+      role: currentUser.role
+    });
+
+    if (typeof MultiplayerSync !== 'undefined') {
+      const onlinePlayers = MultiplayerSync.getOnlinePlayers();
+      for (const [userId, player] of Object.entries(onlinePlayers)) {
+        if (userId === currentUser.id) continue;
+        allPlayers.push({
+          userId: userId,
+          name: player.username || player.name || userId,
+          isSelf: false,
+          isOnline: true,
+          role: player.characterId
+        });
+      }
+    }
+
+    listEl.innerHTML = allPlayers.map(player => {
+      const initial = (player.name || '?').charAt(0);
+      return `
+        <div class="online-player-item" data-user-id="${player.userId}">
+          <div class="online-player-avatar">${initial}</div>
+          <span class="online-player-name">${player.name}${player.isSelf ? ' (我)' : ''}</span>
+          <span class="online-status" title="${player.isOnline ? '在线' : '离线'}"></span>
+        </div>
+      `;
+    }).join('');
+  },
+
+  _bindChatInput() {
+    const chatInput = document.getElementById('chat-input');
+    const chatSendBtn = document.getElementById('chat-send-btn');
+    const chatHistoryBtn = document.getElementById('chat-history-btn');
+    const chatHistoryClose = document.getElementById('chat-history-close');
+    const chatHistoryPanel = document.getElementById('chat-history-panel');
+    if (!chatInput || !chatSendBtn) return;
+
+    const sendChat = () => {
+      const content = chatInput.value.trim();
+      if (!content) return;
+      if (content.length > 50) {
+        content = content.substring(0, 50);
+      }
+
+      const currentUser = AuthManager.getCurrentUser();
+      if (!currentUser || !window.gameMapRenderer) {
+        chatInput.value = '';
+        return;
+      }
+
+      if (typeof MultiplayerSync !== 'undefined' && MultiplayerSync.broadcastChat) {
+        MultiplayerSync.broadcastChat(content);
+      }
+
+      window.gameMapRenderer.showChatBubble(currentUser.id, content);
+
+      this._addChatMessage(currentUser.id, currentUser.displayName || currentUser.username, content, true);
+
+      chatInput.value = '';
+    };
+
+    chatInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        sendChat();
+      }
+    });
+
+    chatSendBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      sendChat();
+    });
+
+    if (chatHistoryBtn) {
+      chatHistoryBtn.addEventListener('click', () => {
+        if (chatHistoryPanel) {
+          const isVisible = chatHistoryPanel.style.display !== 'none';
+          chatHistoryPanel.style.display = isVisible ? 'none' : 'flex';
+          if (!isVisible) {
+            this._renderChatHistory();
+          }
+        }
+      });
+    }
+
+    if (chatHistoryClose && chatHistoryPanel) {
+      chatHistoryClose.addEventListener('click', () => {
+        chatHistoryPanel.style.display = 'none';
+      });
+    }
+  },
+
+  _getChatHistoryKey() {
+    const currentUser = AuthManager.getCurrentUser();
+    if (!currentUser) return null;
+    const sharedMailboxId = AuthManager.getSharedMailboxId(currentUser.id);
+    return sharedMailboxId ? 'chat_history_' + sharedMailboxId : null;
+  },
+
+  _loadChatHistory() {
+    const key = this._getChatHistoryKey();
+    if (!key) return [];
+    try {
+      return JSON.parse(localStorage.getItem(key) || '[]');
+    } catch (e) {
+      return [];
+    }
+  },
+
+  _saveChatHistory(messages) {
+    const key = this._getChatHistoryKey();
+    if (!key) return;
+    try {
+      localStorage.setItem(key, JSON.stringify(messages));
+    } catch (e) {}
+  },
+
+  _addChatMessage(userId, userName, content, isSelf) {
+    const messages = this._loadChatHistory();
+    messages.push({
+      id: Date.now() + '-' + Math.random().toString(36).slice(2, 6),
+      userId: userId,
+      userName: userName,
+      content: content,
+      isSelf: isSelf,
+      timestamp: Date.now()
+    });
+    if (messages.length > 200) {
+      messages.splice(0, messages.length - 200);
+    }
+    this._saveChatHistory(messages);
+
+    const panel = document.getElementById('chat-history-panel');
+    if (panel && panel.style.display !== 'none') {
+      this._renderChatHistory();
+    }
+  },
+
+  _renderChatHistory() {
+    const listEl = document.getElementById('chat-history-list');
+    if (!listEl) return;
+
+    const messages = this._loadChatHistory();
+
+    if (messages.length === 0) {
+      listEl.innerHTML = '<div class="chat-history-empty">暂无聊天记录</div>';
+      return;
+    }
+
+    listEl.innerHTML = messages.map(msg => {
+      const initial = (msg.userName || '?').charAt(0);
+      return `
+        <div class="chat-history-item ${msg.isSelf ? 'self' : ''}">
+          <div class="chat-history-avatar">${initial}</div>
+          <div>
+            <div class="chat-history-bubble">${this._escapeHtml(msg.content)}</div>
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    listEl.scrollTop = listEl.scrollHeight;
+  },
+
+  _escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+  },
+
+  _startDuetActionPanel() {
+    const panel = document.getElementById('duet-action-panel');
+    if (!panel) return;
+
+    const buttons = panel.querySelectorAll('.duet-action-btn');
+    buttons.forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const action = btn.getAttribute('data-action');
+        this._playDuetAction(action);
+      });
+    });
+
+    this._duetPanelUpdateTimer = setInterval(() => {
+      this._updateDuetActionPanel();
+    }, 100);
+  },
+
+  _stopDuetActionPanel() {
+    if (this._duetPanelUpdateTimer) {
+      clearInterval(this._duetPanelUpdateTimer);
+      this._duetPanelUpdateTimer = null;
+    }
+    const panel = document.getElementById('duet-action-panel');
+    if (panel) {
+      panel.style.display = 'none';
+    }
+  },
+
+  _updateDuetActionPanel() {
+    if (!window.gameMapRenderer || !window.gameMapRenderer.multiplayerMode) return;
+
+    const panel = document.getElementById('duet-action-panel');
+    const mapContainer = document.getElementById('game-map-container');
+    if (!panel || !mapContainer) return;
+
+    const nearby = window.gameMapRenderer.getNearbyPlayer(3);
+    if (!nearby) {
+      if (panel.style.display !== 'none') {
+        panel.style.display = 'none';
+      }
+      return;
+    }
+
+    if (panel.style.display === 'none') {
+      panel.style.display = 'block';
+    }
+
+    const player = nearby.player;
+    const screenX = player.x - window.gameMapRenderer.camera.x;
+    const screenY = player.y - window.gameMapRenderer.camera.y - 100;
+
+    panel.style.left = (screenX - panel.offsetWidth / 2) + 'px';
+    panel.style.top = screenY + 'px';
+  },
+
+  _playDuetAction(actionName) {
+    if (!window.gameMapRenderer) return;
+
+    const nearby = window.gameMapRenderer.getNearbyPlayer(3);
+    if (!nearby) return;
+
+    if (window.gameMapRenderer.playAction) {
+      window.gameMapRenderer.playAction(actionName);
+    }
+  },
+
+  _saveChatAsLetter(content, currentUser) {
+    if (!this.currentMailboxId) return;
+
+    const sharedMailboxId = AuthManager.getSharedMailboxId(currentUser.id);
+    if (!sharedMailboxId) return;
+
+    const title = content.length > 10 ? content.substring(0, 10) + '...' : content;
+
+    const letter = {
+      id: 'chat-' + Date.now() + '-' + Math.random().toString(36).slice(2, 8),
+      mailboxId: sharedMailboxId,
+      letterTitle: title,
+      recipient: '',
+      sender: currentUser.displayName || currentUser.username,
+      senderId: currentUser.id,
+      senderRole: currentUser.role || '',
+      content: [
+        {
+          type: 'text',
+          text: content
+        }
+      ],
+      letterType: 'chat-letter',
+      envelopeStyle: 'env-chinese-kraft',
+      status: 'delivered',
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+      read: false,
+      hasRecording: false,
+      scheduledAt: null,
+      delivery: null
+    };
+
+    STORAGE.saveSharedLetterWithMedia(sharedMailboxId, letter).then(() => {
+      if (this.currentView === 'mailbox' && this.currentMailboxId === sharedMailboxId) {
+        this.renderMailboxView(sharedMailboxId);
+      }
+    }).catch(() => {});
+  },
+
+  _handleRemoteChat(data, currentUser) {
+    if (!data || !data.userId || !data.content) return;
+    if (data.userId === currentUser.id) return;
+
+    const userInfo = this._getUserInfoById(data.userId);
+    const senderName = userInfo?.displayName || userInfo?.username || '对方';
+
+    this._addChatMessage(data.userId, senderName, data.content, false);
+
+    // 显示对端角色的气泡
+    if (window.gameMapRenderer && window.gameMapRenderer.showChatBubble) {
+      window.gameMapRenderer.showChatBubble(data.userId, data.content);
+    }
+  },
+
+  _getUserInfoById(userId) {
+    try {
+      const users = JSON.parse(localStorage.getItem('xinjian_users') || '[]');
+      return users.find(u => u.id === userId) || null;
+    } catch (e) {
+      return null;
+    }
+  },
+
+  _updateCurrentCharacterInfo() {
+    const currentUser = AuthManager.getCurrentUser();
+    if (!currentUser) return;
+
+    const charNameEl = document.getElementById('current-char-name');
+    const charSectEl = document.getElementById('current-char-sect');
+    const charAvatarEl = document.getElementById('current-char-avatar');
+
+    const charId = currentUser.role || 'xiu-jing';
+    let charName = '角色';
+    let charSect = '门派';
+    let charInitial = '?';
+
+    if (window.gameMapRenderer && typeof window.gameMapRenderer.getCharacterInfo === 'function') {
+      const charInfo = window.gameMapRenderer.getCharacterInfo(charId);
+      if (charInfo) {
+        charName = charInfo.name || charName;
+        charSect = charInfo.sect || charSect;
+        charInitial = charInfo.name ? charInfo.name.charAt(0) : charInitial;
+      }
+    } else {
+      const charNames = {
+        'xiu-jing': { name: '修璟', sect: '静远派' },
+        'xuan-xuan': { name: '萱宣', sect: '寒门' }
+      };
+      if (charNames[charId]) {
+        charName = charNames[charId].name;
+        charSect = charNames[charId].sect;
+        charInitial = charName.charAt(0);
+      }
+    }
+
+    if (charNameEl) charNameEl.textContent = charName;
+    if (charSectEl) charSectEl.textContent = charSect;
+    if (charAvatarEl) charAvatarEl.textContent = charInitial;
+  },
+
+  _startStateSync() {
+    this._stopStateSync();
+    this._stateSyncPaused = false;
+    this._stateSyncInterval = setInterval(() => {
+      if (this._stateSyncPaused) return;
+      if (!window.gameMapRenderer || !this.currentMailboxId) return;
+      if (typeof MultiplayerSync === 'undefined') return;
+
+      const player = window.gameMapRenderer.player;
+      const currentUser = AuthManager.getCurrentUser();
+      if (!currentUser) return;
+
+      MultiplayerSync.broadcastState({
+        characterId: currentUser.role || window.gameMapRenderer.selectedCharacter,
+        x: player.x,
+        y: player.y,
+        direction: player.direction,
+        action: player.action,
+        frame: player.frame,
+        moving: player.moving
+      });
+    }, 100);
+  },
+
+  _stopStateSync() {
+    if (this._stateSyncInterval) {
+      clearInterval(this._stateSyncInterval);
+      this._stateSyncInterval = null;
+    }
+    this._stateSyncPaused = false;
+  },
+
+  _wrapPlayAction() {
+    if (!window.gameMapRenderer || this._originalPlayAction) return;
+
+    this._originalPlayAction = window.gameMapRenderer.playAction.bind(window.gameMapRenderer);
+
+    window.gameMapRenderer.playAction = (actionName) => {
+      this._originalPlayAction(actionName);
+
+      if (typeof MultiplayerSync !== 'undefined' && this.currentMailboxId) {
+        MultiplayerSync.broadcastAction(actionName);
+      }
+    };
+  },
+
+  _bindVisibilityChange() {
+    if (this._visibilityHandler) return;
+
+    this._visibilityHandler = () => {
+      if (document.hidden) {
+        this._stateSyncPaused = true;
+      } else {
+        this._stateSyncPaused = false;
+        if (typeof MultiplayerSync !== 'undefined' && this.currentMailboxId) {
+          const currentUser = AuthManager.getCurrentUser();
+          if (currentUser && window.gameMapRenderer) {
+            const player = window.gameMapRenderer.player;
+            MultiplayerSync.broadcastState({
+              characterId: currentUser.role || window.gameMapRenderer.selectedCharacter,
+              x: player.x,
+              y: player.y,
+              direction: player.direction,
+              action: player.action,
+              frame: player.frame,
+              moving: player.moving
+            });
+          }
+        }
+      }
+    };
+
+    document.addEventListener('visibilitychange', this._visibilityHandler);
+  },
+
+  _unbindVisibilityChange() {
+    if (this._visibilityHandler) {
+      document.removeEventListener('visibilitychange', this._visibilityHandler);
+      this._visibilityHandler = null;
+    }
+  },
+
+  _bindBeforeUnload() {
+    if (this._beforeUnloadHandler) return;
+
+    this._beforeUnloadHandler = () => {
+      if (typeof MultiplayerSync !== 'undefined') {
+        MultiplayerSync.destroy();
+      }
+    };
+
+    window.addEventListener('beforeunload', this._beforeUnloadHandler);
+  },
+
+  _unbindBeforeUnload() {
+    if (this._beforeUnloadHandler) {
+      window.removeEventListener('beforeunload', this._beforeUnloadHandler);
+      this._beforeUnloadHandler = null;
+    }
+  },
+
+  checkAndInitGameMap() {
+    const mapContainer = document.getElementById('mailbox-map-view');
+    if (!mapContainer) return;
+
+    const mailboxes = MailboxManager.getMailboxes();
+    const currentMailbox = mailboxes.find(m => m.id === this.currentMailboxId);
+    const isXiejianMailbox = this.currentMailboxId === 'mailbox-xiejian';
+    let mapBg = currentMailbox ? currentMailbox.mapBackground : null;
+
+    if (isXiejianMailbox && !mapBg) {
+      mapBg = 'xj-jingyuan';
+    }
+
+    const currentUser = AuthManager.getCurrentUser();
+    const isSharedMailbox = currentMailbox && 
+      currentMailbox.isShared && 
+      currentMailbox.members && 
+      currentMailbox.members.length > 1;
+    const isLoggedIn = !!currentUser;
+
+    if (!window.gameMapRenderer) {
+      import('./gameMapRenderer.js').then(module => {
+        window.gameMapRenderer = new module.GameMapRenderer(mapContainer);
+        window.gameMapRenderer.init();
+
+        if (isXiejianMailbox) {
+          window.gameMapRenderer.loadCharacter('zhou-ran');
+          window.gameMapRenderer.setPartner('shen-chiyi');
+        } else if (isSharedMailbox && isLoggedIn) {
+          const characterId = currentUser.role || 'xiu-jing';
+          window.gameMapRenderer.loadCharacter(characterId);
+          window.gameMapRenderer.setMultiplayerMode(true);
+        } else {
+          window.gameMapRenderer.loadCharacter('xiu-jing');
+          window.gameMapRenderer.setPartner('xuan-xuan');
+        }
+        
+        window.gameMapRenderer.setMapBackground(mapBg);
+
+        if (isSharedMailbox && isLoggedIn) {
+          this._initMultiplayer(this.currentMailboxId);
+        } else if (currentUser && (currentUser.role === 'xiu-jing' || currentUser.role === 'xuan-xuan')) {
+          setTimeout(() => {
+            this._syncMapCharacter(currentUser.role);
+          }, 200);
+        }
+
+        const renderCharacterGrid = (category) => {
+          const grid = document.getElementById('character-grid');
+          const characters = window.gameMapRenderer.getCharactersForCategory(category);
+          grid.innerHTML = '';
+          characters.forEach(char => {
+            const btn = document.createElement('button');
+            btn.className = 'character-card';
+            btn.dataset.char = char.id;
+            if (char.id === window.gameMapRenderer.selectedCharacter) {
+              btn.classList.add('active');
+            }
+            let subtitle = char.sect || '';
+            btn.innerHTML = `
+              <div class="char-avatar" data-char-id="${char.id}">${char.name.charAt(0)}</div>
+              <div class="char-info">
+                <span class="char-name">${char.name}</span>
+                ${subtitle ? `<span class="char-subtitle">${subtitle}</span>` : ''}
+              </div>
+            `;
+            btn.addEventListener('click', () => {
+              document.querySelectorAll('.character-card').forEach(b => b.classList.remove('active'));
+              btn.classList.add('active');
+              window.gameMapRenderer.setCharacter(char.id);
+            });
+            grid.appendChild(btn);
+          });
+        };
+
+        document.querySelectorAll('.char-tab').forEach(tab => {
+          tab.addEventListener('click', () => {
+            document.querySelectorAll('.char-tab').forEach(t => t.classList.remove('active'));
+            tab.classList.add('active');
+            window.gameMapRenderer.setCategory(tab.dataset.category);
+            renderCharacterGrid(tab.dataset.category);
+          });
+        });
+
+        const defaultCategory = isXiejianMailbox ? 'xiejian' : 'hanmen';
+        renderCharacterGrid(defaultCategory);
+        document.querySelectorAll('.char-tab').forEach(t => {
+          t.classList.remove('active');
+          if (t.dataset.category === defaultCategory) t.classList.add('active');
+        });
+
+        setTimeout(() => {
+          const maps = window.gameMapRenderer.getMaps();
+          const mapNameEl = document.getElementById('map-name');
+          if (mapNameEl && maps[window.gameMapRenderer.currentMapIndex]) {
+            mapNameEl.textContent = maps[window.gameMapRenderer.currentMapIndex].name;
+          }
+        }, 200);
+
+        const renderPartnerSelector = () => {
+          const partnerSelect = document.getElementById('partner-select');
+          if (!partnerSelect) return;
+          
+          partnerSelect.innerHTML = '<button class="partner-btn partner-none active" data-partner="none">无搭档</button>';
+          
+          const allCharacters = [
+            ...window.gameMapRenderer.getCharactersForCategory('jingyuan'),
+            ...window.gameMapRenderer.getCharactersForCategory('hanmen'),
+            ...window.gameMapRenderer.getCharactersForCategory('main')
+          ];
+          
+          const currentChar = window.gameMapRenderer.selectedCharacter;
+          const availablePartners = allCharacters.filter(c => c.id !== currentChar);
+          
+          availablePartners.forEach(char => {
+            const btn = document.createElement('button');
+            btn.className = 'partner-btn';
+            btn.dataset.partner = char.id;
+            if (char.id === window.gameMapRenderer.partner.characterId) {
+              btn.classList.add('active');
+            }
+            btn.textContent = char.name;
+            btn.addEventListener('click', () => {
+              document.querySelectorAll('.partner-btn').forEach(b => b.classList.remove('active'));
+              btn.classList.add('active');
+              window.gameMapRenderer.setPartner(char.id);
+            });
+            partnerSelect.appendChild(btn);
+          });
+        };
+
+        renderPartnerSelector();
+
+        document.querySelectorAll('.character-card').forEach(card => {
+          card.addEventListener('click', () => {
+            setTimeout(() => {
+              renderPartnerSelector();
+            }, 100);
+          });
+        });
+
+        let partnerCharForDuet = null;
+        const originalSetPartner = window.gameMapRenderer.setPartner.bind(window.gameMapRenderer);
+        window.gameMapRenderer.setPartner = (charId) => {
+          originalSetPartner(charId);
+          if (charId && charId !== 'none') {
+            partnerCharForDuet = charId;
+          }
+        };
+
+        const duetSection = document.getElementById('duet-section');
+        const duetToggleBtn = document.getElementById('duet-toggle-btn');
+        
+        document.querySelectorAll('.partner-btn').forEach(btn => {
+          btn.addEventListener('click', () => {
+            const partnerId = btn.dataset.partner;
+            if (partnerId !== 'none') {
+              setTimeout(() => {
+                if (duetSection) {
+                  duetSection.style.display = 'block';
+                }
+              }, 200);
+            } else {
+              if (duetSection) {
+                duetSection.style.display = 'none';
+              }
+              if (window.gameMapRenderer.duetMode) {
+                window.gameMapRenderer.toggleDuetMode();
+              }
+            }
+          });
+        });
+
+        document.querySelectorAll('.duet-btn').forEach(btn => {
+          btn.addEventListener('click', () => {
+            document.querySelectorAll('.duet-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            const duetIndex = parseInt(btn.dataset.duet);
+            if (!window.gameMapRenderer.duetMode) {
+              window.gameMapRenderer.toggleDuetMode();
+            }
+            window.gameMapRenderer.setDuetAction(duetIndex);
+          });
+        });
+
+        if (duetToggleBtn) {
+          duetToggleBtn.addEventListener('click', () => {
+            window.gameMapRenderer.toggleDuetMode();
+            duetToggleBtn.textContent = window.gameMapRenderer.duetMode ? '退出双人模式' : '进入双人模式';
+          });
+        }
+
+        if (!isSharedMailbox || !isLoggedIn) {
+          setTimeout(() => {
+            if (duetSection) {
+              duetSection.style.display = 'block';
+            }
+            window.gameMapRenderer.toggleDuetMode();
+            if (duetToggleBtn) {
+              duetToggleBtn.textContent = '退出双人模式';
+            }
+          }, 1000);
+        }
+
+        // 根据登录状态和信箱类型切换UI
+        const currentCharSection = document.getElementById('current-character-section');
+        const guestCharSection = document.getElementById('guest-character-section');
+        const onlinePlayersPanel = document.getElementById('online-players-panel');
+        const partnerSection = document.querySelector('.partner-section');
+
+        if (isSharedMailbox && isLoggedIn) {
+          if (currentCharSection) currentCharSection.style.display = 'block';
+          if (guestCharSection) guestCharSection.style.display = 'none';
+          if (onlinePlayersPanel) onlinePlayersPanel.style.display = 'block';
+          if (partnerSection) partnerSection.style.display = 'none';
+          if (duetSection) duetSection.style.display = 'none';
+
+          this._updateCurrentCharacterInfo();
+        } else {
+          if (currentCharSection) currentCharSection.style.display = 'none';
+          if (guestCharSection) guestCharSection.style.display = 'block';
+          if (onlinePlayersPanel) onlinePlayersPanel.style.display = 'none';
+          if (partnerSection) partnerSection.style.display = 'block';
+          if (duetSection) duetSection.style.display = 'block';
+        }
+
+        // 单人动作按钮事件
+        document.querySelectorAll('.action-btn').forEach(btn => {
+          btn.addEventListener('click', () => {
+            const action = btn.dataset.action;
+            window.gameMapRenderer.playAction(action);
+          });
+        });
+
+        const charToggleBtn = document.getElementById('char-toggle-btn');
+        const charSelector = document.getElementById('character-selector');
+        if (charToggleBtn && charSelector) {
+          charToggleBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            charSelector.classList.toggle('open');
+          });
+        }
+
+        // 移动端动作按钮开关
+        const mobileActionsToggle = document.getElementById('mobile-actions-toggle');
+        const mobileActions = document.getElementById('mobile-actions');
+        if (mobileActionsToggle && mobileActions) {
+          mobileActionsToggle.addEventListener('click', (e) => {
+            e.stopPropagation();
+            mobileActions.classList.toggle('open');
+            mobileActionsToggle.classList.toggle('active');
+          });
+        }
+
+        const isXiejianMailbox = this.currentMailboxId === 'mailbox-xiejian';
+
+        document.getElementById('map-prev').addEventListener('click', () => {
+          if (isXiejianMailbox) {
+            const xjKeys = window.gameMapRenderer.getXiejianMapKeys();
+            const currentKey = window.gameMapRenderer.currentMapBgKey || 'xj-jingyuan';
+            let currentIdx = xjKeys.indexOf(currentKey);
+            if (currentIdx === -1) currentIdx = 0;
+            const newIdx = (currentIdx - 1 + xjKeys.length) % xjKeys.length;
+            window.gameMapRenderer.setMapBackground(xjKeys[newIdx]);
+          } else {
+            const maps = window.gameMapRenderer.getMaps();
+            const currentIndex = window.gameMapRenderer.currentMapIndex;
+            const newIndex = (currentIndex - 1 + maps.length) % maps.length;
+            window.gameMapRenderer.switchMap(newIndex);
+            document.getElementById('map-name').textContent = maps[newIndex].name;
+          }
+        });
+
+        document.getElementById('map-next').addEventListener('click', () => {
+          if (isXiejianMailbox) {
+            const xjKeys = window.gameMapRenderer.getXiejianMapKeys();
+            const currentKey = window.gameMapRenderer.currentMapBgKey || 'xj-jingyuan';
+            let currentIdx = xjKeys.indexOf(currentKey);
+            if (currentIdx === -1) currentIdx = 0;
+            const newIdx = (currentIdx + 1) % xjKeys.length;
+            window.gameMapRenderer.setMapBackground(xjKeys[newIdx]);
+          } else {
+            const maps = window.gameMapRenderer.getMaps();
+            const currentIndex = window.gameMapRenderer.currentMapIndex;
+            const newIndex = (currentIndex + 1) % maps.length;
+            window.gameMapRenderer.switchMap(newIndex);
+            document.getElementById('map-name').textContent = maps[newIndex].name;
+          }
+        });
+
+        this._bindMultiplayerSettings();
+
+        const setupJoystick = () => {
+          const joystick = document.getElementById('joystick');
+          const handle = document.getElementById('joystick-handle');
+          if (!joystick || !handle) return;
+
+          let isDragging = false;
+          let startX = 0, startY = 0;
+          const maxRadius = 35;
+
+          const updateMovement = (dx, dy) => {
+            const dist = Math.sqrt(dx * dx + dy * dy);
+            if (dist > maxRadius) {
+              dx = (dx / dist) * maxRadius;
+              dy = (dy / dist) * maxRadius;
+            }
+            handle.style.transform = `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px))`;
+            
+            if (window.gameMapRenderer) {
+              const normX = dx / maxRadius;
+              const normY = dy / maxRadius;
+              window.gameMapRenderer.setJoystickInput(normX, normY);
+            }
+          };
+
+          const resetJoystick = () => {
+            isDragging = false;
+            handle.style.transform = 'translate(-50%, -50%)';
+            if (window.gameMapRenderer) {
+              window.gameMapRenderer.setJoystickInput(0, 0);
+            }
+          };
+
+          joystick.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            isDragging = true;
+            const touch = e.touches[0];
+            const rect = joystick.getBoundingClientRect();
+            startX = rect.left + rect.width / 2;
+            startY = rect.top + rect.height / 2;
+            updateMovement(touch.clientX - startX, touch.clientY - startY);
+          }, { passive: false });
+
+          joystick.addEventListener('touchmove', (e) => {
+            e.preventDefault();
+            if (!isDragging) return;
+            const touch = e.touches[0];
+            updateMovement(touch.clientX - startX, touch.clientY - startY);
+          }, { passive: false });
+
+          joystick.addEventListener('touchend', (e) => {
+            e.preventDefault();
+            resetJoystick();
+          }, { passive: false });
+
+          joystick.addEventListener('mousedown', (e) => {
+            isDragging = true;
+            const rect = joystick.getBoundingClientRect();
+            startX = rect.left + rect.width / 2;
+            startY = rect.top + rect.height / 2;
+            updateMovement(e.clientX - startX, e.clientY - startY);
+          });
+
+          document.addEventListener('mousemove', (e) => {
+            if (!isDragging) return;
+            updateMovement(e.clientX - startX, e.clientY - startY);
+          });
+
+          document.addEventListener('mouseup', () => {
+            if (isDragging) resetJoystick();
+          });
+        };
+
+        setupJoystick();
+
+        document.querySelectorAll('.action-btn').forEach(btn => {
+          btn.addEventListener('click', (e) => {
+            e.preventDefault();
+            const action = btn.dataset.action;
+            if (window.gameMapRenderer && action) {
+              window.gameMapRenderer.playAction(action);
+            }
+          });
+          btn.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            const action = btn.dataset.action;
+            if (window.gameMapRenderer && action) {
+              window.gameMapRenderer.playAction(action);
+            }
+          }, { passive: false });
+        });
+
+        if (window.gameMapRenderer.canvas.width === 0 || window.gameMapRenderer.canvas.height === 0) {
+          setTimeout(() => {
+            window.gameMapRenderer.resize();
+          }, 50);
+        }
+      });
+    } else {
+      if (window.gameMapRenderer.canvas.width === 0 || window.gameMapRenderer.canvas.height === 0) {
+        setTimeout(() => {
+          window.gameMapRenderer.resize();
+        }, 50);
+      }
+      window.gameMapRenderer.setMapBackground(mapBg);
+
+      this._destroyMultiplayer();
+
+      setTimeout(() => {
+        const currentUser = AuthManager.getCurrentUser();
+        if (isXiejianMailbox) {
+          window.gameMapRenderer.loadCharacter('zhou-ran');
+          window.gameMapRenderer.setPartner('shen-chiyi');
+          const defaultCategory = 'xiejian';
+          const grid = document.getElementById('character-grid');
+          if (grid) {
+            const characters = window.gameMapRenderer.getCharactersForCategory(defaultCategory);
+            grid.innerHTML = '';
+            characters.forEach(char => {
+              const btn = document.createElement('button');
+              btn.className = 'character-card';
+              btn.dataset.char = char.id;
+              if (char.id === window.gameMapRenderer.selectedCharacter) {
+                btn.classList.add('active');
+              }
+              let subtitle = char.sect || '';
+              btn.innerHTML = `
+                <div class="char-avatar" data-char-id="${char.id}">${char.name.charAt(0)}</div>
+                <div class="char-info">
+                  <span class="char-name">${char.name}</span>
+                  ${subtitle ? `<span class="char-subtitle">${subtitle}</span>` : ''}
+                </div>
+              `;
+              btn.addEventListener('click', () => {
+                document.querySelectorAll('.character-card').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                window.gameMapRenderer.setCharacter(char.id);
+              });
+              grid.appendChild(btn);
+            });
+          }
+          document.querySelectorAll('.char-tab').forEach(t => {
+            t.classList.remove('active');
+            if (t.dataset.category === 'xiejian') t.classList.add('active');
+          });
+        } else if (isSharedMailbox && isLoggedIn) {
+          const characterId = currentUser.role || 'xiu-jing';
+          window.gameMapRenderer.loadCharacter(characterId);
+          this._initMultiplayer(this.currentMailboxId);
+        } else if (currentUser && (currentUser.role === 'xiu-jing' || currentUser.role === 'xuan-xuan')) {
+          this._syncMapCharacter(currentUser.role);
+        } else {
+          window.gameMapRenderer.loadMap(5);
+          window.gameMapRenderer.loadCharacter('xiu-jing');
+          window.gameMapRenderer.setPartner('xuan-xuan');
+          const maps = window.gameMapRenderer.getMaps();
+          const mapNameEl = document.getElementById('map-name');
+          if (mapNameEl && maps[5]) {
+            mapNameEl.textContent = maps[5].name;
+          }
+        }
+      }, 100);
+    }
+  },
+
+  // 发送信件到对方信箱
+  _sendLetterToPartner() {
+    const currentUser = AuthManager.getCurrentUser();
+    if (!currentUser) {
+      alert('请先登录账号');
+      return;
+    }
+
+    const mailboxId = this.currentMailboxId;
+    if (!mailboxId) {
+      alert('请先选择一个信箱');
+      return;
+    }
+
+    const isShared = MailboxManager.isSharedMailbox(mailboxId);
+    if (!isShared) {
+      alert('只有共享信箱才能发送信件');
+      return;
+    }
+
+    // 获取发送者和接收者信息
+    const senderRole = currentUser.role;
+    let senderName = currentUser.displayName || currentUser.username || '我';
+    let recipientName = '';
+
+    if (senderRole === 'xiu-jing') {
+      recipientName = '萱宣';
+    } else if (senderRole === 'xuan-xuan') {
+      recipientName = '修璟';
+    } else {
+      recipientName = '对方';
+    }
+
+    // 创建新信件（共享信箱格式）
+    const now = new Date();
+    const hours = String(now.getHours()).padStart(2, '0');
+    const minutes = String(now.getMinutes()).padStart(2, '0');
+    
+    const newLetter = {
+      id: 'letter-' + Date.now() + '-' + Math.random().toString(36).slice(2, 8),
+      mailboxId: mailboxId,
+      letterTitle: '无标题信件',
+      recipient: recipientName,
+      sender: senderName,
+      date: now.toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric' }),
+      time: `${hours}:${minutes}`,
+      author: {
+        userId: currentUser.id,
+        username: currentUser.username,
+        displayName: currentUser.displayName,
+        role: currentUser.role
+      },
+      content: [],
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+      status: 'sent',
+      paperStyle: 'vintage-literary'
+    };
+
+    // 保存到共享信箱
+    const letters = STORAGE.loadSharedLetters(mailboxId);
+    letters.push(newLetter);
+    STORAGE.saveSharedLetters(mailboxId, letters);
+
+    // 刷新信箱视图
+    this.renderMailboxView(mailboxId);
+
+    alert(`信件已发送给 ${recipientName}！`);
+  },
+
+};
+
+document.addEventListener('DOMContentLoaded', () => App.init());

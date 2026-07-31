@@ -1,0 +1,214 @@
+{
+  "source": "D:\\prj\\sendbox\\taoyuan-main\\public\\assets\\sanshi-pixel-assets\\items\\atlases\\items-clothing-transparent.png",
+  "padding": 8,
+  "actions": {
+    "bridal_robe": {
+      "speed": 160,
+      "frames": [
+        {
+          "left": 0,
+          "top": 0,
+          "width": 313,
+          "height": 313,
+          "keepAll": true,
+          "padding": 8
+        }
+      ]
+    },
+    "academy_outer_robe": {
+      "speed": 160,
+      "frames": [
+        {
+          "left": 313,
+          "top": 0,
+          "width": 314,
+          "height": 313,
+          "keepAll": true,
+          "padding": 8
+        }
+      ]
+    },
+    "taoist_robe": {
+      "speed": 160,
+      "frames": [
+        {
+          "left": 627,
+          "top": 0,
+          "width": 313,
+          "height": 313,
+          "keepAll": true,
+          "padding": 8
+        }
+      ]
+    },
+    "tianxing_black_robe": {
+      "speed": 160,
+      "frames": [
+        {
+          "left": 940,
+          "top": 0,
+          "width": 314,
+          "height": 313,
+          "keepAll": true,
+          "padding": 8
+        }
+      ]
+    },
+    "scholar_robe": {
+      "speed": 160,
+      "frames": [
+        {
+          "left": 0,
+          "top": 313,
+          "width": 313,
+          "height": 314,
+          "keepAll": true,
+          "padding": 8
+        }
+      ]
+    },
+    "medical_valley_dress": {
+      "speed": 160,
+      "frames": [
+        {
+          "left": 313,
+          "top": 313,
+          "width": 314,
+          "height": 314,
+          "keepAll": true,
+          "padding": 8
+        }
+      ]
+    },
+    "righteous_sect_robe": {
+      "speed": 160,
+      "frames": [
+        {
+          "left": 627,
+          "top": 313,
+          "width": 313,
+          "height": 314,
+          "keepAll": true,
+          "padding": 8
+        }
+      ]
+    },
+    "hanlin_official_robe": {
+      "speed": 160,
+      "frames": [
+        {
+          "left": 940,
+          "top": 313,
+          "width": 314,
+          "height": 314,
+          "keepAll": true,
+          "padding": 8
+        }
+      ]
+    },
+    "jade_hairpin": {
+      "speed": 160,
+      "frames": [
+        {
+          "left": 0,
+          "top": 627,
+          "width": 313,
+          "height": 313,
+          "keepAll": true,
+          "padding": 8
+        }
+      ]
+    },
+    "jade_pendant": {
+      "speed": 160,
+      "frames": [
+        {
+          "left": 313,
+          "top": 627,
+          "width": 314,
+          "height": 313,
+          "keepAll": true,
+          "padding": 8
+        }
+      ]
+    },
+    "white_crane": {
+      "speed": 160,
+      "frames": [
+        {
+          "left": 627,
+          "top": 627,
+          "width": 313,
+          "height": 313,
+          "keepAll": true,
+          "padding": 8
+        }
+      ]
+    },
+    "carrier_pigeon": {
+      "speed": 160,
+      "frames": [
+        {
+          "left": 940,
+          "top": 627,
+          "width": 314,
+          "height": 313,
+          "keepAll": true,
+          "padding": 8
+        }
+      ]
+    },
+    "crane_feathers": {
+      "speed": 160,
+      "frames": [
+        {
+          "left": 0,
+          "top": 940,
+          "width": 313,
+          "height": 314,
+          "keepAll": true,
+          "padding": 8
+        }
+      ]
+    },
+    "taoist_scripture": {
+      "speed": 160,
+      "frames": [
+        {
+          "left": 313,
+          "top": 940,
+          "width": 314,
+          "height": 314,
+          "keepAll": true,
+          "padding": 8
+        }
+      ]
+    },
+    "medical_manual": {
+      "speed": 160,
+      "frames": [
+        {
+          "left": 627,
+          "top": 940,
+          "width": 313,
+          "height": 314,
+          "keepAll": true,
+          "padding": 8
+        }
+      ]
+    },
+    "scrolls_and_books": {
+      "speed": 160,
+      "frames": [
+        {
+          "left": 940,
+          "top": 940,
+          "width": 314,
+          "height": 314,
+          "keepAll": true,
+          "padding": 8
+        }
+      ]
+    }
+  }
+}

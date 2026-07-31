@@ -1,0 +1,160 @@
+{
+  "source": "D:\\prj\\sendbox\\taoyuan-main\\public\\assets\\sanshi-pixel-assets\\location-maps\\atlases\\all-location-maps-atlas.png",
+  "padding": 8,
+  "actions": {
+    "jingyuan_academy": {
+      "speed": 160,
+      "className": "location-map",
+      "frames": [
+        {
+          "left": 0,
+          "top": 0,
+          "width": 384,
+          "height": 512,
+          "keepAll": true,
+          "padding": 8
+        }
+      ]
+    },
+    "daohua_temple": {
+      "speed": 160,
+      "className": "location-map",
+      "frames": [
+        {
+          "left": 384,
+          "top": 0,
+          "width": 384,
+          "height": 512,
+          "keepAll": true,
+          "padding": 8
+        }
+      ]
+    },
+    "tianxing_cult": {
+      "speed": 160,
+      "className": "location-map",
+      "frames": [
+        {
+          "left": 768,
+          "top": 0,
+          "width": 384,
+          "height": 512,
+          "keepAll": true,
+          "padding": 8
+        }
+      ]
+    },
+    "danxi_valley": {
+      "speed": 160,
+      "className": "location-map",
+      "frames": [
+        {
+          "left": 0,
+          "top": 512,
+          "width": 384,
+          "height": 512,
+          "keepAll": true,
+          "padding": 8
+        }
+      ]
+    },
+    "buhuan_sect": {
+      "speed": 160,
+      "className": "location-map",
+      "frames": [
+        {
+          "left": 384,
+          "top": 512,
+          "width": 384,
+          "height": 512,
+          "keepAll": true,
+          "padding": 8
+        }
+      ]
+    },
+    "taozhi_sect": {
+      "speed": 160,
+      "className": "location-map",
+      "frames": [
+        {
+          "left": 768,
+          "top": 512,
+          "width": 384,
+          "height": 512,
+          "keepAll": true,
+          "padding": 8
+        }
+      ]
+    },
+    "dongjia_shen_manor": {
+      "speed": 160,
+      "className": "location-map",
+      "frames": [
+        {
+          "left": 0,
+          "top": 1024,
+          "width": 384,
+          "height": 512,
+          "keepAll": true,
+          "padding": 8
+        }
+      ]
+    },
+    "ren_manor": {
+      "speed": 160,
+      "className": "location-map",
+      "frames": [
+        {
+          "left": 384,
+          "top": 1024,
+          "width": 384,
+          "height": 512,
+          "keepAll": true,
+          "padding": 8
+        }
+      ]
+    },
+    "capital_hanlin": {
+      "speed": 160,
+      "className": "location-map",
+      "frames": [
+        {
+          "left": 768,
+          "top": 1024,
+          "width": 384,
+          "height": 512,
+          "keepAll": true,
+          "padding": 8
+        }
+      ]
+    },
+    "forgetfulness_river": {
+      "speed": 160,
+      "className": "location-map",
+      "frames": [
+        {
+          "left": 0,
+          "top": 1536,
+          "width": 384,
+          "height": 512,
+          "keepAll": true,
+          "padding": 8
+        }
+      ]
+    },
+    "border_town": {
+      "speed": 160,
+      "className": "location-map",
+      "frames": [
+        {
+          "left": 384,
+          "top": 1536,
+          "width": 384,
+          "height": 512,
+          "keepAll": true,
+          "padding": 8
+        }
+      ]
+    }
+  }
+}

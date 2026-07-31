@@ -1,0 +1,1204 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>像素沙盒 - Pixel Sandbox</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; }
+img, video { max-width: 100%; height: auto; display: block; }
+body {
+  overflow-wrap: break-word;
+  margin: 0;
+  background: #1a1c2c;
+  font-family: 'Courier New', 'Consolas', monospace, sans-serif;
+  color: #f4f4f4;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: manipulation;
+}
+#game-wrapper {
+  position: relative;
+  width: 100vw;
+  height: 100vh;
+  height: 100dvh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+canvas {
+  image-rendering: pixelated;
+  image-rendering: -moz-crisp-edges;
+  image-rendering: crisp-edges;
+  display: block;
+  background: #5fcde4;
+}
+#game { touch-action: none; }
+.text-center { text-align: center; }
+.text-xl { font-size: 1.25rem; line-height: 1.75rem; }
+.mb-4 { margin-bottom: 1rem; }
+button, input, select { font: inherit; }
+button { touch-action: manipulation; }
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+[role="button"]:focus-visible {
+  outline: 3px solid #f9a03f;
+  outline-offset: 3px;
+}
+.pixel-font {
+  font-family: 'Courier New', 'Consolas', monospace;
+  letter-spacing: 1px;
+  font-weight: bold;
+}
+.pixel-border {
+  border: 4px solid #1a1c2c;
+  box-shadow:
+    inset -4px -4px 0 0 rgba(0,0,0,0.2),
+    inset 4px 4px 0 0 rgba(255,255,255,0.15),
+    0 4px 0 0 #000;
+}
+.pixel-btn {
+  font-family: 'Courier New', 'Consolas', monospace;
+  font-weight: bold;
+  letter-spacing: 1px;
+  padding: 10px 20px;
+  background: #5fcde4;
+  color: #1a1c2c;
+  border: 3px solid #1a1c2c;
+  box-shadow: 0 4px 0 #1a1c2c;
+  cursor: pointer;
+  transition: transform 0.05s, box-shadow 0.05s;
+  text-transform: uppercase;
+}
+.pixel-btn:hover { background: #7dd8eb; }
+.pixel-btn:active {
+  transform: translateY(4px);
+  box-shadow: 0 0 0 #1a1c2c;
+}
+.pixel-btn.secondary {
+  background: #a3d26a;
+}
+.pixel-btn.secondary:hover { background: #b8dd85; }
+.pixel-btn.warn {
+  background: #f9a03f;
+}
+.pixel-btn.warn:hover { background: #fbb35e; }
+
+.overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(26, 28, 44, 0.85);
+  z-index: 10;
+}
+.overlay.hidden { display: none; }
+
+.panel {
+  background: #f4f4f4;
+  color: #1a1c2c;
+  border: 4px solid #1a1c2c;
+  box-shadow: 0 8px 0 #1a1c2c;
+  padding: 24px 28px;
+  max-width: 90vw;
+  max-height: 85vh;
+  overflow-y: auto;
+  touch-action: pan-y;
+}
+
+.hud-top {
+  position: absolute;
+  top: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 10px;
+  z-index: 5;
+  pointer-events: none;
+}
+.hud-top > * { pointer-events: auto; }
+.hud-bottom {
+  position: absolute;
+  bottom: 12px;
+  left: 12px;
+  display: flex;
+  gap: 10px;
+  z-index: 5;
+  pointer-events: none;
+}
+.hud-bottom > * { pointer-events: auto; }
+
+.hud-badge {
+  background: #1a1c2c;
+  color: #f4f4f4;
+  padding: 6px 14px;
+  border: 3px solid #f4f4f4;
+  font-family: 'Courier New', monospace;
+  font-weight: bold;
+  font-size: 13px;
+  letter-spacing: 1px;
+  box-shadow: 0 3px 0 rgba(0,0,0,0.5);
+}
+.hud-badge.edit { background: #f9a03f; color: #1a1c2c; border-color: #1a1c2c; }
+
+.tile-bar {
+  position: absolute;
+  bottom: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 6px;
+  padding: 8px;
+  background: #1a1c2c;
+  border: 3px solid #f4f4f4;
+  z-index: 5;
+  flex-wrap: wrap;
+  justify-content: center;
+  max-width: 95vw;
+}
+.tile-bar.hidden { display: none; }
+
+.tile-slot {
+  width: 44px;
+  height: 44px;
+  border: 2px solid #f4f4f4;
+  cursor: pointer;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #2c2e42;
+  padding: 0;
+}
+.tile-slot.active {
+  border-color: #f9a03f;
+  box-shadow: 0 0 0 2px #f9a03f;
+}
+.tile-slot .upload-icon {
+  font-size: 20px;
+}
+.tile-slot.upload-btn:hover {
+  background: #3d3f5a;
+  border-color: #5fcde4;
+}
+.tile-slot .num {
+  position: absolute;
+  top: 1px;
+  left: 3px;
+  font-size: 10px;
+  color: #f4f4f4;
+  font-weight: bold;
+  font-family: 'Courier New', monospace;
+}
+
+.dialog-box {
+  position: absolute;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 90%;
+  max-width: 640px;
+  background: #f4f4f4;
+  color: #1a1c2c;
+  border: 4px solid #1a1c2c;
+  box-shadow: 0 6px 0 #1a1c2c;
+  padding: 16px 20px;
+  z-index: 8;
+  font-family: 'Courier New', monospace;
+  font-size: 15px;
+  line-height: 1.6;
+  min-height: 100px;
+}
+.dialog-box.hidden { display: none; }
+.dialog-name {
+  display: inline-block;
+  background: #5fcde4;
+  color: #1a1c2c;
+  padding: 4px 12px;
+  font-weight: bold;
+  border: 3px solid #1a1c2c;
+  margin-bottom: 10px;
+  font-size: 14px;
+}
+.dialog-text { min-height: 48px; }
+.dialog-hint {
+  text-align: right;
+  font-size: 12px;
+  color: #6b6b7b;
+  margin-top: 8px;
+  animation: blink 1s infinite;
+}
+@keyframes blink {
+  0%, 50% { opacity: 1; }
+  51%, 100% { opacity: 0.3; }
+}
+
+.interact-prompt {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -80px);
+  background: #1a1c2c;
+  color: #f4f4f4;
+  padding: 6px 14px;
+  border: 3px solid #f4f4f4;
+  font-family: 'Courier New', monospace;
+  font-weight: bold;
+  font-size: 13px;
+  z-index: 6;
+  pointer-events: none;
+  animation: bob 0.8s ease-in-out infinite alternate;
+}
+.interact-prompt.hidden { display: none; }
+@media (prefers-reduced-motion: reduce) {
+  .interact-prompt { animation: none; }
+}
+.system-grid { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+@media (max-width: 680px) {
+  .system-grid { grid-template-columns:1fr; overflow-y:auto; max-height:72vh; }
+  .overlay .panel { max-height:94vh; overflow:auto; }
+}
+@keyframes bob {
+  from { transform: translate(-50%, -80px); }
+  to { transform: translate(-50%, -88px); }
+}
+
+.action-btns {
+  position: absolute;
+  bottom: 80px;
+  right: 12px;
+  z-index: 5;
+  display: none;
+  flex-direction: column;
+  gap: 8px;
+}
+@media (max-width: 768px) {
+  .action-btns { display: flex; }
+}
+.action-btn {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: #f9a03f;
+  border: 3px solid #1a1c2c;
+  color: #1a1c2c;
+  font-family: 'Courier New', monospace;
+  font-weight: bold;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 4px 0 #1a1c2c;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: manipulation;
+}
+.action-btn:active {
+  transform: translateY(4px);
+  box-shadow: 0 0 0 #1a1c2c;
+}
+.action-btn.blue { background: #5fcde4; }
+.action-btn.green { background: #a3d26a; }
+
+/* ===== 静远七人动作按钮栏 ===== */
+.jingyuan-action-bar {
+  position: absolute;
+  bottom: 80px;
+  right: 12px;
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.jingyuan-action-bar.hidden { display: none; }
+.jingyuan-action-btn {
+  width: 64px;
+  height: 64px;
+  border: 3px solid #1a1c2c;
+  background: #f9a03f;
+  color: #1a1c2c;
+  font-family: 'Courier New', monospace;
+  font-weight: bold;
+  cursor: pointer;
+  box-shadow: 0 4px 0 #1a1c2c;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  transition: transform 0.05s, box-shadow 0.05s;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: manipulation;
+}
+.jingyuan-action-btn:active {
+  transform: translateY(4px);
+  box-shadow: 0 0 0 #1a1c2c;
+}
+.jingyuan-action-btn:disabled {
+  background: #c0c0c0;
+  cursor: not-allowed;
+  opacity: 0.6;
+  transform: none;
+  box-shadow: 0 4px 0 #1a1c2c;
+}
+.jingyuan-action-btn .icon { font-size: 22px; line-height: 1; }
+.jingyuan-action-btn .label { font-size: 11px; letter-spacing: 1px; }
+.jingyuan-action-btn.martial { background: #e74c3c; color: #fff; }
+.jingyuan-action-btn.etiquette { background: #5fcde4; }
+.jingyuan-action-btn.signature { background: #9b59b6; color: #fff; }
+
+.customize-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 14px;
+  flex-wrap: wrap;
+}
+.customize-row label {
+  min-width: 80px;
+  font-weight: bold;
+  font-family: 'Courier New', monospace;
+}
+.color-swatch {
+  width: 32px;
+  height: 32px;
+  border: 3px solid #1a1c2c;
+  cursor: pointer;
+  padding: 0;
+}
+.color-swatch.active {
+  box-shadow: 0 0 0 3px #f9a03f;
+}
+.hair-option {
+  width: 48px;
+  height: 48px;
+  border: 3px solid #1a1c2c;
+  cursor: pointer;
+  background: #e8e8e8;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+.hair-option.active {
+  box-shadow: 0 0 0 3px #f9a03f;
+}
+
+.map-select-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 12px;
+  margin: 16px 0;
+}
+.map-card {
+  border: 3px solid #1a1c2c;
+  padding: 10px;
+  cursor: pointer;
+  background: #fff;
+  text-align: center;
+  transition: transform 0.1s;
+  position: relative;
+}
+.map-card:hover { transform: translateY(-2px); }
+.map-card.active {
+  background: #5fcde4;
+  box-shadow: 0 0 0 3px #f9a03f;
+}
+.map-card canvas {
+  width: 100%;
+  height: auto;
+  background: #5fcde4;
+  image-rendering: pixelated;
+  border: 2px solid #1a1c2c;
+}
+.map-card .name {
+  margin-top: 6px;
+  font-weight: bold;
+  font-family: 'Courier New', monospace;
+  font-size: 13px;
+}
+.map-card .delete-btn {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 32px;
+  height: 32px;
+  background: #e74c3c;
+  color: #fff;
+  border: 2px solid #1a1c2c;
+  border-radius: 50%;
+  font-size: 14px;
+  font-weight: bold;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.1s;
+}
+.map-card .delete-btn:hover {
+  background: #c0392b;
+}
+
+.help-list {
+  font-family: 'Courier New', monospace;
+  font-size: 14px;
+  line-height: 2;
+}
+.help-list kbd {
+  background: #1a1c2c;
+  color: #f4f4f4;
+  padding: 2px 8px;
+  border-radius: 2px;
+  font-size: 12px;
+  display: inline-block;
+  min-width: 24px;
+  text-align: center;
+}
+
+.title-text {
+  font-family: 'Courier New', monospace;
+  font-weight: bold;
+  font-size: clamp(32px, 8vw, 56px);
+  letter-spacing: 4px;
+  color: #f4f4f4;
+  text-shadow:
+    4px 4px 0 #1a1c2c,
+    8px 8px 0 rgba(0,0,0,0.3);
+  margin-bottom: 8px;
+}
+.subtitle-text {
+  font-family: 'Courier New', monospace;
+  font-size: 14px;
+  color: #a3d26a;
+  letter-spacing: 2px;
+  margin-bottom: 32px;
+}
+
+/* ===== 素材库面板 ===== */
+.asset-library-panel {
+  width: 920px;
+  max-width: 95vw;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+}
+.asset-lib-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 12px;
+  border-bottom: 3px solid #1a1c2c;
+  margin-bottom: 12px;
+}
+.asset-lib-title {
+  font-family: 'Courier New', monospace;
+  font-weight: bold;
+  font-size: 20px;
+  color: #1a1c2c;
+  letter-spacing: 2px;
+}
+.asset-lib-target {
+  font-family: 'Courier New', monospace;
+  font-size: 12px;
+  color: #6b6b7b;
+  background: #e8e8e8;
+  padding: 4px 10px;
+  border: 2px solid #1a1c2c;
+}
+.asset-lib-body {
+  display: flex;
+  gap: 12px;
+  flex: 1;
+  min-height: 0;
+}
+.asset-cat-nav {
+  flex-shrink: 0;
+  width: 160px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+.asset-cat-btn {
+  font-family: 'Courier New', monospace;
+  font-weight: bold;
+  font-size: 12px;
+  padding: 8px 10px;
+  background: #e8e8e8;
+  color: #1a1c2c;
+  border: 2px solid #1a1c2c;
+  cursor: pointer;
+  text-align: left;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: background 0.1s;
+}
+.asset-cat-btn:hover { background: #d0d0d0; }
+.asset-cat-btn.active {
+  background: #5fcde4;
+  box-shadow: inset -3px -3px 0 0 rgba(0,0,0,0.2);
+}
+.asset-cat-btn .cat-count {
+  margin-left: auto;
+  font-size: 10px;
+  color: #6b6b7b;
+  background: #fff;
+  padding: 1px 5px;
+  border: 1px solid #1a1c2c;
+}
+.asset-cat-btn.active .cat-count { background: #1a1c2c; color: #f4f4f4; }
+
+.asset-grid-wrap {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.asset-grid {
+  flex: 1;
+  overflow-y: auto;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+  gap: 8px;
+  padding: 4px;
+  align-content: start;
+}
+.asset-cell {
+  border: 2px solid #1a1c2c;
+  background: #fff;
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  transition: transform 0.05s;
+  position: relative;
+  color: #1a1c2c;
+}
+.asset-cell:hover { transform: translateY(-2px); }
+.asset-cell.active {
+  background: #f9a03f;
+  box-shadow: 0 0 0 3px #1a1c2c;
+}
+.asset-cell.selected {
+  background: #a3d26a;
+  box-shadow: 0 0 0 3px #1a1c2c;
+}
+.asset-cell canvas, .asset-cell img {
+  width: 64px;
+  height: 64px;
+  object-fit: contain;
+  image-rendering: pixelated;
+  background: #5fcde4;
+}
+.asset-cell .asset-name {
+  font-family: 'Courier New', monospace;
+  font-size: 10px;
+  color: #1a1c2c;
+  text-align: center;
+  word-break: break-all;
+  line-height: 1.2;
+  max-width: 100%;
+  overflow: hidden;
+  max-height: 26px;
+}
+.asset-cell .loading-tag {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  background: #f9a03f;
+  color: #1a1c2c;
+  font-size: 9px;
+  padding: 1px 4px;
+  font-family: 'Courier New', monospace;
+}
+
+.asset-pager {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding-top: 10px;
+  margin-top: 8px;
+  border-top: 2px solid #1a1c2c;
+  font-family: 'Courier New', monospace;
+  font-size: 13px;
+  color: #1a1c2c;
+}
+.asset-pager button {
+  font-family: 'Courier New', monospace;
+  font-weight: bold;
+  padding: 4px 12px;
+  background: #5fcde4;
+  border: 2px solid #1a1c2c;
+  cursor: pointer;
+  color: #1a1c2c;
+}
+.asset-pager button:disabled {
+  background: #c0c0c0;
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.asset-lib-footer {
+  display: flex;
+  gap: 10px;
+  justify-content: space-between;
+  padding-top: 12px;
+  border-top: 3px solid #1a1c2c;
+  margin-top: 10px;
+  align-items: center;
+}
+.asset-lib-footer .footer-info {
+  font-family: 'Courier New', monospace;
+  font-size: 12px;
+  color: #6b6b7b;
+}
+.asset-lib-footer .footer-btns {
+  display: flex;
+  gap: 8px;
+}
+
+/* 角色自定义面板中的精灵图槽 */
+.sprite-slot-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.sprite-slot {
+  width: 56px;
+  height: 56px;
+  border: 3px solid #1a1c2c;
+  background: #e8e8e8;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  position: relative;
+  padding: 0;
+}
+.sprite-slot.active {
+  box-shadow: 0 0 0 3px #f9a03f;
+}
+.sprite-slot.has-sprite {
+  background: #a3d26a;
+}
+.sprite-slot canvas, .sprite-slot img {
+  width: 48px;
+  height: 48px;
+  object-fit: contain;
+  image-rendering: pixelated;
+}
+/* 素材库搜索和分组筛选 */
+.asset-lib-search {
+  display: flex;
+  gap: 8px;
+  padding: 8px;
+  background: #e8e8e8;
+  border: 2px solid #1a1c2c;
+  margin-bottom: 8px;
+}
+.asset-lib-search input {
+  flex: 1;
+  padding: 4px 8px;
+  border: 2px solid #1a1c2c;
+  font-family: 'Courier New', monospace;
+  font-size: 12px;
+}
+.asset-lib-search button {
+  padding: 4px 10px;
+  background: #5fcde4;
+  border: 2px solid #1a1c2c;
+  font-family: 'Courier New', monospace;
+  font-weight: bold;
+  cursor: pointer;
+}
+.asset-group-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 6px;
+  background: #fff;
+  border: 2px solid #1a1c2c;
+  margin-bottom: 8px;
+  overflow-x: auto;
+}
+.asset-group-tag {
+  padding: 2px 8px;
+  background: #e8e8e8;
+  border: 2px solid #1a1c2c;
+  font-family: 'Courier New', monospace;
+  font-size: 11px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.asset-group-tag.active {
+  background: #5fcde4;
+}
+.asset-group-tag:hover {
+  background: #d0d0d0;
+}
+.asset-group-tag.active:hover {
+  background: #7dd8eb;
+}
+
+.generator-layout {
+  display: flex;
+  gap: 20px;
+  height: 60vh;
+  overflow-y: auto;
+}
+.generator-column { flex: 1; min-width: 0; }
+.generator-settings { overflow-y: auto; }
+.customize-layout {
+  display: flex;
+  gap: 20px;
+  align-items: flex-start;
+}
+
+@media (max-width: 768px) {
+  .panel {
+    padding: 16px;
+    max-height: calc(100dvh - 24px);
+  }
+  .generator-layout {
+    display: block;
+    height: auto;
+    max-height: calc(100dvh - 96px);
+    padding-right: 4px;
+  }
+  .generator-settings {
+    overflow: visible;
+    margin-top: 20px;
+  }
+  .customize-layout {
+    flex-direction: column;
+    align-items: center;
+  }
+  .asset-library-panel { max-height: calc(100dvh - 16px); }
+  .asset-lib-body { flex-direction: column; }
+  .asset-cat-nav {
+    width: 100%;
+    flex-direction: row;
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding: 0 0 6px;
+  }
+  .asset-cat-btn { min-width: 132px; min-height: 44px; }
+  .asset-grid { grid-template-columns: repeat(auto-fill, minmax(72px, 1fr)); }
+  .asset-lib-footer { align-items: flex-start; flex-direction: column; }
+  .asset-lib-footer .footer-btns { width: 100%; justify-content: flex-end; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+</style>
+</head>
+<body>
+
+<div id="game-wrapper">
+  <canvas id="game"></canvas>
+
+  <div class="hud-top" id="hud-top">
+    <div class="hud-badge" id="mode-badge">游玩模式</div>
+    <div class="hud-badge" id="map-badge">地图: 村庄</div>
+    <div class="hud-badge hidden" id="action-badge" style="background:#9b59b6;">待机</div>
+  </div>
+
+  <div class="interact-prompt hidden" id="interact-prompt">按 E 对话</div>
+
+  <div class="tile-bar hidden" id="tile-bar"></div>
+
+  <div class="dialog-box hidden" id="dialog-box">
+    <div class="dialog-name" id="dialog-name">NPC</div>
+    <div class="dialog-text" id="dialog-text"></div>
+    <div class="dialog-hint">点击继续 ▼</div>
+  </div>
+
+  <div class="action-btns">
+    <button type="button" class="action-btn blue" id="btn-interact" aria-label="对话或交互">E</button>
+    <button type="button" class="action-btn green" id="btn-edit" aria-label="切换地图编辑模式">M</button>
+    <button type="button" class="action-btn" id="btn-customize" aria-label="打开角色自定义">C</button>
+  </div>
+
+  <!-- 静远七人动作栏（仅玩家使用静远角色时显示） -->
+  <div class="jingyuan-action-bar hidden" id="jingyuan-action-bar">
+    <button class="jingyuan-action-btn martial" id="jy-btn-martial" title="武艺攻击（空格）">
+      <span class="icon">⚔</span>
+      <span class="label">打斗</span>
+    </button>
+    <button class="jingyuan-action-btn etiquette" id="jy-btn-etiquette" title="拱手行礼（Q）">
+      <span class="icon">🙏</span>
+      <span class="label">行礼</span>
+    </button>
+    <button class="jingyuan-action-btn signature" id="jy-btn-signature" title="招牌大招（R）">
+      <span class="icon">✨</span>
+      <span class="label">招牌</span>
+    </button>
+  </div>
+
+  <div class="overlay" id="menu-overlay">
+    <div class="panel text-center" style="min-width: 320px;">
+      <div class="title-text" style="color:#1a1c2c; text-shadow: 4px 4px 0 #5fcde4;">像素沙盒</div>
+      <div class="subtitle-text" style="color:#6b6b7b;">PIXEL SANDBOX</div>
+      <div style="display: flex; flex-direction: column; gap: 12px; margin-top: 20px;">
+        <button class="pixel-btn" onclick="Game.startGame()">开始游戏</button>
+        <button class="pixel-btn secondary" onclick="Game.showMapSelect()">选择地图</button>
+        <button class="pixel-btn" style="background:#9b59b6;" onclick="Game.showMapGenerator()">像素地图生成器</button>
+        <button class="pixel-btn warn" onclick="Game.showCustomize()">角色自定义</button>
+        <button class="pixel-btn" style="background:#e056fd;" onclick="Game.showAssetLibrary()">素材库</button>
+        <button class="pixel-btn" style="background:#a3d26a;" onclick="Game.showHelp()">操作说明</button>
+        <button class="pixel-btn secondary" style="color:#b42318;" onclick="Game.resetProgress()">重置游戏进度</button>
+      </div>
+      <div style="margin-top: 20px; font-size: 12px; color: #6b6b7b; font-family: 'Courier New', monospace;">
+        v1.0 · 纯 Canvas 实现
+      </div>
+    </div>
+  </div>
+
+  <div class="overlay hidden" id="mapselect-overlay">
+    <div class="panel" style="width: 500px; max-width: 92vw;">
+      <h2 class="pixel-font text-xl mb-4" style="color:#1a1c2c;">选择地图</h2>
+      <div class="map-select-grid" id="map-select-grid"></div>
+      <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 16px;">
+        <button class="pixel-btn secondary" onclick="Game.backToMenu()">返回</button>
+        <button class="pixel-btn" onclick="Game.confirmMap()">确认</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="overlay hidden" id="customize-overlay">
+    <div class="panel" style="width: 480px; max-width: 92vw;">
+      <h2 class="pixel-font text-xl mb-4" style="color:#1a1c2c;">角色自定义</h2>
+      <div class="customize-layout">
+        <div style="flex-shrink: 0; width: 120px; height: 160px; background: #e8e8e8; border: 3px solid #1a1c2c; display: flex; align-items: center; justify-content: center;">
+          <canvas id="preview-canvas" width="96" height="128" style="image-rendering: pixelated;"></canvas>
+        </div>
+        <div style="flex: 1; min-width: 0;">
+          <div class="customize-row">
+            <label>肤色</label>
+            <div id="skin-colors" style="display:flex; gap:6px; flex-wrap:wrap;"></div>
+          </div>
+          <div class="customize-row">
+            <label>衣服</label>
+            <div id="shirt-colors" style="display:flex; gap:6px; flex-wrap:wrap;"></div>
+          </div>
+          <div class="customize-row">
+            <label>发型</label>
+            <div id="hair-styles" style="display:flex; gap:6px; flex-wrap:wrap;"></div>
+          </div>
+          <div class="customize-row">
+            <label>发色</label>
+            <div id="hair-colors" style="display:flex; gap:6px; flex-wrap:wrap;"></div>
+          </div>
+          <div class="customize-row" style="align-items:flex-start;">
+            <label>外观</label>
+            <div class="sprite-slot-row" id="sprite-slot-row">
+              <button type="button" class="sprite-slot" id="sprite-slot-empty" title="使用默认像素人" aria-label="使用默认像素人">
+                <span style="font-size:18px;">👤</span>
+              </button>
+              <button type="button" class="sprite-slot" id="sprite-slot-pick" title="从素材库选择" aria-label="从素材库选择角色外观">
+                <span style="font-size:18px;">＋</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px;">
+        <button class="pixel-btn secondary" onclick="Game.backToMenu()">返回</button>
+        <button class="pixel-btn" onclick="Game.confirmCustomize()">确认</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="overlay hidden" id="help-overlay">
+    <div class="panel" style="width: 440px; max-width: 92vw;">
+      <h2 class="pixel-font text-xl mb-4" style="color:#1a1c2c;">操作说明</h2>
+      <div class="help-list">
+        <div><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> / 方向键 &nbsp;移动</div>
+        <div><kbd>点击地图</kbd> &nbsp;自动寻路移动到点击点</div>
+        <div><kbd>E</kbd> &nbsp;与 NPC 对话 / 交互</div>
+        <div><kbd>空格</kbd> / <kbd>打斗按钮</kbd> &nbsp;武艺攻击（静远七人角色）/ 继续对话</div>
+        <div><kbd>Q</kbd> / <kbd>行礼按钮</kbd> &nbsp;拱手行礼（静远七人，可触发 NPC 对话）</div>
+        <div><kbd>R</kbd> / <kbd>招牌按钮</kbd> &nbsp;招牌大招（静远七人角色）</div>
+        <div><kbd>回车</kbd> &nbsp;继续对话</div>
+        <div><kbd>M</kbd> &nbsp;切换地图编辑模式</div>
+        <div><kbd>C</kbd> &nbsp;打开角色自定义</div>
+        <div><kbd>素材库</kbd> &nbsp;浏览/应用像素资产到主角或 NPC</div>
+        <div><kbd>1</kbd>-<kbd>9</kbd> &nbsp;编辑模式选瓦片</div>
+        <div><kbd>鼠标左键</kbd> &nbsp;编辑模式放置瓦片</div>
+        <div><kbd>鼠标右键</kbd> &nbsp;编辑模式擦除瓦片</div>
+        <div><kbd>ESC</kbd> &nbsp;返回菜单 / 关闭面板</div>
+      </div>
+      <div style="display: flex; justify-content: flex-end; margin-top: 20px;">
+        <button class="pixel-btn" onclick="Game.backToMenu()">返回</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="overlay hidden" id="map-generator-overlay">
+    <div class="panel" style="width: 900px; max-width: 95vw; max-height: 90vh;">
+      <h2 class="pixel-font text-xl mb-4" style="color:#1a1c2c;">像素地图生成器</h2>
+      <div class="generator-layout">
+        <div class="generator-column">
+          <div style="border: 3px solid #1a1c2c; background: #5fcde4; margin-bottom: 12px;">
+            <canvas id="generator-preview" width="300" height="200" style="width: 100%; height: auto; image-rendering: pixelated;"></canvas>
+          </div>
+          <div style="margin-bottom: 12px;">
+            <label class="pixel-font" style="display:block; margin-bottom:6px;">上传图片</label>
+            <div class="file-input-wrapper" style="border: 2px dashed #1a1c2c; padding: 16px; text-align: center; cursor: pointer; background: #f0f0f0;">
+              <input type="file" id="generator-file-input" accept="image/*" style="display:none;">
+              <span id="generator-file-text" style="color: #666;">点击或拖拽图片</span>
+            </div>
+          </div>
+          <div style="display: flex; gap: 10px;">
+            <button class="pixel-btn" onclick="Game.generateMapFromImage()" style="flex:1;">生成地图</button>
+            <button class="pixel-btn secondary" onclick="Game.closeMapGenerator()" style="flex:1;">取消</button>
+          </div>
+        </div>
+        <div class="generator-column generator-settings">
+          <div style="margin-bottom: 16px;">
+            <label class="pixel-font" style="display:block; margin-bottom:6px;">抖动算法</label>
+            <select id="generator-algorithm" class="pixel-font" style="width: 100%; padding: 6px; border: 2px solid #1a1c2c;">
+              <option value="Floyd Steinberg">Floyd Steinberg</option>
+              <option value="Jarvis Judice Ninke">Jarvis Judice Ninke</option>
+              <option value="Stucki">Stucki</option>
+              <option value="Burkes">Burkes</option>
+              <option value="Atkinson">Atkinson</option>
+              <option value="Sierra3">Sierra3</option>
+              <option value="Sierra2">Sierra2</option>
+              <option value="SierraLite">SierraLite</option>
+              <option value="Bayer2x2">Bayer 2x2</option>
+              <option value="Bayer4x4">Bayer 4x4</option>
+              <option value="Bayer8x8">Bayer 8x8</option>
+              <option value="Ordered3x3">Ordered 3x3</option>
+              <option value="无抖动">无抖动</option>
+            </select>
+          </div>
+          <div style="margin-bottom: 16px;">
+            <label class="pixel-font" style="display:block; margin-bottom:6px;">抖动强度: <span id="generator-strength-value">100</span>%</label>
+            <input type="range" id="generator-strength" min="0" max="100" value="100" style="width: 100%;">
+          </div>
+          <div style="margin-bottom: 16px;">
+            <label class="pixel-font" style="display:block; margin-bottom:6px;">抖动倍率</label>
+            <select id="generator-scale" class="pixel-font" style="width: 100%; padding: 6px; border: 2px solid #1a1c2c;">
+              <option value="1">1倍</option>
+              <option value="2">2倍</option>
+              <option value="4">4倍</option>
+            </select>
+          </div>
+          <div style="margin-bottom: 16px;">
+            <label class="pixel-font" style="display:block; margin-bottom:6px;">滤镜预设</label>
+            <select id="generator-filter-preset" class="pixel-font" style="width: 100%; padding: 6px; border: 2px solid #1a1c2c;">
+              <option value="正常">正常</option>
+              <option value="鲜艳">鲜艳</option>
+              <option value="复古">复古</option>
+              <option value="冷色调">冷色调</option>
+              <option value="暖色调">暖色调</option>
+              <option value="黑白">黑白</option>
+            </select>
+          </div>
+          <div style="border-top: 2px solid #1a1c2c; padding-top: 12px;">
+            <label class="pixel-font" style="display:block; margin-bottom:6px;">亮度: <span id="generator-brightness-value">100</span>%</label>
+            <input type="range" id="generator-brightness" min="0" max="200" value="100" style="width: 100%;">
+            <label class="pixel-font" style="display:block; margin-bottom:6px; margin-top:8px;">对比度: <span id="generator-contrast-value">100</span>%</label>
+            <input type="range" id="generator-contrast" min="0" max="200" value="100" style="width: 100%;">
+            <label class="pixel-font" style="display:block; margin-bottom:6px; margin-top:8px;">饱和度: <span id="generator-saturation-value">100</span>%</label>
+            <input type="range" id="generator-saturation" min="0" max="200" value="100" style="width: 100%;">
+            <label class="pixel-font" style="display:block; margin-bottom:6px; margin-top:8px;">锐化: <span id="generator-sharpness-value">0</span>%</label>
+            <input type="range" id="generator-sharpness" min="0" max="100" value="0" style="width: 100%;">
+            <label class="pixel-font" style="display:block; margin-bottom:6px; margin-top:8px;">色相: <span id="generator-hue-value">0</span>°</label>
+            <input type="range" id="generator-hue" min="-180" max="180" value="0" style="width: 100%;">
+            <label class="pixel-font" style="display:block; margin-bottom:6px; margin-top:8px;">色温: <span id="generator-temperature-value">0</span></label>
+            <input type="range" id="generator-temperature" min="-100" max="100" value="0" style="width: 100%;">
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="overlay hidden" id="asset-library-overlay">
+    <div class="panel asset-library-panel">
+      <div class="asset-lib-header">
+        <div class="asset-lib-title">素材库</div>
+        <div class="asset-lib-target" id="asset-lib-target">浏览素材</div>
+      </div>
+      <div class="asset-lib-body">
+        <div class="asset-cat-nav" id="asset-cat-nav"></div>
+        <div class="asset-grid-wrap">
+          <div class="asset-lib-search" id="asset-lib-search" style="display:none;">
+            <input type="text" id="asset-search-input" placeholder="搜索素材..." oninput="Game.filterAssets()">
+            <button onclick="Game.clearAssetFilter()">清除</button>
+          </div>
+          <div class="asset-group-nav" id="asset-group-nav" style="display:none;"></div>
+          <div class="asset-grid" id="asset-grid"></div>
+          <div class="asset-pager">
+            <button id="asset-prev-page">上一页</button>
+            <span id="asset-page-info">1 / 1</span>
+            <button id="asset-next-page">下一页</button>
+          </div>
+        </div>
+      </div>
+      <div class="asset-lib-footer">
+        <div class="footer-info" id="asset-footer-info" aria-live="polite">点击素材预览。仅主角/怪物可作为外观。</div>
+        <div class="footer-btns">
+          <button class="pixel-btn secondary" onclick="Game.closeAssetLibrary()">返回</button>
+          <button class="pixel-btn" id="asset-apply-btn" style="display:none;">应用</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="overlay hidden" id="farm-panel">
+    <div class="panel" style="width: 600px; max-width: 95vw; max-height: 90vh;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+        <h2 class="pixel-font text-xl" style="color:#1a1c2c; margin:0;">🌾 田园系统</h2>
+        <button class="pixel-btn secondary" onclick="Game.toggleFarmPanel()">关闭</button>
+      </div>
+      <div class="system-grid">
+        <div>
+          <div style="background: #f0f0f0; padding: 12px; border: 2px solid #1a1c2c; margin-bottom: 12px;">
+            <div style="font-weight: bold; margin-bottom: 4px;">💰 金币: <span id="farm-money">1000</span></div>
+            <div>🗓️ 季节: <span id="farm-season">春季</span> | 天数: <span id="farm-day">1</span></div>
+          </div>
+          <div style="margin-bottom: 12px;">
+            <h3 class="pixel-font" style="color:#1a1c2c; margin:0 0 8px;">种子商店</h3>
+            <div id="farm-seed-shop" style="display: flex; flex-direction: column; gap: 4px; max-height: 200px; overflow-y: auto;"></div>
+          </div>
+          <div>
+            <h3 class="pixel-font" style="color:#1a1c2c; margin:0 0 8px;">建筑商店</h3>
+            <div id="farm-building-shop" style="display: flex; flex-direction: column; gap: 4px;"></div>
+          </div>
+        </div>
+        <div>
+          <div style="margin-bottom: 12px;">
+            <h3 class="pixel-font" style="color:#1a1c2c; margin:0 0 8px;">🎒 背包</h3>
+            <div id="farm-inventory" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; max-height: 200px; overflow-y: auto;"></div>
+          </div>
+          <div style="margin-bottom: 12px;">
+            <h3 class="pixel-font" style="color:#1a1c2c; margin:0 0 8px;">🐔 动物</h3>
+            <div id="farm-animals" style="display: flex; flex-direction: column; gap: 4px; max-height: 150px; overflow-y: auto;"></div>
+          </div>
+          <div id="farm-mode-hint" role="status" aria-live="polite" style="font-size:12px; color:#334155; border:2px solid #1a1c2c; padding:8px; background:#f8fafc;"></div>
+        </div>
+      </div>
+      <div style="margin-top: 16px; padding-top: 12px; border-top: 2px solid #1a1c2c;">
+        <div style="font-size: 12px; color: #6b6b7b;">💡 提示: 选择种子后点击耕地种植，作物成熟后点击收获</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="overlay hidden" id="battle-panel">
+    <div class="panel" style="width: 500px; max-width: 95vw; max-height: 90vh;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+        <h2 class="pixel-font text-xl" style="color:#1a1c2c; margin:0;">⚔️ 战斗系统</h2>
+        <button class="pixel-btn secondary" onclick="Game.toggleBattlePanel()">关闭</button>
+      </div>
+      <div class="system-grid">
+        <div>
+          <div style="background: #f0f0f0; padding: 12px; border: 2px solid #1a1c2c; margin-bottom: 12px;">
+            <div style="font-weight: bold; margin-bottom: 4px;">🏰 矿洞层数: <span id="battle-floor">1</span></div>
+            <div>💀 区域: <span id="battle-zone">浅矿·土石洞穴</span></div>
+          </div>
+          <div style="background: #e8f5e9; padding: 12px; border: 2px solid #1a1c2c; margin-bottom: 12px;">
+            <div style="font-weight: bold; margin-bottom: 4px;">角色状态</div>
+            <div>❤️ HP: <span id="battle-player-hp">100</span> / <span id="battle-player-maxhp">100</span></div>
+            <div>⚔️ 攻击: <span id="battle-player-attack">10</span></div>
+            <div>🛡️ 防御: <span id="battle-player-defense">5</span></div>
+            <div>📈 等级: <span id="battle-player-level">1</span></div>
+          </div>
+          <div role="status" style="font-size:12px; color:#334155; border:2px solid #1a1c2c; padding:8px; background:#f8fafc;">前往矿洞地图，与矿门互动开始战斗；胜利后再次互动进入下一层。</div>
+        </div>
+        <div>
+          <div id="battle-monster" style="background: #ffebee; padding: 12px; border: 2px solid #1a1c2c; margin-bottom: 12px; min-height: 100px; display: none;">
+            <div style="font-weight: bold; margin-bottom: 4px;" id="battle-monster-name">怪物名称</div>
+            <div>❤️ HP: <span id="battle-monster-hp">0</span> / <span id="battle-monster-maxhp">0</span></div>
+            <div>⚔️ 攻击: <span id="battle-monster-attack">0</span></div>
+            <div>🛡️ 防御: <span id="battle-monster-defense">0</span></div>
+          </div>
+          <div style="margin-bottom: 12px;">
+            <h3 class="pixel-font" style="color:#1a1c2c; margin:0 0 8px;">战利品</h3>
+            <div id="battle-inventory" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; max-height: 150px; overflow-y: auto;"></div>
+          </div>
+          <button class="pixel-btn" style="width: 100%; display: none;" id="battle-attack-btn" onclick="Game.playerAttack()">⚔️ 攻击</button>
+        </div>
+      </div>
+      <div style="margin-top: 16px; max-height: 150px; overflow-y: auto; border: 2px solid #1a1c2c; padding: 8px; background: #1a1c2c; color: #f4f4f4; font-family: 'Courier New', monospace; font-size: 12px;">
+        <div id="battle-log"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="overlay hidden" id="quest-panel">
+    <div class="panel" style="width: 600px; max-width: 95vw; max-height: 90vh;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+        <h2 class="pixel-font text-xl" style="color:#1a1c2c; margin:0;">📜 任务系统</h2>
+        <button class="pixel-btn secondary" onclick="Game.toggleQuestPanel()">关闭</button>
+      </div>
+      <div class="system-grid">
+        <div>
+          <div style="background: #f0f0f0; padding: 12px; border: 2px solid #1a1c2c; margin-bottom: 12px;">
+            <div style="font-weight: bold; margin-bottom: 4px;">📊 任务等级: <span id="quest-level">1</span></div>
+            <div>✨ 经验: <span id="quest-exp">0</span> / <span id="quest-exp-needed">100</span></div>
+          </div>
+          <div style="margin-bottom: 12px;">
+            <h3 class="pixel-font" style="color:#1a1c2c; margin:0 0 8px;">📋 当前任务</h3>
+            <div id="quest-active" style="max-height: 300px; overflow-y: auto;"></div>
+          </div>
+        </div>
+        <div>
+          <div style="margin-bottom: 12px;">
+            <h3 class="pixel-font" style="color:#1a1c2c; margin:0 0 8px;">📜 任务列表</h3>
+            <div id="quest-list" style="max-height: 300px; overflow-y: auto;"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="hud-bottom" id="hud-bottom" style="display:none;">
+    <button class="pixel-btn" style="font-size: 12px; padding: 6px 12px;" onclick="Game.toggleFarmPanel()">🌾 田园</button>
+    <button class="pixel-btn" style="font-size: 12px; padding: 6px 12px;" onclick="Game.toggleBattlePanel()">⚔️ 战斗</button>
+    <button class="pixel-btn" style="font-size: 12px; padding: 6px 12px;" onclick="Game.toggleQuestPanel()">📜 任务</button>
+  </div>
+</div>
+
+<script type="module">
+  import { Game } from './game.js';
+
+  const gameInstance = new Game();
+  window.Game = gameInstance;
+
+  if (document.title.includes('{{')) {
+    document.title = '像素沙盒 - Pixel Sandbox';
+  }
+  document.querySelectorAll('meta[content*="{{"]').forEach(meta => {
+    if (meta.name === 'description' || meta.getAttribute('property') === 'og:description') {
+      meta.content = '可游玩、可编辑并支持图片生成地图的浏览器像素沙盒。';
+    } else if (meta.getAttribute('property') === 'og:title') {
+      meta.content = '像素沙盒 - Pixel Sandbox';
+    }
+  });
+
+  window.addEventListener('load', () => {
+    gameInstance.init();
+  });
+</script>
+
+</body>
+</html>

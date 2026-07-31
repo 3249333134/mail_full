@@ -1,0 +1,582 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>信笺 Figma 网页输出</title>
+  <style>
+    :root {
+      --ink: #211c18;
+      --text: #66584c;
+      --muted: #96897d;
+      --paper: #f8efe0;
+      --paper-deep: #e5d4bb;
+      --card: rgba(255, 251, 242, 0.78);
+      --line: rgba(72, 50, 32, 0.14);
+      --rose: #b44d63;
+      --clay: #8d5b37;
+      --green: #456d5b;
+      --shadow: 0 24px 70px rgba(42, 28, 18, 0.15);
+      --small-shadow: 0 12px 32px rgba(42, 28, 18, 0.1);
+      font-family: "Noto Serif SC", "Songti SC", "SimSun", Georgia, serif;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      margin: 0;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at 14% 0%, rgba(180, 77, 99, 0.14), transparent 30%),
+        radial-gradient(circle at 88% 8%, rgba(69, 109, 91, 0.12), transparent 28%),
+        linear-gradient(90deg, rgba(64, 42, 28, 0.04) 1px, transparent 1px),
+        linear-gradient(rgba(64, 42, 28, 0.04) 1px, transparent 1px),
+        #ebe3d6;
+      background-size: auto, auto, 32px 32px, 32px 32px, auto;
+    }
+
+    a {
+      color: inherit;
+      text-decoration: none;
+    }
+
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 18px;
+      padding: 18px 28px;
+      background: rgba(255, 251, 242, 0.88);
+      border-bottom: 1px solid var(--line);
+      backdrop-filter: blur(18px);
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .brand-mark,
+    .board-index {
+      display: grid;
+      place-items: center;
+      color: #fffaf0;
+      background: #24211f;
+      border-radius: 10px;
+      font: 700 13px/1 Arial, sans-serif;
+    }
+
+    .brand-mark {
+      width: 40px;
+      height: 40px;
+    }
+
+    .brand strong {
+      display: block;
+      font-size: 20px;
+    }
+
+    .brand span {
+      display: block;
+      margin-top: 3px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .topbar nav {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      justify-content: flex-end;
+    }
+
+    .topbar nav a,
+    .button-link,
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      min-height: 36px;
+      padding: 0 13px;
+      background: rgba(255, 255, 255, 0.66);
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      color: var(--text);
+      font-size: 13px;
+    }
+
+    .topbar nav a:hover,
+    .button-link:hover {
+      color: #fffaf0;
+      background: var(--rose);
+      border-color: var(--rose);
+    }
+
+    main {
+      display: grid;
+      gap: 26px;
+      width: min(1500px, calc(100% - 40px));
+      margin: 30px auto 76px;
+    }
+
+    .hero,
+    .board-card,
+    .handoff,
+    .html-output {
+      background: var(--card);
+      border: 1px solid rgba(255, 255, 255, 0.72);
+      border-radius: 24px;
+      box-shadow: var(--shadow);
+    }
+
+    .hero {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 440px;
+      gap: 24px;
+      padding: 28px;
+      overflow: hidden;
+    }
+
+    .eyebrow {
+      margin: 0 0 9px;
+      color: var(--rose);
+      font: 700 11px/1.2 Arial, sans-serif;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+
+    h1,
+    h2,
+    h3,
+    p {
+      margin-top: 0;
+    }
+
+    h1 {
+      max-width: 780px;
+      margin-bottom: 16px;
+      font-size: clamp(38px, 5vw, 76px);
+      line-height: 1.04;
+      letter-spacing: 0;
+    }
+
+    .hero p,
+    .board-copy p,
+    .handoff p,
+    .html-output p {
+      color: var(--text);
+      line-height: 1.82;
+    }
+
+    .hero-actions,
+    .board-actions,
+    .chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .hero-panel {
+      display: grid;
+      align-content: space-between;
+      gap: 18px;
+      min-height: 280px;
+      padding: 20px;
+      background:
+        linear-gradient(135deg, rgba(255,255,255,0.78), rgba(244,232,213,0.7)),
+        var(--paper);
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      box-shadow: var(--small-shadow);
+    }
+
+    .hero-panel dl {
+      display: grid;
+      gap: 12px;
+      margin: 0;
+    }
+
+    .hero-panel div {
+      display: flex;
+      justify-content: space-between;
+      gap: 18px;
+      padding-bottom: 10px;
+      border-bottom: 1px dashed rgba(72, 50, 32, 0.16);
+    }
+
+    .hero-panel dt {
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .hero-panel dd {
+      margin: 0;
+      text-align: right;
+    }
+
+    .board-grid {
+      display: grid;
+      gap: 24px;
+    }
+
+    .board-card {
+      display: grid;
+      grid-template-columns: 320px minmax(0, 1fr);
+      gap: 18px;
+      padding: 20px;
+    }
+
+    .board-copy {
+      display: grid;
+      align-content: start;
+      gap: 14px;
+      padding: 10px 8px;
+    }
+
+    .board-title {
+      display: flex;
+      align-items: flex-start;
+      gap: 14px;
+    }
+
+    .board-index {
+      flex: 0 0 auto;
+      width: 52px;
+      height: 44px;
+      margin-top: 3px;
+    }
+
+    .board-title h2 {
+      margin-bottom: 7px;
+      font-size: 27px;
+      line-height: 1.22;
+    }
+
+    .preview-frame {
+      position: relative;
+      min-height: 560px;
+      overflow: hidden;
+      background:
+        linear-gradient(90deg, rgba(64, 42, 28, 0.04) 1px, transparent 1px),
+        linear-gradient(rgba(64, 42, 28, 0.04) 1px, transparent 1px),
+        #f4ead9;
+      background-size: 26px 26px;
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      box-shadow: inset 0 1px rgba(255,255,255,0.75);
+    }
+
+    .preview-frame img {
+      position: absolute;
+      top: 22px;
+      left: 50%;
+      display: block;
+      width: min(1020px, calc(100% - 40px));
+      max-width: none;
+      border-radius: 16px;
+      box-shadow: 0 18px 46px rgba(42, 28, 18, 0.18);
+      transform: translateX(-50%);
+      transform-origin: top center;
+    }
+
+    .preview-frame.tall {
+      min-height: 720px;
+    }
+
+    .preview-frame.photo img {
+      width: min(900px, calc(100% - 40px));
+    }
+
+    .handoff,
+    .html-output {
+      padding: 24px;
+    }
+
+    .handoff-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 14px;
+      margin-top: 18px;
+    }
+
+    .handoff-grid a {
+      display: grid;
+      gap: 8px;
+      min-height: 116px;
+      padding: 16px;
+      background: rgba(255,255,255,0.7);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      box-shadow: var(--small-shadow);
+    }
+
+    .handoff-grid strong {
+      color: var(--ink);
+    }
+
+    .handoff-grid span {
+      color: var(--text);
+      line-height: 1.65;
+      font-size: 14px;
+    }
+
+    .codebox {
+      overflow: auto;
+      max-height: 360px;
+      padding: 18px;
+      color: #f6ead9;
+      background: #211e1b;
+      border-radius: 16px;
+      box-shadow: inset 0 1px rgba(255,255,255,0.08);
+      font: 13px/1.7 "Cascadia Code", Consolas, monospace;
+      white-space: pre;
+    }
+
+    @media (max-width: 1100px) {
+      .hero,
+      .board-card {
+        grid-template-columns: 1fr;
+      }
+
+      .handoff-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+
+    @media (max-width: 720px) {
+      .topbar {
+        align-items: flex-start;
+        flex-direction: column;
+        padding: 16px;
+      }
+
+      main {
+        width: min(100% - 20px, 1500px);
+        margin-top: 16px;
+      }
+
+      .hero,
+      .board-card,
+      .handoff,
+      .html-output {
+        padding: 14px;
+        border-radius: 18px;
+      }
+
+      .preview-frame,
+      .preview-frame.tall {
+        min-height: 520px;
+      }
+
+      .preview-frame img {
+        top: 14px;
+        width: calc(100% - 22px);
+      }
+
+      .handoff-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="all-designs.html" aria-label="打开设计总览">
+      <span class="brand-mark">信</span>
+      <span><strong>信笺 Figma 网页输出</strong><span>HTML handoff / realistic paper UI</span></span>
+    </a>
+    <nav aria-label="页面导航">
+      <a href="#boards">画板</a>
+      <a href="#assets">交付</a>
+      <a href="https://www.figma.com/design/5O05AZHQOEO8jr1YqNg3zm">Figma 文件</a>
+      <a href="figma-file-html-export.html">Figma HTML</a>
+      <a href="all-designs.html">设计总览</a>
+    </nav>
+  </header>
+
+  <main>
+    <section class="hero">
+      <div>
+        <p class="eyebrow">Figma To Web Export</p>
+        <h1>把当前 Figma 设计输出成可浏览网页</h1>
+        <p>这份 HTML 汇总当前 6 个设计画板：主流程 UI、页面层级、下一步体验优化、18 种真实信件模板、信箱装饰工作台、超真实书信材质母版。每个板块都保留预览截图和可进入的 HTML 页面。</p>
+        <div class="hero-actions">
+          <a class="button-link" href="#boards">查看画板</a>
+          <a class="button-link" href="real-letter-generator.html">打开真实信件生成器</a>
+          <a class="button-link" href="photoreal-letter-material-board.html">打开材质母版</a>
+        </div>
+      </div>
+
+      <aside class="hero-panel">
+        <dl>
+          <div><dt>Figma file</dt><dd>5O05AZHQOEO8jr1YqNg3zm</dd></div>
+          <div><dt>Output folder</dt><dd>D:/prj/mail/figam</dd></div>
+          <div><dt>Boards</dt><dd>6 screens</dd></div>
+          <div><dt>Style focus</dt><dd>真实信纸 / 信封 / 材质</dd></div>
+        </dl>
+        <div class="chips">
+          <span class="chip">纸纹</span>
+          <span class="chip">折痕</span>
+          <span class="chip">污渍</span>
+          <span class="chip">红栏</span>
+          <span class="chip">扫描边缘</span>
+        </div>
+      </aside>
+    </section>
+
+    <section class="board-grid" id="boards" aria-label="Figma 画板网页输出">
+      <article class="board-card">
+        <div class="board-copy">
+          <div class="board-title">
+            <span class="board-index">01</span>
+            <div>
+              <h2>主流程高保真 UI</h2>
+              <p>首页、信箱详情、阅读器、编辑器与计划组件，已统一替换真实纸张与信封质感。</p>
+            </div>
+          </div>
+          <div class="board-actions">
+            <a class="button-link" href="index.html">打开 HTML</a>
+            <a class="button-link" href="preview-desktop.png">查看截图</a>
+          </div>
+        </div>
+        <div class="preview-frame tall">
+          <img src="preview-desktop.png" alt="主流程高保真 UI 预览">
+        </div>
+      </article>
+
+      <article class="board-card">
+        <div class="board-copy">
+          <div class="board-title">
+            <span class="board-index">02</span>
+            <div>
+              <h2>全功能页面层级</h2>
+              <p>整理一级到四级页面、弹窗、入口和操作关系，作为项目落地时的信息架构参考。</p>
+            </div>
+          </div>
+          <div class="board-actions">
+            <a class="button-link" href="page-hierarchy.html">打开 HTML</a>
+            <a class="button-link" href="preview-hierarchy-desktop.png">查看截图</a>
+          </div>
+        </div>
+        <div class="preview-frame">
+          <img src="preview-hierarchy-desktop.png" alt="全功能页面层级预览">
+        </div>
+      </article>
+
+      <article class="board-card">
+        <div class="board-copy">
+          <div class="board-title">
+            <span class="board-index">03</span>
+            <div>
+              <h2>下一步体验优化</h2>
+              <p>包含录音播放提示、编辑器增强、自动草稿、备份恢复、慢递、移动端编辑逻辑。</p>
+            </div>
+          </div>
+          <div class="board-actions">
+            <a class="button-link" href="next-step-design.html">打开 HTML</a>
+            <a class="button-link" href="preview-next-step-desktop.png">查看截图</a>
+          </div>
+        </div>
+        <div class="preview-frame">
+          <img src="preview-next-step-desktop.png" alt="下一步体验优化预览">
+        </div>
+      </article>
+
+      <article class="board-card">
+        <div class="board-copy">
+          <div class="board-title">
+            <span class="board-index">04</span>
+            <div>
+              <h2>真实信件生成器</h2>
+              <p>18 种信封与信纸模板，从古代、侨批、旧票据、照片家书到现代打印件和赛博信件。</p>
+            </div>
+          </div>
+          <div class="board-actions">
+            <a class="button-link" href="real-letter-generator.html">打开 HTML</a>
+            <a class="button-link" href="preview-real-letter-desktop.png">查看截图</a>
+          </div>
+        </div>
+        <div class="preview-frame tall">
+          <img src="preview-real-letter-desktop.png" alt="真实信件生成器预览">
+        </div>
+      </article>
+
+      <article class="board-card">
+        <div class="board-copy">
+          <div class="board-title">
+            <span class="board-index">05</span>
+            <div>
+              <h2>信箱装饰工作台</h2>
+              <p>把信箱作为整体单元编辑，可保存材质、贴纸、角标、挂件，并同步到侧栏、首页和详情页。</p>
+            </div>
+          </div>
+          <div class="board-actions">
+            <a class="button-link" href="mailbox-decorator.html">打开 HTML</a>
+            <a class="button-link" href="preview-mailbox-decorator-desktop.png">查看截图</a>
+          </div>
+        </div>
+        <div class="preview-frame tall">
+          <img src="preview-mailbox-decorator-desktop.png" alt="信箱装饰工作台预览">
+        </div>
+      </article>
+
+      <article class="board-card">
+        <div class="board-copy">
+          <div class="board-title">
+            <span class="board-index">06</span>
+            <div>
+              <h2>超真实书信材质母版</h2>
+              <p>用于校准真实感：暖光桌面、横线扫描稿纸、旧式竖排红框信纸、毛笔近景。</p>
+            </div>
+          </div>
+          <div class="board-actions">
+            <a class="button-link" href="photoreal-letter-material-board.html">打开 HTML</a>
+            <a class="button-link" href="photoreal-letter-material-board.png">查看母版图</a>
+          </div>
+        </div>
+        <div class="preview-frame tall photo">
+          <img src="preview-photoreal-letter-material-board-desktop.png" alt="超真实书信材质母版预览">
+        </div>
+      </article>
+    </section>
+
+    <section class="handoff" id="assets">
+      <p class="eyebrow">Handoff Files</p>
+      <h2>HTML 输出与资源入口</h2>
+      <p>下面这些文件共同构成当前 Figma 设计的网页输出。`figma-web-export.html` 是汇总页，其他页面是每个画板的可浏览 HTML。</p>
+      <div class="handoff-grid">
+        <a href="figma-file-html-export.html"><strong>figma-file-html-export.html</strong><span>Figma 文件级 HTML 导出，含嵌入预览与 01-09 画板</span></a>
+        <a href="figma-web-export.html"><strong>figma-web-export.html</strong><span>核心画板网页输出总入口</span></a>
+        <a href="all-designs.html"><strong>all-designs.html</strong><span>本地设计总览与 6 个画板入口</span></a>
+        <a href="realistic-paper-system.css"><strong>realistic-paper-system.css</strong><span>真实纸张、信封、污渍、折痕材质层</span></a>
+        <a href="photoreal-letter-material-board.png"><strong>photoreal-letter-material-board.png</strong><span>超真实书信材质母版图</span></a>
+      </div>
+    </section>
+
+    <section class="html-output">
+      <p class="eyebrow">HTML Output</p>
+      <h2>当前网页文件</h2>
+      <p>这个页面本身就是 HTML 输出，文件路径：<strong>D:/prj/mail/figam/figma-web-export.html</strong></p>
+      <div class="codebox">&lt;!-- Open this file directly in browser --&gt;
+D:/prj/mail/figam/figma-web-export.html
+
+&lt;!-- It links all exported design pages --&gt;
+index.html
+page-hierarchy.html
+next-step-design.html
+real-letter-generator.html
+mailbox-decorator.html
+photoreal-letter-material-board.html</div>
+    </section>
+  </main>
+</body>
+</html>

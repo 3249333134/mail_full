@@ -1,0 +1,546 @@
+/* ========================================
+   Month Planner Widget Styles
+   ======================================== */
+
+/* === 月计划组件 === */
+.monthly-planner-widget {
+  background: #faf6ee;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+  color: #5c5045;
+  box-sizing: border-box;
+  position: relative;
+  overflow: hidden;
+  border-radius: 4px;
+}
+
+.monthly-planner-inner {
+  padding: 15px 18px;
+  height: 100%;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.monthly-planner-inner [contenteditable="true"] {
+  outline: none;
+  cursor: text;
+  user-select: text;
+  -webkit-user-select: text;
+}
+
+.monthly-planner-inner [contenteditable="true"]:focus {
+  background: rgba(255, 255, 255, 0.5);
+}
+
+/* === 顶部标签 === */
+.mp-top-tabs {
+  display: flex;
+  justify-content: center;
+  gap: 24px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  color: #a89a8a;
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(92, 80, 69, 0.08);
+}
+
+.mp-top-tab {
+  cursor: pointer;
+  transition: color 0.2s;
+  padding-bottom: 6px;
+  position: relative;
+}
+
+.mp-top-tab:hover {
+  color: #7a6b5d;
+}
+
+.mp-top-tab.active {
+  font-weight: 700;
+}
+
+.mp-top-tab.active::after {
+  content: '';
+  position: absolute;
+  bottom: -9px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 24px;
+  height: 2px;
+  background: currentColor;
+  border-radius: 1px;
+}
+
+/* === 月份数字行 === */
+.mp-month-nums-row {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 0;
+}
+
+.mp-month-num {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 1.5px solid transparent;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.7rem;
+  font-weight: 500;
+  color: #a89a8a;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  background: transparent;
+}
+
+.mp-month-num:hover {
+  color: #5c5045;
+  background: rgba(92, 80, 69, 0.06);
+}
+
+.mp-month-num.active {
+  color: #fff;
+  font-weight: 600;
+  transform: scale(1.05);
+}
+
+/* === 页内容 === */
+.mp-page-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-height: 0;
+}
+
+/* === 月历头部 === */
+.mp-calendar-header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  padding: 4px 0;
+}
+
+.mp-nav-btn {
+  background: none;
+  border: none;
+  color: #a89a8a;
+  font-size: 0.8rem;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+  font-family: inherit;
+}
+
+.mp-nav-btn:hover {
+  color: #5c5045;
+  background: rgba(92, 80, 69, 0.05);
+}
+
+.mp-month-title {
+  font-size: 0.85rem;
+  font-weight: 700;
+  letter-spacing: 0.15em;
+  color: #5c5045;
+  cursor: pointer;
+  padding: 4px 12px;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+}
+
+.mp-month-title:hover {
+  background: rgba(92, 80, 69, 0.05);
+}
+
+/* === 月历网格 === */
+.mp-calendar-wrapper {
+  display: flex;
+  gap: 6px;
+}
+
+.mp-calendar-grid {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 1fr 8px;
+  grid-template-rows: auto 1fr;
+  gap: 6px 6px;
+}
+
+.mp-week-row {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  padding-bottom: 2px;
+}
+
+.mp-week-header {
+  text-align: center;
+  font-size: 0.65rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  padding: 4px 0;
+}
+
+.mp-cal-body {
+  grid-column: 1;
+  grid-row: 2;
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  grid-auto-rows: 72px;
+  gap: 4px;
+}
+
+.mp-cal-cell {
+  border: 1px solid rgba(92, 80, 69, 0.1);
+  border-radius: 4px;
+  padding: 6px 8px;
+  min-height: 72px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  background: rgba(255, 255, 255, 0.5);
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.mp-cal-cell:hover {
+  background: rgba(255, 255, 255, 0.8);
+  border-color: rgba(92, 80, 69, 0.18);
+}
+
+.mp-cal-cell.empty {
+  background: transparent;
+  border: none;
+  cursor: default;
+}
+
+.mp-cal-cell.empty:hover {
+  background: transparent;
+}
+
+.mp-cal-date {
+  font-size: 0.7rem;
+  font-weight: 500;
+  color: #5c5045;
+}
+
+.mp-cal-lunar {
+  font-size: 0.55rem;
+  color: #b8a99a;
+  margin-top: 2px;
+}
+
+.mp-cal-note {
+  font-size: 0.6rem;
+  color: #7a6b5d;
+  margin-top: auto;
+  line-height: 1.3;
+  width: 100%;
+  min-height: 1.3em;
+  outline: none;
+  word-break: break-all;
+  cursor: text;
+}
+
+.mp-cal-note:empty::before {
+  content: '';
+  color: #ccc;
+}
+
+.mp-color-bar {
+  grid-column: 2;
+  grid-row: 2;
+  width: 8px;
+  display: grid;
+  grid-template-rows: repeat(5, 72px);
+  gap: 4px;
+  align-self: start;
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.mp-color-bar-item {
+  height: 72px;
+  border-radius: 2px;
+}
+
+/* === 底部网格区 === */
+.mp-grid-area {
+  height: 80px;
+  background-image:
+    linear-gradient(rgba(92, 80, 69, 0.08) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(92, 80, 69, 0.08) 1px, transparent 1px);
+  background-size: 12px 12px;
+  border-radius: 4px;
+  border: 1px solid rgba(92, 80, 69, 0.06);
+}
+
+/* === 总结页头部 === */
+.mp-summary-header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  padding: 10px 0;
+}
+
+/* === 目标区域 === */
+.mp-goals-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px 0;
+  border-bottom: 1px solid rgba(92, 80, 69, 0.08);
+}
+
+.mp-goal-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.mp-goal-num {
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding-top: 4px;
+  min-width: 14px;
+}
+
+.mp-goal-input {
+  flex: 1;
+  font-size: 0.75rem;
+  color: #5c5045;
+  padding: 4px 6px;
+  border-bottom: 1px solid rgba(92, 80, 69, 0.12);
+  min-height: 22px;
+}
+
+/* === 待办+网格 双栏 === */
+.mp-todo-grid-wrapper {
+  display: flex;
+  gap: 14px;
+  flex: 1;
+  min-height: 0;
+  padding-top: 14px;
+}
+
+.mp-todo-list {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  overflow-y: auto;
+}
+
+.mp-todo-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 0;
+}
+
+.mp-todo-checkbox {
+  width: 14px;
+  height: 14px;
+  border: 1.5px solid #d4a5a5;
+  border-radius: 2px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.6rem;
+  color: #5c5045;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.mp-todo-checkbox.checked {
+  background: rgba(92, 80, 69, 0.1);
+}
+
+.mp-todo-text {
+  flex: 1;
+  font-size: 0.72rem;
+  color: #5c5045;
+  padding: 4px 6px;
+  border-bottom: 1px solid rgba(92, 80, 69, 0.08);
+  min-height: 20px;
+}
+
+.mp-todo-text.completed {
+  text-decoration: line-through;
+  color: #b8a99a;
+}
+
+.mp-add-todo-btn {
+  background: none;
+  border: 1px dashed rgba(92, 80, 69, 0.2);
+  color: #a89a8a;
+  font-size: 0.7rem;
+  padding: 6px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-family: inherit;
+  margin-top: 6px;
+}
+
+.mp-add-todo-btn:hover {
+  border-color: rgba(92, 80, 69, 0.4);
+  color: #5c5045;
+}
+
+.mp-grid-side {
+  width: 45%;
+  background-image:
+    linear-gradient(rgba(92, 80, 69, 0.08) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(92, 80, 69, 0.08) 1px, transparent 1px);
+  background-size: 12px 12px;
+  border-radius: 4px;
+  border: 1px solid rgba(92, 80, 69, 0.06);
+}
+
+/* === 回顾页 === */
+.mp-review-wrapper {
+  display: flex;
+  gap: 14px;
+  flex: 1;
+  min-height: 0;
+  padding-top: 14px;
+}
+
+.mp-todo-list-review {
+  width: 38%;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  overflow-y: auto;
+}
+
+.mp-review-side {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  overflow-y: auto;
+}
+
+.mp-review-section {
+  text-align: center;
+  padding: 10px 0;
+}
+
+.mp-review-title {
+  font-size: 0.65rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  color: #b8956a;
+  margin-bottom: 8px;
+}
+
+.mp-stars {
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+  font-size: 1.1rem;
+}
+
+.mp-star {
+  color: #d9cfc2;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.mp-star:hover {
+  transform: scale(1.2);
+}
+
+.mp-star.filled {
+  color: #e6c88a;
+}
+
+.mp-review-block {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.mp-review-subtitle {
+  font-size: 0.62rem;
+  font-weight: 600;
+  color: #a5b89a;
+  letter-spacing: 0.05em;
+}
+
+.mp-review-text {
+  font-size: 0.7rem;
+  color: #5c5045;
+  padding: 8px 10px;
+  border: 1px solid rgba(92, 80, 69, 0.08);
+  border-radius: 4px;
+  min-height: 32px;
+  background: rgba(255, 255, 255, 0.3);
+  line-height: 1.5;
+}
+
+.mp-review-bottom {
+  display: flex;
+  gap: 10px;
+}
+
+.mp-review-block-half {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+/* === 底部栏 === */
+.mp-bottom-bar {
+  display: flex;
+  justify-content: center;
+  padding-top: 12px;
+  margin-top: auto;
+  border-top: 1px solid rgba(92, 80, 69, 0.06);
+}
+
+.mp-page-switch {
+  background: rgba(255, 255, 255, 0.5);
+  border: 1px solid rgba(92, 80, 69, 0.12);
+  color: #8a7d6f;
+  font-size: 0.62rem;
+  padding: 4px 12px;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-family: inherit;
+}
+
+.mp-page-switch:hover {
+  background: rgba(255, 255, 255, 0.8);
+  border-color: rgba(92, 80, 69, 0.2);
+  color: #5c5045;
+}
+
+/* === 月计划 widget pointer-events 修复 === */
+.paper-element.element-widget-monthly .monthly-planner-inner {
+  pointer-events: auto;
+}
+
+.paper-element.element-widget-monthly .monthly-planner-inner * {
+  user-select: auto;
+  pointer-events: auto;
+}
+
+.paper-element.element-widget-monthly .resize-handle,
+.paper-element.element-widget-monthly .rotate-handle {
+  pointer-events: none;
+}
+

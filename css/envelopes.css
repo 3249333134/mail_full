@@ -1,0 +1,401 @@
+/* === 信封开启动画层 === */
+.envelope-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(245, 240, 232, 0.95);
+  z-index: 9999;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  perspective: 1500px;
+}
+
+.envelope-overlay.active {
+  display: flex;
+}
+
+.envelope-wrapper {
+  text-align: center;
+}
+
+.envelope {
+  position: relative;
+  width: 400px;
+  height: 280px;
+  cursor: pointer;
+  transform-style: preserve-3d;
+  transition: transform 0.6s ease;
+}
+
+.envelope:hover {
+  transform: translateY(-5px);
+}
+
+.envelope.opening {
+  animation: envelopeFloat 0.8s ease forwards;
+}
+
+@keyframes envelopeFloat {
+  0% { transform: translateY(0) scale(1); }
+  50% { transform: translateY(-30px) scale(1.05); }
+  100% { transform: translateY(0) scale(1.1); }
+}
+
+/* 信封主体 */
+.envelope-body {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 180px;
+  background: linear-gradient(135deg, #d4a574 0%, #c4956a 100%);
+  border-radius: 0 0 8px 8px;
+  box-shadow: 0 10px 40px rgba(32, 35, 43, 0.3);
+  overflow: hidden;
+}
+
+.envelope-body::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(45deg, transparent 48%, rgba(0,0,0,0.1) 49%, rgba(0,0,0,0.1) 51%, transparent 52%);
+  background-size: 100% 100%;
+}
+
+/* 信封封口/折页 */
+.envelope-flap {
+  position: absolute;
+  top: 60px;
+  left: 0;
+  right: 0;
+  height: 160px;
+  background: linear-gradient(135deg, #dbb586 0%, #c99a6a 100%);
+  clip-path: polygon(0 0, 50% 70%, 100% 0);
+  transform-origin: top center;
+  transition: transform 0.8s ease;
+  z-index: 10;
+  backface-visibility: hidden;
+}
+
+.envelope.opening .envelope-flap {
+  transform: rotateX(-180deg);
+  z-index: 1;
+}
+
+/* 信封封蜡 */
+.envelope-seal {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 50px;
+  height: 50px;
+  background: radial-gradient(circle, #c44 0%, #a33 70%, #822 100%);
+  border-radius: 50%;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.3), inset 0 -2px 4px rgba(0,0,0,0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fdf0e0;
+  font-size: 1.4rem;
+  z-index: 5;
+  transition: opacity 0.3s ease;
+}
+
+.envelope.opening .envelope-seal {
+  opacity: 0;
+}
+
+/* 信封内的信纸 */
+.envelope-letter {
+  position: absolute;
+  bottom: 20px;
+  left: 30px;
+  right: 30px;
+  height: 150px;
+  background: #fdfbf7;
+  border-radius: 3px;
+  padding: 20px;
+  box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
+  transition: all 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+  z-index: 2;
+}
+
+.envelope.opening .envelope-letter {
+  transform: translateY(-120px) scale(1.3);
+  opacity: 0;
+  transition-delay: 0.3s;
+}
+
+.letter-preview {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.letter-preview-line {
+  height: 8px;
+  background: rgba(32, 35, 43, 0.1);
+  border-radius: 4px;
+}
+
+.letter-preview-line.line-1 { width: 60%; }
+.letter-preview-line.line-2 { width: 85%; }
+.letter-preview-line.line-3 { width: 75%; }
+.letter-preview-line.line-4 { width: 90%; }
+.letter-preview-line.line-5 { width: 50%; }
+
+/* 信封提示文字 */
+.envelope-hint {
+  margin-top: 40px;
+  color: #8b6914;
+  font-size: 0.95rem;
+  letter-spacing: 0.1em;
+  animation: hintPulse 2s ease-in-out infinite;
+}
+
+@keyframes hintPulse {
+  0%, 100% { opacity: 0.6; }
+  50% { opacity: 1; }
+}
+
+/* 信封消失动画 */
+.envelope-overlay.closing {
+  animation: overlayFade 0.6s ease forwards;
+}
+
+@keyframes overlayFade {
+  0% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+/* 响应式 */
+@media (max-width: 500px) {
+  .envelope {
+    width: 300px;
+    height: 210px;
+  }
+  .envelope-body {
+    height: 135px;
+  }
+  .envelope-flap {
+    top: 45px;
+    height: 120px;
+  }
+  .envelope-letter {
+    bottom: 15px;
+    left: 20px;
+    right: 20px;
+    height: 110px;
+  }
+}
+
+/* === 信箱列表 === */
+.mailbox-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 30px;
+  padding: 40px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.mailbox-card {
+  background: var(--color-paper);
+  border-radius: 8px;
+  padding: 40px 30px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: var(--shadow-soft);
+  position: relative;
+  overflow: hidden;
+}
+
+.mailbox-card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: var(--card-accent, var(--color-accent));
+}
+
+.mailbox-card:hover {
+  transform: translateY(-5px);
+  box-shadow: var(--shadow-medium);
+}
+
+.mailbox-icon {
+  font-size: 3rem;
+  margin-bottom: 15px;
+}
+
+.mailbox-name {
+  font-size: 1.4rem;
+  font-weight: 400;
+  margin-bottom: 8px;
+  color: var(--card-accent, var(--color-accent));
+}
+
+.mailbox-desc {
+  font-size: 0.85rem;
+  color: var(--color-muted);
+}
+
+.mailbox-count {
+  position: absolute;
+  top: 15px;
+  right: 15px;
+  background: var(--card-accent, var(--color-accent));
+  color: white;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+}
+
+/* 信件列表 */
+.letter-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 25px;
+  padding: 30px 40px;
+  max-width: 1200px;
+  margin: 0 auto;
+  flex: 1;
+}
+
+.letter-card {
+  position: relative;
+  background: #fff8ed;
+  border-radius: 4px;
+  padding: 0;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 3px 15px rgba(32, 35, 43, 0.1);
+  overflow: hidden;
+  border: none;
+  min-height: 180px;
+}
+
+.letter-card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 60%;
+  background: linear-gradient(180deg, #f5e6d0 0%, #fff8ed 100%);
+  clip-path: polygon(0 0, 50% 65%, 100% 0);
+  pointer-events: none;
+  transition: transform 0.4s ease;
+  transform-origin: top center;
+  z-index: 2;
+}
+
+.letter-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 25px rgba(32, 35, 43, 0.18);
+}
+
+.letter-card:hover::before {
+  transform: rotateX(-20deg);
+}
+
+.letter-card-content {
+  position: relative;
+  z-index: 1;
+  padding: 70px 20px 25px;
+}
+
+.letter-recipient {
+  font-size: 1.15rem;
+  margin-bottom: 6px;
+  color: var(--color-accent);
+  font-weight: 500;
+}
+
+.letter-date {
+  font-size: 0.78rem;
+  color: var(--color-muted);
+  margin-bottom: 12px;
+  letter-spacing: 0.05em;
+}
+
+.letter-preview {
+  font-size: 0.85rem;
+  color: #777;
+  line-height: 1.7;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  font-family: var(--font-handwriting);
+}
+
+.letter-card-seal {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 32px;
+  height: 32px;
+  background: radial-gradient(circle, #c92a2a 0%, #a02020 70%, #8b1a1a 100%);
+  border-radius: 50%;
+  z-index: 3;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #ffe0c0;
+  font-size: 0.9rem;
+  font-family: serif;
+  transition: all 0.3s ease;
+}
+
+.letter-card:hover .letter-card-seal {
+  transform: translate(-50%, -50%) scale(1.1);
+  box-shadow: 0 3px 10px rgba(201, 42, 42, 0.4);
+}
+
+.new-letter-btn {
+  margin: 20px auto 40px;
+  padding: 12px 30px;
+  background: var(--color-accent);
+  color: white;
+  border: none;
+  border-radius: 4px;
+  font-size: 1rem;
+  font-family: var(--font-serif);
+  cursor: pointer;
+  transition: all 0.2s;
+  letter-spacing: 0.1em;
+}
+
+.new-letter-btn:hover {
+  opacity: 0.85;
+  transform: scale(1.02);
+}
+
+.empty-state {
+  text-align: center;
+  padding: 60px 20px;
+  color: var(--color-muted);
+  grid-column: 1 / -1;
+}
+
+.empty-state-icon {
+  font-size: 3rem;
+  margin-bottom: 15px;
+}
