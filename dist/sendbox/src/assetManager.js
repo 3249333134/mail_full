@@ -14,6 +14,10 @@ class AssetManagerClass {
     return ASSET_BASE + relativePath;
   }
 
+  getAssetUrls(relativePath) {
+    return [this.getAssetUrl(relativePath)];
+  }
+
   loadImage(path) {
     if (this.cache.has(path)) {
       const cached = this.cache.get(path);
@@ -30,19 +34,32 @@ class AssetManagerClass {
     }
 
     const promise = new Promise((resolve) => {
-      const img = new Image();
-      img.crossOrigin = 'anonymous';
-      img.onload = () => {
-        this.cache.set(path, img);
-        this.loading.delete(path);
-        resolve(img);
+      const candidates = this.getAssetUrls(path);
+      let index = 0;
+      const tryNext = () => {
+        if (index >= candidates.length) {
+          this.failedPaths.add(path);
+          this.loading.delete(path);
+          resolve(null);
+          return;
+        }
+        const img = new Image();
+        img.crossOrigin = 'anonymous';
+        const onLoaded = () => {
+          this.cache.set(path, img);
+          this.loading.delete(path);
+          resolve(img);
+        };
+        img.onload = onLoaded;
+        img.onerror = tryNext;
+        img.src = candidates[index++];
+        // 防御：浏览器在图片已缓存（Cache-Control命中）时，部分版本会同步完成解码但不再触发 onload，
+        // 导致 Promise 永远 pending。用 img.complete 在 src 赋值后兜底。
+        if (img.complete && img.naturalWidth > 0) {
+          onLoaded();
+        }
       };
-      img.onerror = () => {
-        this.failedPaths.add(path);
-        this.loading.delete(path);
-        resolve(null);
-      };
-      img.src = this.getAssetUrl(path);
+      tryNext();
     });
 
     this.loading.set(path, promise);

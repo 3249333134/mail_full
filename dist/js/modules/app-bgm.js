@@ -87,20 +87,14 @@ Object.assign(App, {
   },
 
   _getBgmForContext(context) {
-    let bgmId;
-    if (context === 'home') {
-      bgmId = localStorage.getItem('bgm_home') || 'qingqing';
-    } else {
-      bgmId = localStorage.getItem(`bgm_${this.currentMailboxId}`) || this._mailboxDefaultBgm[this.currentMailboxId] || 'default';
-    }
-    return this._bgmList.find(b => b.id === bgmId) || this._bgmList[0];
+    return this._bgmList.find(b => b.id === 'qingqing') || this._bgmList[0];
   },
 
   _saveBgmForContext(context, bgmId) {
     if (context === 'home') {
-      localStorage.setItem('bgm_home', bgmId);
+      localStorage.setItem('bgm_home', 'qingqing');
     } else {
-      localStorage.setItem(`bgm_${this.currentMailboxId}`, bgmId);
+      localStorage.setItem(`bgm_${this.currentMailboxId}`, 'qingqing');
     }
   },
 

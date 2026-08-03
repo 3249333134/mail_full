@@ -9,6 +9,7 @@ const MultiplayerSync = {
   accountKey: '',
   accountProfile: null,
   itemDefinitions: {},
+  definitionsVersion: '',
   inventory: null,
   combatProfile: null,
   worldItems: [],
@@ -41,6 +42,7 @@ const MultiplayerSync = {
     this.currentMapKey = options.mapKey || '';
     this.occupiedCharacters = [];
     this.itemDefinitions = {};
+    this.definitionsVersion = '';
     this.inventory = null;
     this.combatProfile = null;
     this.worldItems = [];
@@ -224,11 +226,36 @@ const MultiplayerSync = {
     });
   },
 
-  broadcastChat(content) {
+  broadcastChat(content, messageId) {
     if (!this.currentUser || !String(content || '').trim()) return;
+    
+    // Get display name and character info
+    const currentUser = this.currentUser;
+    const displayName = currentUser.displayName || currentUser.username || this.accountKey || '';
+    const characterId = this.selectedCharacterId || '';
+    let characterName = '';
+    
+    // Try to get character name from gameMapRenderer
+    if (typeof window !== 'undefined' && window.gameMapRenderer?.getCharacterInfo) {
+      const charInfo = window.gameMapRenderer.getCharacterInfo(characterId);
+      if (charInfo) {
+        characterName = charInfo.name || '';
+      }
+    }
+    
+    // Create sender name with character info
+    const senderName = characterName 
+      ? `${displayName}（${characterName}）`
+      : displayName;
+    
+    // Add accountKey and messageId to help server identify the sender and for deduplication
     this._wsSend({
       type: 'chat',
+      accountKey: this.accountKey,
+      messageId: messageId || '',
       content: String(content).trim(),
+      senderName: senderName,
+      characterId: characterId,
       timestamp: Date.now()
     });
   },
@@ -301,6 +328,7 @@ const MultiplayerSync = {
       this._setOccupancy(message.occupiedCharacters || []);
       this.accountProfile = message.accountProfile || null;
       this.itemDefinitions = message.itemDefinitions || {};
+      this.definitionsVersion = message.definitionsVersion || '';
       this.inventory = message.inventory || null;
       this.combatProfile = message.combatProfile || message.inventory?.combat || null;
       this.worldItems = message.worldItems || [];
@@ -411,7 +439,11 @@ const MultiplayerSync = {
     }
 
     if (message.type === 'chat') {
-      if (message.userId !== this.accountKey) this._emit('chat', message);
+      // Strictly filter out messages from self using both userId and accountKey
+      // This prevents any case where our own message gets treated as remote
+      if (message.userId !== this.accountKey && message.accountKey !== this.accountKey) {
+        this._emit('chat', message);
+      }
       return;
     }
 

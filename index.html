@@ -2,23 +2,32 @@
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>信笺 — 一封有温度的数字书信</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Ma+Shan+Zheng&family=Noto+Serif+SC:wght@400;500;700&family=ZCOOL+KuaiLe&family=ZCOOL+QingKe+HuangYou&family=ZCOOL+XiaoWei&family=Noto+Sans+SC:wght@400;500;700&family=Long+Cang&family=Liu+Jian+Mao+Cao&family=ZCOOL+KuaiLe&family=ZCOOL+XiaoWei&family=Ma+Shan+Zheng&family=Noto+Serif+SC&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/main.css?v=20260731b">
-  <link rel="stylesheet" href="css/envelopes.css?v=20260710">
-  <link rel="stylesheet" href="css/paper.css?v=20260735">
-  <link rel="stylesheet" href="css/editor.css?v=20260732">
-  <link rel="stylesheet" href="css/modules/editor-widgets-year.css?v=20260710">
-  <link rel="stylesheet" href="css/modules/editor-widgets-month.css?v=20260710">
-  <link rel="stylesheet" href="css/modules/editor-widgets-week.css?v=20260710">
-  <link rel="stylesheet" href="css/modules/editor-widgets-daily.css?v=20260710">
-  <link rel="stylesheet" href="css/features.css?v=20260710">
-  <link rel="stylesheet" href="css/map.css?v=20260718">
+  <link rel="stylesheet" href="css/main.css?v=20260803a">
+  <link rel="stylesheet" href="css/community-redesign.css?v=20260803c">
+  <link rel="stylesheet" href="css/envelopes.css?v=20260801h">
+  <link rel="stylesheet" href="css/paper.css?v=20260801h">
+  <link rel="stylesheet" href="css/editor.css?v=20260801h">
+  <link rel="stylesheet" href="css/modules/editor-widgets-year.css?v=20260801h">
+  <link rel="stylesheet" href="css/modules/editor-widgets-month.css?v=20260801e">
+  <link rel="stylesheet" href="css/modules/editor-widgets-week.css?v=20260801e">
+  <link rel="stylesheet" href="css/modules/editor-widgets-daily.css?v=20260801e">
+  <link rel="stylesheet" href="css/features.css?v=20260801e">
+  <link rel="stylesheet" href="css/map.css?v=20260801e">
 </head>
 <body>
+  <!--
+    THESIS: 信箱既是书信空间，也是可进入的江湖世界；拒绝拥挤的通用 RPG 浮窗。
+    OWN-WORLD: 江湖会馆名帖，以深墨蓝、矿物青、朱印红和黄铜构成清晰的操作界面。
+    STORY: 用户从书信或世界进入，在同一账号身份下发现信箱、通信、探索和互动。
+    FIRST VIEWPORT: 内容占据主画面，导航退到边缘；地图只保留角色名帖、地图控制和底部命令坞。
+    FORM: Operate 模式的会馆名录与水牌系统，方向种子 004f1fc0。
+    FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, and DESIGN.md
+  -->
   <!-- 登录视图 -->
   <div id="login-view" class="view active">
     <div class="login-container">
@@ -109,6 +118,7 @@
         <nav class="sidebar-nav" id="sidebar-nav"></nav>
         <div class="sidebar-footer">
           <button class="new-letter-btn sidebar-new-btn" id="home-new-mailbox-btn">📫 新增信箱</button>
+          <button class="new-letter-btn sidebar-new-btn sidebar-join-btn" id="home-join-mailbox-btn">🔗 加入信箱</button>
         </div>
         <div class="sidebar-user-info" id="sidebar-user-info">
           <div class="user-info-main">
@@ -292,6 +302,11 @@
           <div>
             <h2 class="gallery-title" id="mailbox-title"></h2>
             <p class="gallery-desc" id="mailbox-desc">左右滑动浏览信件</p>
+            <div class="mailbox-code-header" id="mailbox-code-header" style="display:none;">
+              <span class="mch-label">📮 信箱号</span>
+              <span class="mch-code" id="mch-code-value">—</span>
+              <button type="button" class="mch-copy-btn" id="mch-copy-btn" title="复制信箱号">📋</button>
+            </div>
           </div>
           <div class="bgm-control" id="mailbox-bgm-control">
             <button class="bgm-toggle-btn" id="mailbox-bgm-toggle" title="播放/暂停BGM">🎵</button>
@@ -309,6 +324,26 @@
           <button class="mail-folder-tab" type="button" role="tab" data-folder="sent" aria-selected="false">已发送</button>
           <button class="mail-folder-tab" type="button" role="tab" data-folder="draft" aria-selected="false">草稿</button>
         </div>
+
+        <!-- 视角切换按钮组（始终可见，支持在信件/日记/地图模式间切换） -->
+        <div class="view-switch" id="view-switch">
+          <button class="view-btn view-letters active" data-view="letters" title="信件模式">
+            <span class="view-icon">✉️</span>
+            <span class="view-label">信件</span>
+          </button>
+          <button class="view-btn view-diary" data-view="diary" title="日记模式">
+            <span class="view-icon">📓</span>
+            <span class="view-label">日记</span>
+          </button>
+          <button class="view-btn view-map" data-view="map" title="地图模式">
+            <span class="view-icon">🗺️</span>
+            <span class="view-label">地图</span>
+          </button>
+          <button class="view-btn view-backpack" id="xiejian-backpack-btn" type="button" title="打开背包" hidden>
+            <span class="view-icon">🎒</span>
+            <span class="view-label">背包</span>
+          </button>
+        </div>
         <div class="gallery-wrapper">
           <div class="letters-gallery-track" id="letter-list"></div>
         </div>
@@ -324,13 +359,13 @@
           
           <!-- 在线玩家列表 -->
           <div class="online-players-panel" id="online-players-panel">
-            <div class="online-players-title">在线成员</div>
+            <div class="online-players-title"><span>在线成员</span><strong id="online-players-count">0 人</strong></div>
             <div class="online-players-list" id="online-players-list"></div>
           </div>
           
           <!-- 角色选择器（可折叠） -->
           <div class="character-selector" id="character-selector">
-            <button class="char-toggle-btn" id="char-toggle-btn">👤</button>
+            <button class="char-toggle-btn" id="char-toggle-btn" type="button" aria-label="展开角色资料" aria-expanded="false">👤</button>
             <div class="char-panel">
               <!-- 登录用户：当前角色信息 -->
               <div class="current-character-section" id="current-character-section" style="display:none;">
@@ -340,6 +375,7 @@
                     <div class="current-char-name" id="current-char-name">角色名</div>
                     <div class="current-char-sect" id="current-char-sect">门派</div>
                   </div>
+                  <button class="switch-char-btn" id="switch-char-btn" type="button" title="切换角色">🔄</button>
                 </div>
                 <div class="action-section">
                   <div class="action-label">单人动作</div>
@@ -378,7 +414,7 @@
                 </div>
                 <div class="character-grid" id="character-grid">
                 </div>
-                <div class="partner-section">
+                <div class="partner-section" style="display:none;">
                   <div class="partner-label">搭档角色</div>
                   <div class="partner-select" id="partner-select">
                     <button class="partner-btn partner-none active" data-partner="none">无搭档</button>
@@ -431,14 +467,20 @@
           
           <!-- 地图切换按钮 -->
           <div class="map-controls">
-            <button class="map-control-btn map-list-btn" id="xiejian-map-picker-btn" type="button" title="地图列表" hidden>🗺</button>
-            <button class="map-control-btn" id="map-prev" title="上一张地图">←</button>
-            <button class="map-control-btn" id="map-next" title="下一张地图">→</button>
+            <button class="map-control-btn mobile-map-controls-toggle mobile-only" id="mobile-map-controls-toggle" type="button" aria-label="展开地图控制" aria-expanded="false">🧭</button>
+            <button class="map-control-btn online-players-toggle" id="xiejian-online-toggle" type="button" title="查看在线成员" aria-label="查看在线成员" aria-expanded="false">
+              <span aria-hidden="true">👥</span><span class="online-count-badge" id="xiejian-online-count">0</span>
+            </button>
+            <label class="map-select-control" for="map-select">
+              <span class="map-select-icon" aria-hidden="true">🗺</span>
+              <select id="map-select" aria-label="选择地图"></select>
+            </label>
           </div>
           
           <!-- 地图名称 -->
           <div class="map-hud">
             <span class="map-name" id="map-name">村庄</span>
+            <span class="map-item-status" id="xiejian-world-item-status" hidden></span>
           </div>
 
           <div class="xiejian-interact-prompt" id="xiejian-interact-prompt" hidden>
@@ -540,7 +582,8 @@
           </div>
           
           <!-- 移动端动作按钮开关 -->
-          <button class="mobile-actions-toggle mobile-only" id="mobile-actions-toggle" title="展开动作">⚡</button>
+          <button class="mobile-actions-toggle mobile-only" id="mobile-actions-toggle" type="button" title="展开动作" aria-label="展开动作" aria-expanded="false">⚡</button>
+          <button class="mobile-interact-btn mobile-only" id="mobile-interact-btn" type="button" title="请靠近物品或互动对象" aria-label="交互" disabled>✋</button>
           
           <!-- 移动端动作按钮 -->
           <div class="mobile-actions mobile-only" id="mobile-actions">
@@ -592,38 +635,12 @@
               <button class="duet-action-btn" data-action="signature">招牌</button>
             </div>
           </div>
-        </div>
 
-        <!-- 视角切换按钮组 -->
-        <div class="view-switch" id="view-switch">
-          <button class="view-btn view-letters active" data-view="letters" title="信件模式">
-            <span class="view-icon">✉️</span>
-            <span class="view-label">信件</span>
-          </button>
-          <button class="view-btn view-diary" data-view="diary" title="日记模式">
-            <span class="view-icon">📓</span>
-            <span class="view-label">日记</span>
-          </button>
-          <button class="view-btn view-map" data-view="map" title="地图模式">
-            <span class="view-icon">🗺️</span>
-            <span class="view-label">地图</span>
-          </button>
-          <button class="view-btn view-backpack" id="xiejian-backpack-btn" type="button" title="打开背包" hidden>
-            <span class="view-icon">🎒</span>
-            <span class="view-label">背包</span>
-          </button>
-        </div>
-
-        <!-- 移动端快捷操作按钮 -->
-        <div class="mobile-quick-actions mobile-only" id="mobile-quick-actions">
-          <button class="mobile-quick-btn mobile-new-letter-btn" id="mobile-new-letter-btn" title="新建信件">
-            <span class="quick-icon">✉</span>
-          </button>
-          <button class="mobile-quick-btn mobile-send-btn" id="mobile-send-btn" title="发送信件">
-            <span class="quick-icon">➤</span>
-          </button>
-        </div>
-
+        <!-- 游戏地图canvas容器 - 自动适配mapContainer尺寸 -->
+        <div class="game-map-container" id="game-map-container"></div>
+      </div>
+    </div>
+  </div>
         <!-- 双人视角切换 -->
         <div class="perspective-switch" id="perspective-switch" style="display:none;">
           <button class="perspective-btn active" data-perspective="a" id="perspective-a-btn">
@@ -960,14 +977,91 @@
   </div>
 
   <!-- 信箱编辑/新增弹窗 -->
+    <!-- 信箱编辑/新增/加入 弹窗 -->
   <div id="mailbox-modal" class="mailbox-modal">
     <div class="mailbox-modal-overlay"></div>
     <div class="mailbox-modal-content">
       <button class="mailbox-modal-close" id="mailbox-modal-close">&times;</button>
       <h3 id="mailbox-modal-title">新增信箱</h3>
-      <div class="mailbox-form">
+
+      <!-- Tab 切换（仅创建 / 加入，编辑模式隐藏 Tab） -->
+      <div class="mailbox-modal-tabs" id="mailbox-modal-tabs">
+        <button type="button" class="mailbox-tab-btn active" data-tab="create">✨ 新建信箱</button>
+        <button type="button" class="mailbox-tab-btn" data-tab="join">🔗 加入信箱</button>
+      </div>
+
+      <!-- ==== 新建 / 编辑信箱面板 ==== -->
+      <div class="mailbox-form" id="mailbox-create-panel">
+        <!-- 顶部操作提示/错误消息（替代 alert） -->
+        <div id="create-mailbox-msg" class="join-msg-box" style="display:none; margin-bottom: 14px;"></div>
+
+        <!-- 信箱号展示（编辑模式 & 创建成功后展示） -->
+        <div class="form-group mailbox-code-group" id="mailbox-code-group" style="display:none;">
+          <label>📮 信箱号（分享给朋友可加入）</label>
+          <div class="mailbox-code-row">
+            <div class="mailbox-code-display" id="mailbox-code-display">—</div>
+            <button type="button" class="form-btn form-btn-secondary" id="mailbox-code-copy-btn" title="复制信箱号">📋 复制</button>
+          </div>
+          <p class="code-hint">把此信箱号发给朋友，对方在「加入信箱」中输入即可加入</p>
+        </div>
+
+        <!-- 地图选择（置顶！必填） -->
+        <div class="form-group map-bg-required-group">
+          <label>🗺️ 选择地图 <span class="required-badge">必填</span></label>
+          <div class="map-bg-grid" id="mailbox-map-bg-grid">
+            <div class="map-bg-option" data-map-bg="hanmen">
+              <div class="map-bg-preview">
+                <img src="sendbox/src/assets/maps/hanmen-bg.png" alt="寒门雪景">
+              </div>
+              <span>寒门雪景</span>
+            </div>
+            <div class="map-bg-option" data-map-bg="village">
+              <div class="map-bg-preview">
+                <img src="sendbox/src/assets/maps/bg-village.png" alt="村庄">
+              </div>
+              <span>村庄</span>
+            </div>
+            <div class="map-bg-option" data-map-bg="desert">
+              <div class="map-bg-preview">
+                <img src="sendbox/src/assets/maps/bg-desert.png" alt="沙漠">
+              </div>
+              <span>沙漠</span>
+            </div>
+            <div class="map-bg-option" data-map-bg="forest">
+              <div class="map-bg-preview">
+                <img src="sendbox/src/assets/maps/bg-forest.png" alt="森林">
+              </div>
+              <span>森林</span>
+            </div>
+            <div class="map-bg-option" data-map-bg="farm">
+              <div class="map-bg-preview">
+                <img src="sendbox/src/assets/maps/bg-farm.png" alt="农场">
+              </div>
+              <span>农场</span>
+            </div>
+            <div class="map-bg-option" data-map-bg="mine">
+              <div class="map-bg-preview">
+                <img src="sendbox/src/assets/maps/bg-mine.png" alt="矿洞">
+              </div>
+              <span>矿洞</span>
+            </div>
+            <div class="map-bg-option" data-map-bg="xiejian">
+              <div class="map-bg-preview">
+                <img src="sendbox/src/assets/xiejian/sanshi-pixel-assets/location-maps/previews/all-location-maps-overview.png" alt="挟剑地图">
+              </div>
+              <span>挟剑地图</span>
+            </div>
+            <div class="map-bg-option" data-map-bg="null">
+              <div class="map-bg-preview map-bg-pixel">
+                <span class="pixel-icon">🎮</span>
+              </div>
+              <span>无背景</span>
+            </div>
+          </div>
+        </div>
+
         <div class="form-group">
-          <label>信箱名称</label>
+          <label>信箱名称 <span class="required-badge">必填</span></label>
           <input type="text" id="mailbox-form-name" placeholder="请输入信箱名称" maxlength="20">
         </div>
         <div class="form-group">
@@ -1004,7 +1098,7 @@
               <span class="dual-label">B方</span>
               <input type="text" id="dual-person-b" placeholder="名字，如：缪宏谟" maxlength="10">
               <div class="dual-icon-select">
-                <span class="dual-icon-option" data-icon="🍃">🍃</span>
+                <span class="dual-icon-option active" data-icon="🍃">🍃</span>
                 <span class="dual-icon-option" data-icon="🌿">🌿</span>
                 <span class="dual-icon-option" data-icon="⭐">⭐</span>
                 <span class="dual-icon-option" data-icon="🕊️">🕊️</span>
@@ -1019,7 +1113,7 @@
             <input type="text" id="member-invite-input" placeholder="输入用户名邀请成员" maxlength="20">
             <button type="button" class="invite-btn" id="member-invite-btn">邀请</button>
           </div>
-          <p class="member-hint">输入用户名邀请成员加入共享信箱</p>
+          <p class="member-hint">输入用户名邀请成员加入共享信箱（也可通过信箱号直接加入）</p>
         </div>
         <div class="form-group">
           <label>图标</label>
@@ -1084,119 +1178,6 @@
             </div>
           </div>
         </div>
-        <div class="form-group">
-          <label>地图背景</label>
-          <div class="map-bg-grid" id="mailbox-map-bg-grid">
-            <div class="map-bg-option active" data-map-bg="null">
-              <div class="map-bg-preview map-bg-pixel">
-                <span class="pixel-icon">🎮</span>
-              </div>
-              <span>无背景</span>
-            </div>
-            <div class="map-bg-option" data-map-bg="hanmen">
-              <div class="map-bg-preview">
-                <img src="sendbox/src/assets/maps/hanmen-bg.png" alt="寒门雪景">
-              </div>
-              <span>寒门雪景</span>
-            </div>
-            <div class="map-bg-option" data-map-bg="village">
-              <div class="map-bg-preview">
-                <img src="sendbox/src/assets/maps/bg-village.png" alt="村庄">
-              </div>
-              <span>村庄</span>
-            </div>
-            <div class="map-bg-option" data-map-bg="desert">
-              <div class="map-bg-preview">
-                <img src="sendbox/src/assets/maps/bg-desert.png" alt="沙漠">
-              </div>
-              <span>沙漠</span>
-            </div>
-            <div class="map-bg-option" data-map-bg="forest">
-              <div class="map-bg-preview">
-                <img src="sendbox/src/assets/maps/bg-forest.png" alt="森林">
-              </div>
-              <span>森林</span>
-            </div>
-            <div class="map-bg-option" data-map-bg="farm">
-              <div class="map-bg-preview">
-                <img src="sendbox/src/assets/maps/bg-farm.png" alt="农场">
-              </div>
-              <span>农场</span>
-            </div>
-            <div class="map-bg-option" data-map-bg="mine">
-              <div class="map-bg-preview">
-                <img src="sendbox/src/assets/maps/bg-mine.png" alt="矿洞">
-              </div>
-              <span>矿洞</span>
-            </div>
-            <div class="map-bg-option" data-map-bg="xj-jingyuan">
-              <div class="map-bg-preview">
-                <img src="sendbox/src/assets/xiejian/sanshi-pixel-assets/location-maps/full-maps/jingyuan-academy-map.png" alt="静远书院">
-              </div>
-              <span>静远书院</span>
-            </div>
-            <div class="map-bg-option" data-map-bg="xj-daohua">
-              <div class="map-bg-preview">
-                <img src="sendbox/src/assets/xiejian/sanshi-pixel-assets/location-maps/full-maps/daohua-temple-map.png" alt="道华观">
-              </div>
-              <span>道华观</span>
-            </div>
-            <div class="map-bg-option" data-map-bg="xj-tianxing">
-              <div class="map-bg-preview">
-                <img src="sendbox/src/assets/xiejian/sanshi-pixel-assets/location-maps/full-maps/tianxing-cult-map.png" alt="天行教">
-              </div>
-              <span>天行教</span>
-            </div>
-            <div class="map-bg-option" data-map-bg="xj-danxi">
-              <div class="map-bg-preview">
-                <img src="sendbox/src/assets/xiejian/sanshi-pixel-assets/location-maps/full-maps/danxi-valley-map.png" alt="丹溪谷">
-              </div>
-              <span>丹溪谷</span>
-            </div>
-            <div class="map-bg-option" data-map-bg="xj-buhuan">
-              <div class="map-bg-preview">
-                <img src="sendbox/src/assets/xiejian/sanshi-pixel-assets/location-maps/full-maps/buhuan-sect-map.png" alt="不还门">
-              </div>
-              <span>不还门</span>
-            </div>
-            <div class="map-bg-option" data-map-bg="xj-taozhi">
-              <div class="map-bg-preview">
-                <img src="sendbox/src/assets/xiejian/sanshi-pixel-assets/location-maps/full-maps/taozhi-sect-map.png" alt="桃止门">
-              </div>
-              <span>桃止门</span>
-            </div>
-            <div class="map-bg-option" data-map-bg="xj-dongjia">
-              <div class="map-bg-preview">
-                <img src="sendbox/src/assets/xiejian/sanshi-pixel-assets/location-maps/full-maps/dongjia-shen-manor-map.png" alt="东嘉沈府">
-              </div>
-              <span>东嘉沈府</span>
-            </div>
-            <div class="map-bg-option" data-map-bg="xj-ren">
-              <div class="map-bg-preview">
-                <img src="sendbox/src/assets/xiejian/sanshi-pixel-assets/location-maps/full-maps/ren-manor-map.png" alt="任府">
-              </div>
-              <span>任府</span>
-            </div>
-            <div class="map-bg-option" data-map-bg="xj-capital">
-              <div class="map-bg-preview">
-                <img src="sendbox/src/assets/xiejian/sanshi-pixel-assets/location-maps/full-maps/capital-hanlin-map.png" alt="京城翰林院">
-              </div>
-              <span>京城翰林院</span>
-            </div>
-            <div class="map-bg-option" data-map-bg="xj-forgetfulness">
-              <div class="map-bg-preview">
-                <img src="sendbox/src/assets/xiejian/sanshi-pixel-assets/location-maps/full-maps/forgetfulness-river-map.png" alt="忘川">
-              </div>
-              <span>忘川</span>
-            </div>
-            <div class="map-bg-option" data-map-bg="xj-border">
-              <div class="map-bg-preview">
-                <img src="sendbox/src/assets/xiejian/sanshi-pixel-assets/location-maps/full-maps/border-town-map.png" alt="边陲小镇">
-              </div>
-              <span>边陲小镇</span>
-            </div>
-          </div>
-        </div>
         <div class="form-group" id="mailbox-letters-group" style="display:none;">
           <label>信件管理</label>
           <div class="mailbox-letters-list" id="mailbox-letters-list"></div>
@@ -1206,8 +1187,58 @@
           <button class="form-btn form-btn-primary" id="mailbox-form-save">保存</button>
         </div>
       </div>
+
+      <!-- ==== 加入信箱面板 ==== -->
+      <div class="mailbox-form" id="mailbox-join-panel" style="display:none;">
+        <div class="join-mailbox-hero">
+          <div class="join-hero-icon">🔗</div>
+          <div class="join-hero-title">通过信箱号加入朋友的信箱</div>
+          <div class="join-hero-desc">向你的朋友要 6 位信箱号，输入后即可加入共享信件</div>
+        </div>
+        <div class="form-group">
+          <label>📮 信箱号 <span class="required-badge">必填</span></label>
+          <input type="text" id="join-mailbox-code-input" class="join-code-input"
+                 placeholder="输入 6 位信箱号，如 HM2024"
+                 maxlength="8" autocomplete="off">
+          <p class="code-hint">不区分大小写，直接输入即可</p>
+        </div>
+        <!-- 校验通过后显示预览 -->
+        <div id="join-mailbox-preview" class="join-preview-box" style="display:none;">
+          <div class="join-preview-icon" id="join-preview-icon">📫</div>
+          <div class="join-preview-info">
+            <div class="join-preview-name" id="join-preview-name">—</div>
+            <div class="join-preview-desc" id="join-preview-desc">—</div>
+            <div class="join-preview-meta" id="join-preview-meta">—</div>
+          </div>
+        </div>
+        <!-- 提示信息 -->
+        <div id="join-mailbox-msg" class="join-msg-box" style="display:none;"></div>
+
+        <!-- ====== 跨用户：分享内容导入 ====== -->
+        <div class="share-import-section" style="margin-top:18px;padding-top:14px;border-top:1px dashed #e8d5d5;">
+          <div class="share-import-title" style="font-size:13px;color:#8a6d6d;margin-bottom:8px;">
+            💡 朋友不在同一台设备？复制朋友发来的 <b>XJ://...</b> 分享内容，粘贴到此即可加入
+          </div>
+          <div class="share-import-actions" style="display:flex;gap:8px;margin-bottom:8px;">
+            <button type="button" class="form-btn form-btn-secondary" id="join-paste-share-btn" style="flex:1;">📥 粘贴朋友分享内容</button>
+          </div>
+          <textarea id="join-share-textarea" rows="3"
+            placeholder="或者把朋友发来的 XJ://... 分享字符串粘到这里，再点「导入」&#10;（同一局域网/跨设备跨用户均支持）"
+            style="width:100%;padding:10px 12px;border:1px solid #e0cfcf;border-radius:10px;resize:vertical;font-size:13px;line-height:1.6;box-sizing:border-box;font-family:ui-monospace, Menlo, Consolas, monospace;"></textarea>
+          <div style="display:flex;gap:8px;margin-top:8px;">
+            <button type="button" class="form-btn form-btn-primary" id="join-import-share-btn" style="flex:1;">📨 导入分享内容并加入</button>
+            <button type="button" class="form-btn form-btn-secondary" id="join-clear-share-btn">清空</button>
+          </div>
+        </div>
+
+        <div class="form-actions">
+          <button class="form-btn form-btn-secondary" id="join-mailbox-check-btn">🔍 查询信箱</button>
+          <button class="form-btn form-btn-primary" id="join-mailbox-confirm-btn" disabled>✅ 确认加入</button>
+        </div>
+      </div>
     </div>
   </div>
+
 
   <!-- 手账主视图（年/月/日视图） -->
   <div id="journal-view" class="view">
@@ -1384,29 +1415,29 @@
     </div>
   </div>
 
-  <script src="js/auth.js?v=20260710"></script>
-  <script src="js/storage.js?v=20260710"></script>
-  <script src="js/mailService.js?v=20260731b"></script>
-  <script src="js/multiplayerSync.js?v=20260731a"></script>
-  <script src="js/media.js?v=20260710"></script>
-  <script src="js/imageFrames.js?v=20260731b"></script>
-  <script src="js/mailbox.js?v=20260730h"></script>
-  <script src="js/modules/mailbox-letters.js?v=20260710"></script>
-  <script src="js/app.js?v=20260731b"></script>
-  <script src="js/modules/app-reader.js?v=20260731b"></script>
-  <script src="js/modules/app-bgm.js?v=20260710"></script>
-  <script src="js/modules/app-voice.js?v=20260710"></script>
-  <script src="js/modules/app-mailbox-modal.js?v=20260710"></script>
-  <script src="js/modules/app-diary.js?v=20260724"></script>
-  <script src="js/modules/app-features.js?v=20260710"></script>
-  <script src="js/editor.js?v=20260731b"></script>
-  <script src="js/modules/editor-widgets-year.js?v=20260710"></script>
-  <script src="js/modules/editor-widgets-month.js?v=20260710"></script>
-  <script src="js/modules/editor-widgets-week.js?v=20260710"></script>
-  <script src="js/modules/editor-widgets-daily.js?v=20260710"></script>
-  <script src="js/journal.js?v=20260710"></script>
-  <script src="js/diary.js?v=20260710"></script>
-  <script src="js/map.js?v=20260718"></script>
-  <script type="module" src="js/gameMapRenderer.js?v=20260730h"></script>
+  <script src="js/auth.js?v=20260801e"></script>
+  <script src="js/storage.js?v=20260802a"></script>
+  <script src="js/mailService.js?v=20260802h"></script>
+  <script src="js/multiplayerSync.js?v=20260803c"></script>
+  <script src="js/media.js?v=20260801e"></script>
+  <script src="js/imageFrames.js?v=20260801e"></script>
+  <script src="js/mailbox.js?v=20260802d"></script>
+  <script src="js/modules/mailbox-letters.js?v=20260801e"></script>
+  <script src="js/app.js?v=20260803t"></script>
+  <script src="js/modules/app-reader.js?v=20260802c"></script>
+  <script src="js/modules/app-bgm.js?v=20260802h"></script>
+  <script src="js/modules/app-voice.js?v=20260802c"></script>
+  <script src="js/modules/app-mailbox-modal.js?v=20260802c"></script>
+  <script src="js/modules/app-diary.js?v=20260801e"></script>
+  <script src="js/modules/app-features.js?v=20260801e"></script>
+  <script src="js/editor.js?v=20260801e"></script>
+  <script src="js/modules/editor-widgets-year.js?v=20260801e"></script>
+  <script src="js/modules/editor-widgets-month.js?v=20260801e"></script>
+  <script src="js/modules/editor-widgets-week.js?v=20260801e"></script>
+  <script src="js/modules/editor-widgets-daily.js?v=20260801e"></script>
+  <script src="js/journal.js?v=20260801e"></script>
+  <script src="js/diary.js?v=20260801e"></script>
+  <script src="js/map.js?v=20260801e"></script>
+  <script type="module" src="js/gameMapRenderer.js?v=20260803h"></script>
 </body>
 </html>

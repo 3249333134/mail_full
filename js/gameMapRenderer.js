@@ -4,12 +4,18 @@ import { MapManager, PRESET_MAPS } from '../sendbox/src/mapManager.js';
 import { AssetManager } from '../sendbox/src/assetManager.js';
 import { ASSET_CATEGORIES } from '../sendbox/src/assetManifest.js';
 
+// ===== 模块化数据接入（替换点A：优先用 CharacterSystem / MapSystem，缺失再兜底）=====
+import { CharacterSystem } from './game/character/CharacterSystem.js';
+import { MapSystem } from './game/map/MapSystem.js';
+import { RemoteResourceLoader } from './game/remote/RemoteResourceLoader.js';
+
 const ASSET_BASE = './sendbox/src/assets/';
 const XIEJIAN_CHARACTER_ROOT = '../../fill/jingyuan-chibi20-delivery-20260719';
 
 AssetManager.getAssetUrl = (relativePath) => ASSET_BASE + relativePath;
+AssetManager.getAssetUrls = (relativePath) => RemoteResourceLoader.resolveAssetCandidates(relativePath, ASSET_BASE);
 
-const JINGYUAN_CHARACTERS = [
+const _JINGYUAN_CHARACTERS_FALLBACK = [
   { id: 'zhou-ran', name: '周然', dir: '01-周然', sect: '道华观' },
   { id: 'he-qingfeng', name: '贺清风', dir: '02-贺清风', sect: '天行教' },
   { id: 'ren-chaoye', name: '任朝野', dir: '03-任朝野', sect: '天行教' },
@@ -19,79 +25,64 @@ const JINGYUAN_CHARACTERS = [
   { id: 'tang-wanchu', name: '唐挽初', dir: '07-唐挽初', sect: '不还门' },
 ];
 
-const MAIN_CHARACTERS = [
+const _MAIN_CHARACTERS_FALLBACK = [
   { id: 'mask-dude', name: 'Mask Dude', group: 'Mask Dude' },
   { id: 'ninja-frog', name: '忍者蛙', group: 'Ninja Frog' },
   { id: 'pink-man', name: '粉衣人', group: 'Pink Man' },
   { id: 'virtual-guy', name: '虚拟人', group: 'Virtual Guy' },
 ];
 
-const HANMEN_CHARACTERS = [
+const _HANMEN_CHARACTERS_FALLBACK = [
   { id: 'xuan-xuan', name: '萱宣', dir: 'xiujing-xuanxuan/xuanxuan', sect: '寒门', gender: 'female' },
   { id: 'xiu-jing', name: '修璟', dir: 'xiujing-xuanxuan/xiujing', sect: '寒门', gender: 'male' },
 ];
 
-const HANMEN_ACTION_MAP = {
-  'xiu-jing': {
-    personality: 'idle_book',
-    run: 'run',
-    etiquette: 'salute',
-    martial: 'deep_bow',
-    signature: 'calligraphy',
-    idle: 'idle_book',
-    arrange_tablets: 'arrange_tablets',
-    kneeling_rite: 'kneeling_rite',
-    meditate_books: 'meditate_books',
-    mute_writing_board: 'mute_writing_board',
-    offer_incense: 'offer_incense',
-    offer_scroll: 'offer_scroll',
-    pick_page: 'pick_page',
-    protect_manuscript: 'protect_manuscript',
-    read_book: 'read_book',
-    recite: 'recite',
-    silent_thanks: 'silent_thanks',
-    study_long_scroll: 'study_long_scroll',
-    teach_etiquette: 'teach_etiquette',
-    think_brush: 'think_brush',
-    walk_bamboo_slips: 'walk_bamboo_slips',
-  },
-  'xuan-xuan': {
-    personality: 'noble_idle',
-    run: 'run',
-    etiquette: 'curtsey',
-    martial: 'salute',
-    signature: 'write_letter',
-    idle: 'noble_idle',
-    adjust_hairpin: 'adjust_hairpin',
-    annoyed: 'annoyed',
-    arrange_sleeve: 'arrange_sleeve',
-    cross_puddle: 'cross_puddle',
-    drink_tea: 'drink_tea',
-    embroider: 'embroider',
-    hold_fan: 'hold_fan',
-    petal_dance: 'petal_dance',
-    play_guqin: 'play_guqin',
-    point_order: 'point_order',
-    pour_tea: 'pour_tea',
-    read_letter: 'read_letter',
-    shy_smile: 'shy_smile',
-    startled: 'startled',
-    walk: 'walk',
-  },
-};
+/** 以 CharacterSystem 优先，若尚未 bootstrap 则用 fallback 兜底（保证不破坏启动）*/
+function _getJINGYUAN() {
+  const sysList = (CharacterSystem._bootstrapped && CharacterSystem.getCharacterListForCategory('jingyuan')) || [];
+  return sysList.length ? sysList : _JINGYUAN_CHARACTERS_FALLBACK;
+}
+function _getHANMEN() {
+  const sysList = (CharacterSystem._bootstrapped && CharacterSystem.getCharacterListForCategory('hanmen')) || [];
+  return sysList.length ? sysList : _HANMEN_CHARACTERS_FALLBACK;
+}
+function _getMAIN() {
+  const sysList = (CharacterSystem._bootstrapped && CharacterSystem.getCharacterListForCategory('main')) || [];
+  return sysList.length ? sysList : _MAIN_CHARACTERS_FALLBACK;
+}
 
-const DUO_ACTIONS = [
-  'mutual_bow',
-  'calligraphy_lesson',
-  'read_writing_board',
-  'umbrella_walk',
-  'fix_hair_crown',
-  'return_hairpin',
-  'exchange_scroll',
-  'back_to_back_reading',
-  'hand_in_hand_run',
-  'tea_and_thanks',
-];
+const JINGYUAN_CHARACTERS_PROXY = new Proxy([], {
+  get(_, p) {
+    const arr = _getJINGYUAN();
+    if (p === 'length') return arr.length;
+    if (p === Symbol.iterator) return arr[Symbol.iterator].bind(arr);
+    return arr[p];
+  },
+  has(_, p) { return p in _getJINGYUAN(); },
+});
+const HANMEN_CHARACTERS_PROXY = new Proxy([], {
+  get(_, p) {
+    const arr = _getHANMEN();
+    if (p === 'length') return arr.length;
+    if (p === Symbol.iterator) return arr[Symbol.iterator].bind(arr);
+    return arr[p];
+  },
+  has(_, p) { return p in _getHANMEN(); },
+});
+const MAIN_CHARACTERS_PROXY = new Proxy([], {
+  get(_, p) {
+    const arr = _getMAIN();
+    if (p === 'length') return arr.length;
+    if (p === Symbol.iterator) return arr[Symbol.iterator].bind(arr);
+    return arr[p];
+  },
+  has(_, p) { return p in _getMAIN(); },
+});
+
+// 兼容老代码：JINGYUAN_CHARACTERS / HANMEN_CHARACTERS / MAIN_CHARACTERS 这些变量名要照旧存在
+const JINGYUAN_CHARACTERS = JINGYUAN_CHARACTERS_PROXY;
+const HANMEN_CHARACTERS = HANMEN_CHARACTERS_PROXY;
+const MAIN_CHARACTERS = MAIN_CHARACTERS_PROXY;
 
 const CHARACTER_CATEGORIES = [
   { key: 'jingyuan', name: '静远七人', icon: '🎭' },
@@ -118,6 +109,7 @@ export class GameMapRenderer {
       actionPlaying: false,
       actionOnce: false,
     };
+    // 单人模式保留 dummy partner 对象以兼容旧代码引用，但始终不可见
     this.partner = {
       x: 0, y: 0,
       direction: 'down',
@@ -137,25 +129,26 @@ export class GameMapRenderer {
     this.time = 0;
     this.lastTime = 0;
     this.rafId = null;
-    this.currentMapIndex = 5;
+    this.currentMapIndex = 5; // 默认：寒门；初始化时会通过名称再次校正
     this.selectedCharacter = 'xiu-jing';
     this.selectedCategory = 'hanmen';
     this.characterFrames = {};
     this.loadingCharacter = null;
     this.partnerLoading = null;
+    this.duetMode = false;
+    this.duetAction = 0;
+    this.duetFrame = 0;
+    this.duetFrameTimer = 0;
+    this.duetFrames = null;
+    this.duetActions = ['行礼', '书画', '赏画', '撑伞', '簪花', '赠礼', '共读', '奔跑', '品茶', '舞剑'];
     this.assetManager = AssetManager;
     this.assetManager.getAssetUrl = (relativePath) => ASSET_BASE + relativePath;
+    this.assetManager.getAssetUrls = (relativePath) => RemoteResourceLoader.resolveAssetCandidates(relativePath, ASSET_BASE);
     this.joystick = { x: 0, y: 0 };
     this.mapBackground = null;
     this.mapBackgroundLoaded = false;
     this.backgroundWorldWidth = MAP_W * TILE;
     this.backgroundWorldHeight = MAP_H * TILE;
-    this.duetFrames = null;
-    this.duetMode = false;
-    this.duetAction = 0;
-    this.duetFrame = 0;
-    this.duetFrameTimer = 0;
-    this.duetActions = ['行礼', '书画', '赏画', '撑伞', '簪花', '赠礼', '共读', '奔跑', '品茶', '舞剑'];
 
     this.remotePlayers = {};
     this.multiplayerMode = false;
@@ -200,20 +193,25 @@ export class GameMapRenderer {
     window.addEventListener('resize', this._resizeHandler);
 
     this.setupInput();
-    this.loadMap(5);
+    // 按名称「寒门」加载地图，避免 maps 数组被 bootstrap 扩展后索引偏移
+    const hanmenIndex = this.getMapIndexByName('寒门', 5);
+    this.loadMap(hanmenIndex);
     this.loadCharacter(this.selectedCharacter);
 
     this.lastTime = performance.now();
     this.loop();
 
-    setTimeout(() => {
-      this.resize();
-      if (this.canvas.width === 0 || this.canvas.height === 0) {
-        setTimeout(() => {
-          this.resize();
-        }, 300);
-      }
-    }, 100);
+    // 初始化后多次尝试 resize（应对容器从 display:none -> visible 的情况）
+    const tryResize = (times, delay) => {
+      if (times <= 0) return;
+      setTimeout(() => {
+        this.resize();
+        if (this.canvas.width === 0 || this.canvas.height === 0) {
+          tryResize(times - 1, Math.min(delay * 2, 1000));
+        }
+      }, delay);
+    };
+    tryResize(5, 80);
   }
 
   resize() {
@@ -249,10 +247,8 @@ export class GameMapRenderer {
 
   getDefaultSpawnPoint() {
     const world = this.getWorldSize();
-    return {
-      x: world.width * 0.5,
-      y: world.height * 0.72
-    };
+    const map = MapSystem.getMap(this.currentMapBgKey);
+    return map ? map.getSpawnPixelCoords(world.width, world.height) : { x: world.width * 0.5, y: world.height * 0.72 };
   }
 
   setupInput() {
@@ -320,11 +316,14 @@ export class GameMapRenderer {
 
   async loadCharacter(charId) {
     if (this.loadingCharacter === charId) return;
+    const loadToken = Date.now();
     this.loadingCharacter = charId;
+    this.currentLoadToken = loadToken;
     this.selectedCharacter = charId;
 
     const char = this.getCharacterInfo(charId);
     if (!char) return;
+    this.currentCharacterModel = CharacterSystem.getCharacter(charId);
 
     if (JINGYUAN_CHARACTERS.some(c => c.id === charId)) {
       await this.loadJingyuanCharacter(char.dir, 'xiejian');
@@ -334,54 +333,10 @@ export class GameMapRenderer {
       await this.loadMainCharacter(char.group);
     }
 
-    this.loadingCharacter = null;
-  }
-
-  async loadPartner(charId) {
-    if (this.multiplayerMode) return;
-    if (this.partnerLoading === charId) return;
-    this.partnerLoading = charId;
-
-    const char = this.getCharacterInfo(charId);
-    if (!char) {
-      this.partner.visible = false;
-      this.partner.characterId = null;
-      this.partnerLoading = null;
-      return;
+    // Only apply the loaded character if it's still the latest request
+    if (this.currentLoadToken === loadToken) {
+      this.loadingCharacter = null;
     }
-
-    let frames = {};
-    let charType = 'main';
-
-    if (JINGYUAN_CHARACTERS.some(c => c.id === charId) || HANMEN_CHARACTERS.some(c => c.id === charId)) {
-      const category = JINGYUAN_CHARACTERS.some(c => c.id === charId) ? 'xiejian' : 'hanmen';
-      frames = await this.loadSpritesheetFrames(char.dir, category);
-      charType = 'jingyuan';
-    } else {
-      const idlePath = `ui/icons/IconsPropsMonsters/Main Characters/${char.group}/Idle (32x32).png`;
-      const runPath = `ui/icons/IconsPropsMonsters/Main Characters/${char.group}/Run (32x32).png`;
-      const idleImg = await this.assetManager.loadImage(idlePath);
-      const runImg = await this.assetManager.loadImage(runPath);
-      frames['idle'] = [idleImg];
-      frames['run'] = [runImg];
-    }
-
-    this.partner.characterFrames = frames;
-    this.partner.characterId = charId;
-    this.partner.characterType = charType;
-    if (!this.multiplayerMode) {
-      this.partner.visible = true;
-    }
-    this.partner.x = this.player.x - 30;
-    this.partner.y = this.player.y;
-    this.partner.action = 'personality';
-    this.partner.frame = 0;
-    this.partnerLoading = null;
-  }
-
-  setPartner(charId) {
-    if (this.multiplayerMode) return;
-    this.loadPartner(charId);
   }
 
   isJingyuanCharacter(charId) {
@@ -400,41 +355,18 @@ export class GameMapRenderer {
 
   async loadSpritesheetFrames(charDir, category) {
     const frames = {};
-    
-    // 检测是否是新的寒门角色目录结构 (xiujing-xuanxuan)
-    const isHanmenNewStructure = charDir.startsWith('xiujing-xuanxuan/');
-    
-    if (isHanmenNewStructure) {
-      // 获取角色ID (xuan-xuan 或 xiu-jing)
-      // 使用路径的最后一部分来判断，避免 'xiujing-xuanxuan' 中包含 'xuanxuan' 的问题
-      const parts = charDir.split('/');
-      const lastPart = parts[parts.length - 1];
-      const charId = lastPart === 'xuanxuan' ? 'xuan-xuan' : 'xiu-jing';
-      const actionMap = HANMEN_ACTION_MAP[charId];
-      
-      if (actionMap) {
-        // 加载动作映射中的所有动作
-        const baseActions = Object.keys(actionMap);
-        
-        for (const baseAction of baseActions) {
-          const actualAction = actionMap[baseAction];
-          if (!actualAction) continue;
-          
-          const actionFrames = [];
-          // 每个动作只有1帧 (从 manifest.json 确认)
-          const frameNum = '00';
-          const path = `characters/${category}/${charDir}/frames/${actualAction}/${frameNum}.png`;
-          const img = await this.assetManager.loadImage(path);
-          if (img) {
-            actionFrames.push(img);
-          }
-          
-          if (actionFrames.length > 0) {
-            frames[baseAction] = actionFrames;
-          }
-        }
+    const model = [...CharacterSystem.getAllIds().jingyuan, ...CharacterSystem.getAllIds().hanmen]
+      .map(id => CharacterSystem.getCharacter(id))
+      .find(character => character?.dir === charDir);
+    if (model) {
+      for (const action of model.listAvailableActions()) {
+        const loaded = (await Promise.all(model.getActionFramePaths(action).map(path => this.assetManager.loadImage(path)))).filter(Boolean);
+        if (loaded.length) frames[action] = loaded;
       }
-    } else {
+      if (Object.keys(frames).length) return frames;
+    }
+    
+    if (!charDir.startsWith('xiujing-xuanxuan/')) {
       // 旧的静远七人结构
       const actions = ['personality', 'run', 'etiquette', 'martial', 'signature'];
       const characterBase = category === 'xiejian'
@@ -531,6 +463,29 @@ export class GameMapRenderer {
           }
         }
       }
+    } else {
+      // 寒门 xiujing-xuanxuan 角色：映射到 01-萱宣/02-修璟 目录（包含标准5动作帧结构）
+      let fallbackDir = charDir;
+      if (charDir === 'xiujing-xuanxuan/xuanxuan') fallbackDir = '01-萱宣';
+      else if (charDir === 'xiujing-xuanxuan/xiujing') fallbackDir = '02-修璟';
+
+      const actions = ['personality', 'run', 'etiquette', 'martial', 'signature'];
+      const characterBase = `characters/hanmen/${fallbackDir}`;
+
+      for (const action of actions) {
+        const actionFrames = [];
+        for (let i = 0; i < 4; i++) {
+          const frameNum = String(i).padStart(2, '0');
+          const path = `${characterBase}/frames/${action}/${frameNum}.png`;
+          const img = await this.assetManager.loadImage(path);
+          if (img) {
+            actionFrames.push(img);
+          }
+        }
+        if (actionFrames.length > 0) {
+          frames[action] = actionFrames;
+        }
+      }
     }
 
     return frames;
@@ -576,6 +531,7 @@ export class GameMapRenderer {
 
   playAction(actionName) {
     if (this.characterType !== 'jingyuan') return;
+    if (this.currentCharacterModel && !this.currentCharacterModel.canDoAction(actionName)) return;
     if (!this.characterFrames[actionName]) return;
 
     this.player.action = actionName;
@@ -597,6 +553,17 @@ export class GameMapRenderer {
     this.joystick.y = y;
   }
 
+  /**
+   * 通过地图名称查找索引，避免 GameSystems.bootstrap 注入挟剑子地图后
+   * maps 数组被扩展导致硬编码索引（如 5）指向错误的地图条目。
+   * 找不到时返回 fallbackIndex（默认 0，即村庄）。
+   */
+  getMapIndexByName(name, fallbackIndex = 0) {
+    if (!name) return fallbackIndex;
+    const idx = this.maps.findIndex(m => m && m.name === name);
+    return idx >= 0 ? idx : fallbackIndex;
+  }
+
   loadMap(index) {
     if (index < 0 || index >= this.maps.length) {
       index = 0;
@@ -616,6 +583,7 @@ export class GameMapRenderer {
     this.centerCamera();
 
     setTimeout(() => {
+      if (this.currentMapBgKey && this.currentMapBgKey.startsWith('xj-')) return;
       const mapNameEl = document.getElementById('map-name');
       if (mapNameEl) {
         mapNameEl.textContent = this.maps[this.currentMapIndex]?.name || '未知地图';
@@ -633,7 +601,15 @@ export class GameMapRenderer {
       return Promise.resolve(null);
     }
 
-    const xjMapMap = {
+    // 挟剑地图：bgKey='xiejian' 时默认进入静远书院子地图
+    if (bgKey === 'xiejian') {
+      bgKey = 'xj-jingyuan';
+      this.currentMapBgKey = bgKey;
+    }
+
+    // 挟剑子地图数据：模块化优先（MapSystem.legacy），缺失时 fallback 原本地数组
+    const legacy = (MapSystem._bootstrapped && MapSystem.getLegacyXiejianMaps()) || null;
+    const xjMapMap = legacy ? legacy.xjMapMap : {
       'xj-jingyuan': 'jingyuan-academy-map.png',
       'xj-daohua': 'daohua-temple-map.png',
       'xj-tianxing': 'tianxing-cult-map.png',
@@ -646,8 +622,7 @@ export class GameMapRenderer {
       'xj-forgetfulness': 'forgetfulness-river-map.png',
       'xj-border': 'border-town-map.png',
     };
-
-    const xjMapNames = {
+    const xjMapNames = legacy ? legacy.xjMapNames : {
       'xj-jingyuan': '静远书院',
       'xj-daohua': '道华观',
       'xj-tianxing': '天行教',
@@ -661,11 +636,37 @@ export class GameMapRenderer {
       'xj-border': '边陲小镇',
     };
 
+    if (bgKey.startsWith('xj-') && xjMapMap[bgKey]) {
+      const mapModel = MapSystem.getMap(bgKey);
+      this.currentMapModel = mapModel;
+      const bgPath = mapModel?.bgPath || ('xiejian/sanshi-pixel-assets/location-maps/full-maps/' + xjMapMap[bgKey]);
+      return this.assetManager.loadImage(bgPath).then(img => {
+        if (this.currentMapBgKey !== bgKey && this.currentMapBgKey !== requestedBgKey) return;
+        if (img) {
+          this.mapBackground = img;
+          this.mapBackgroundLoaded = true;
+          const worldScale = mapModel?.worldScale || 2;
+          this.backgroundWorldWidth = img.width * worldScale;
+          this.backgroundWorldHeight = img.height * worldScale;
+          this.clampCamera();
+
+          const mapNameEl = document.getElementById('map-name');
+          if (mapNameEl) {
+            mapNameEl.textContent = mapModel?.name || xjMapNames[bgKey] || bgKey;
+          }
+        }
+        return img;
+      }).catch(() => {
+        if (this.currentMapBgKey !== bgKey && this.currentMapBgKey !== requestedBgKey) return;
+        this.mapBackground = null;
+        this.mapBackgroundLoaded = false;
+        return null;
+      });
+    }
+
     let bgPath;
     if (bgKey === 'hanmen') {
       bgPath = 'maps/hanmen-bg.png';
-    } else if (xjMapMap[bgKey]) {
-      bgPath = 'xiejian/sanshi-pixel-assets/location-maps/full-maps/' + xjMapMap[bgKey];
     } else {
       bgPath = 'maps/bg-' + bgKey + '.png';
     }
@@ -675,25 +676,19 @@ export class GameMapRenderer {
       if (img) {
         this.mapBackground = img;
         this.mapBackgroundLoaded = true;
-        if (bgKey.startsWith('xj-')) {
-          const worldScale = 2;
-          this.backgroundWorldWidth = img.width * worldScale;
-          this.backgroundWorldHeight = img.height * worldScale;
-        } else {
-          this.backgroundWorldWidth = MAP_W * TILE;
-          this.backgroundWorldHeight = MAP_H * TILE;
-        }
+        this.backgroundWorldWidth = MAP_W * TILE;
+        this.backgroundWorldHeight = MAP_H * TILE;
         this.clampCamera();
 
         const mapNameEl = document.getElementById('map-name');
         if (mapNameEl) {
-          if (bgKey === 'hanmen') {
-            mapNameEl.textContent = '寒门';
-          } else if (xjMapNames[bgKey]) {
-            mapNameEl.textContent = xjMapNames[bgKey];
-          } else {
-            mapNameEl.textContent = bgKey;
-          }
+          const bgNames = {
+            hanmen: '寒门',
+            village: '村庄',
+            desert: '沙漠',
+            snow: '雪山',
+          };
+          mapNameEl.textContent = bgNames[bgKey] || bgKey;
         }
       }
       return img;
@@ -780,11 +775,9 @@ export class GameMapRenderer {
   }
 
   update(dt) {
-    // 多人模式下强制禁用搭档角色，防止任何竞态条件导致搭档显示
-    if (this.multiplayerMode) {
-      this.partner.visible = false;
-      this.duetMode = false;
-    }
+    // 单人模式：始终禁用搭档/双人模式
+    if (this.partner) this.partner.visible = false;
+    this.duetMode = false;
 
     let dx = 0, dy = 0;
     const combatState = typeof MultiplayerSync !== 'undefined' ? MultiplayerSync.combatProfile : null;
@@ -952,6 +945,7 @@ export class GameMapRenderer {
 
     let frameSpeed = 180;
     if (this.characterType === 'jingyuan') {
+      const configured = this.currentCharacterModel?.getAction(this.player.action)?.frameInterval;
       const actionSpeeds = {
         personality: this.selectedCategory === 'xiejian' ? 3000 : 240,
         run: 105,
@@ -959,7 +953,7 @@ export class GameMapRenderer {
         martial: 110,
         signature: 180,
       };
-      frameSpeed = actionSpeeds[this.player.action] || 180;
+      frameSpeed = configured || actionSpeeds[this.player.action] || 180;
     } else {
       frameSpeed = this.player.moving ? 100 : 200;
     }
@@ -1125,8 +1119,8 @@ export class GameMapRenderer {
         this.drawPartner(ppX, ppY);
       }
 
-      if (this.multiplayerMode && this.selectedCategory === 'xiejian') {
-        const remotePlayerList = Object.values(this.remotePlayers)
+      if (this.selectedCategory === 'xiejian') {
+        const remotePlayerList = (this.multiplayerMode ? Object.values(this.remotePlayers) : [])
           .filter(p => p.visible)
           .map(player => ({ kind: 'remote', y: player.y, player }));
         const scene = [
@@ -1205,25 +1199,20 @@ export class GameMapRenderer {
   }
 
   toggleDuetMode() {
-    if (this.multiplayerMode) return false;
-    this.duetMode = !this.duetMode;
-    if (this.duetMode && !this.duetFrames) {
-      this.loadDuetFrames();
-    }
-    if (this.duetMode) {
-      this.player.moving = false;
-      this.player.path = [];
-      this.partner.moving = false;
-      this.duetAction = 0;
-    }
-    return this.duetMode;
+    // 单人模式：始终禁用双人模式
+    return false;
   }
 
   setDuetAction(index) {
-    if (this.multiplayerMode) return;
-    if (index >= 0 && index < this.duetActions.length) {
-      this.duetAction = index;
-    }
+    // 单人模式：no-op
+  }
+
+  setPartner(charId) {
+    // 单人模式：no-op，不再设置搭档
+  }
+
+  loadPartner(charId) {
+    // 单人模式：no-op
   }
 
   drawPartner(x, y) {
@@ -1491,20 +1480,33 @@ export class GameMapRenderer {
 
   _drawWorldItem(item) {
     const image = this.worldItemImages[item.definition?.icon];
-    if (!image || !image.complete) return;
     const fixed = item.definition?.portable === false;
-    const size = fixed ? 42 : 32;
+    const size = fixed ? 50 : 38;
     const x = item.x - this.camera.x;
     const y = item.y - this.camera.y;
     if (x < -50 || y < -60 || x > this.canvas.width + 50 || y > this.canvas.height + 50) return;
     const floatY = Math.sin(this.time * 0.003 + item.x * 0.01) * (fixed ? 1 : 3);
     this.ctx.save();
+    const glow = this.ctx.createRadialGradient(x, y - size * .45, 2, x, y - size * .45, size * .72);
+    glow.addColorStop(0, 'rgba(255, 236, 166, .55)');
+    glow.addColorStop(1, 'rgba(255, 236, 166, 0)');
+    this.ctx.fillStyle = glow;
+    this.ctx.fillRect(x - size, y - size * 1.4, size * 2, size * 1.7);
     this.ctx.fillStyle = 'rgba(0,0,0,.28)';
     this.ctx.beginPath();
     this.ctx.ellipse(x, y + 3, size * 0.32, 5, 0, 0, Math.PI * 2);
     this.ctx.fill();
-    this.ctx.imageSmoothingEnabled = false;
-    this.ctx.drawImage(image, x - size / 2, y - size + floatY, size, size);
+    if (image && image.complete && image.naturalWidth > 0) {
+      this.ctx.imageSmoothingEnabled = false;
+      this.ctx.drawImage(image, x - size / 2, y - size + floatY, size, size);
+    } else {
+      this.ctx.translate(x, y - size * .52 + floatY);
+      this.ctx.rotate(Math.PI / 4);
+      this.ctx.fillStyle = '#f2d38a';
+      this.ctx.fillRect(-8, -8, 16, 16);
+      this.ctx.rotate(-Math.PI / 4);
+      this.ctx.translate(-x, -(y - size * .52 + floatY));
+    }
     if (this.nearbyWorldItem?.instanceId === item.instanceId) {
       this.ctx.strokeStyle = '#f4d58d';
       this.ctx.lineWidth = 2;
@@ -1585,6 +1587,7 @@ export class GameMapRenderer {
       return;
     }
     player.displayName = char.name || player.displayName;
+    player.characterModel = CharacterSystem.getCharacter(charId);
 
     let frames = {};
     let charType = 'main';
@@ -1669,6 +1672,7 @@ export class GameMapRenderer {
 
     let frameSpeed = 180;
     if (player.characterType === 'jingyuan') {
+      const configured = player.characterModel?.getAction(player.action)?.frameInterval;
       const isXiejianCharacter = JINGYUAN_CHARACTERS.some(character => character.id === player.characterId);
       const actionSpeeds = {
         personality: isXiejianCharacter ? 3000 : 240,
@@ -1677,7 +1681,7 @@ export class GameMapRenderer {
         martial: 110,
         signature: 180,
       };
-      frameSpeed = actionSpeeds[player.action] || 180;
+      frameSpeed = configured || actionSpeeds[player.action] || 180;
     } else {
       frameSpeed = player.moving ? 100 : 200;
     }
@@ -1908,7 +1912,8 @@ export class GameMapRenderer {
 
   _getPlayerWorldPosition(userId) {
     const currentUser = this._getCurrentUser();
-    if (currentUser && userId === currentUser.id) {
+    const accountKey = (typeof MultiplayerSync !== 'undefined') ? MultiplayerSync.accountKey : '';
+    if (currentUser && (userId === currentUser.id || userId === accountKey)) {
       return { x: this.player.x, y: this.player.y };
     }
     const remote = this.remotePlayers[userId];

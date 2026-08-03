@@ -11,3 +11,22 @@ node_modules/
 .iga/
 server/data/
 server/.test-data-*/
+
+# Secrets & env
+server/.env
+.env
+
+# Logs
+*.log
+debug.log
+server/server-*.out.log
+server/server-*.err.log
+
+# IDE / tool artifacts
+.deploy-staging/
+.impeccable/
+.trae/
+.vscode/
+
+# Manual test data (contains runtime logs)
+server/.manual-test-data/

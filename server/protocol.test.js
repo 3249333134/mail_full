@@ -8,7 +8,7 @@ const port = 3107;
 const dataDir = path.join(__dirname, `.test-data-${process.pid}`);
 const serverProcess = spawn(process.execPath, ['server.js'], {
   cwd: __dirname,
-  env: { ...process.env, PORT: String(port), DATA_DIR: dataDir },
+  env: { ...process.env, PORT: String(port), DATA_DIR: dataDir, MONGO_ENABLED: '0' },
   stdio: ['ignore', 'pipe', 'pipe']
 });
 
@@ -130,6 +130,15 @@ async function run() {
     const bindingLocked = waitForMessage(second, 'character_rejected');
     second.send(JSON.stringify({ type: 'select_character', characterId: 'zhou-ran' }));
     assert.strictEqual((await bindingLocked).reason, 'binding_locked');
+
+    // 角色只在当前信箱世界内唯一；另一个信箱世界可以独立绑定同一角色。
+    const otherWorldConnection = await connect('third-world-user', 'mailbox-public-world-2');
+    const otherWorld = otherWorldConnection.ws;
+    sockets.push(otherWorld);
+    assert.ok(!otherWorldConnection.roomState.occupiedCharacters.includes('qi-pingchuan'));
+    const otherWorldSelected = waitForMessage(otherWorld, 'character_selected');
+    otherWorld.send(JSON.stringify({ type: 'select_character', characterId: 'qi-pingchuan' }));
+    assert.strictEqual((await otherWorldSelected).characterId, 'qi-pingchuan');
 
     const secondMapObserved = waitForMessage(first, 'map_change', message =>
       message.userId === 'other-user' && message.mapKey === 'xj-jingyuan'

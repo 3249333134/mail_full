@@ -4,11 +4,18 @@ import { MapManager, PRESET_MAPS } from '../sendbox/src/mapManager.js';
 import { AssetManager } from '../sendbox/src/assetManager.js';
 import { ASSET_CATEGORIES } from '../sendbox/src/assetManifest.js';
 
+// ===== 模块化数据接入（替换点A：优先用 CharacterSystem / MapSystem，缺失再兜底）=====
+import { CharacterSystem } from './game/character/CharacterSystem.js';
+import { MapSystem } from './game/map/MapSystem.js';
+import { RemoteResourceLoader } from './game/remote/RemoteResourceLoader.js';
+
 const ASSET_BASE = './sendbox/src/assets/';
+const XIEJIAN_CHARACTER_ROOT = '../../fill/jingyuan-chibi20-delivery-20260719';
 
 AssetManager.getAssetUrl = (relativePath) => ASSET_BASE + relativePath;
+AssetManager.getAssetUrls = (relativePath) => RemoteResourceLoader.resolveAssetCandidates(relativePath, ASSET_BASE);
 
-const JINGYUAN_CHARACTERS = [
+const _JINGYUAN_CHARACTERS_FALLBACK = [
   { id: 'zhou-ran', name: '周然', dir: '01-周然', sect: '道华观' },
   { id: 'he-qingfeng', name: '贺清风', dir: '02-贺清风', sect: '天行教' },
   { id: 'ren-chaoye', name: '任朝野', dir: '03-任朝野', sect: '天行教' },
@@ -18,79 +25,64 @@ const JINGYUAN_CHARACTERS = [
   { id: 'tang-wanchu', name: '唐挽初', dir: '07-唐挽初', sect: '不还门' },
 ];
 
-const MAIN_CHARACTERS = [
+const _MAIN_CHARACTERS_FALLBACK = [
   { id: 'mask-dude', name: 'Mask Dude', group: 'Mask Dude' },
   { id: 'ninja-frog', name: '忍者蛙', group: 'Ninja Frog' },
   { id: 'pink-man', name: '粉衣人', group: 'Pink Man' },
   { id: 'virtual-guy', name: '虚拟人', group: 'Virtual Guy' },
 ];
 
-const HANMEN_CHARACTERS = [
+const _HANMEN_CHARACTERS_FALLBACK = [
   { id: 'xuan-xuan', name: '萱宣', dir: 'xiujing-xuanxuan/xuanxuan', sect: '寒门', gender: 'female' },
   { id: 'xiu-jing', name: '修璟', dir: 'xiujing-xuanxuan/xiujing', sect: '寒门', gender: 'male' },
 ];
 
-const HANMEN_ACTION_MAP = {
-  'xiu-jing': {
-    personality: 'idle_book',
-    run: 'run',
-    etiquette: 'salute',
-    martial: 'deep_bow',
-    signature: 'calligraphy',
-    idle: 'idle_book',
-    arrange_tablets: 'arrange_tablets',
-    kneeling_rite: 'kneeling_rite',
-    meditate_books: 'meditate_books',
-    mute_writing_board: 'mute_writing_board',
-    offer_incense: 'offer_incense',
-    offer_scroll: 'offer_scroll',
-    pick_page: 'pick_page',
-    protect_manuscript: 'protect_manuscript',
-    read_book: 'read_book',
-    recite: 'recite',
-    silent_thanks: 'silent_thanks',
-    study_long_scroll: 'study_long_scroll',
-    teach_etiquette: 'teach_etiquette',
-    think_brush: 'think_brush',
-    walk_bamboo_slips: 'walk_bamboo_slips',
-  },
-  'xuan-xuan': {
-    personality: 'noble_idle',
-    run: 'run',
-    etiquette: 'curtsey',
-    martial: 'salute',
-    signature: 'write_letter',
-    idle: 'noble_idle',
-    adjust_hairpin: 'adjust_hairpin',
-    annoyed: 'annoyed',
-    arrange_sleeve: 'arrange_sleeve',
-    cross_puddle: 'cross_puddle',
-    drink_tea: 'drink_tea',
-    embroider: 'embroider',
-    hold_fan: 'hold_fan',
-    petal_dance: 'petal_dance',
-    play_guqin: 'play_guqin',
-    point_order: 'point_order',
-    pour_tea: 'pour_tea',
-    read_letter: 'read_letter',
-    shy_smile: 'shy_smile',
-    startled: 'startled',
-    walk: 'walk',
-  },
-};
+/** 以 CharacterSystem 优先，若尚未 bootstrap 则用 fallback 兜底（保证不破坏启动）*/
+function _getJINGYUAN() {
+  const sysList = (CharacterSystem._bootstrapped && CharacterSystem.getCharacterListForCategory('jingyuan')) || [];
+  return sysList.length ? sysList : _JINGYUAN_CHARACTERS_FALLBACK;
+}
+function _getHANMEN() {
+  const sysList = (CharacterSystem._bootstrapped && CharacterSystem.getCharacterListForCategory('hanmen')) || [];
+  return sysList.length ? sysList : _HANMEN_CHARACTERS_FALLBACK;
+}
+function _getMAIN() {
+  const sysList = (CharacterSystem._bootstrapped && CharacterSystem.getCharacterListForCategory('main')) || [];
+  return sysList.length ? sysList : _MAIN_CHARACTERS_FALLBACK;
+}
 
-const DUO_ACTIONS = [
-  'mutual_bow',
-  'calligraphy_lesson',
-  'read_writing_board',
-  'umbrella_walk',
-  'fix_hair_crown',
-  'return_hairpin',
-  'exchange_scroll',
-  'back_to_back_reading',
-  'hand_in_hand_run',
-  'tea_and_thanks',
-];
+const JINGYUAN_CHARACTERS_PROXY = new Proxy([], {
+  get(_, p) {
+    const arr = _getJINGYUAN();
+    if (p === 'length') return arr.length;
+    if (p === Symbol.iterator) return arr[Symbol.iterator].bind(arr);
+    return arr[p];
+  },
+  has(_, p) { return p in _getJINGYUAN(); },
+});
+const HANMEN_CHARACTERS_PROXY = new Proxy([], {
+  get(_, p) {
+    const arr = _getHANMEN();
+    if (p === 'length') return arr.length;
+    if (p === Symbol.iterator) return arr[Symbol.iterator].bind(arr);
+    return arr[p];
+  },
+  has(_, p) { return p in _getHANMEN(); },
+});
+const MAIN_CHARACTERS_PROXY = new Proxy([], {
+  get(_, p) {
+    const arr = _getMAIN();
+    if (p === 'length') return arr.length;
+    if (p === Symbol.iterator) return arr[Symbol.iterator].bind(arr);
+    return arr[p];
+  },
+  has(_, p) { return p in _getMAIN(); },
+});
+
+// 兼容老代码：JINGYUAN_CHARACTERS / HANMEN_CHARACTERS / MAIN_CHARACTERS 这些变量名要照旧存在
+const JINGYUAN_CHARACTERS = JINGYUAN_CHARACTERS_PROXY;
+const HANMEN_CHARACTERS = HANMEN_CHARACTERS_PROXY;
+const MAIN_CHARACTERS = MAIN_CHARACTERS_PROXY;
 
 const CHARACTER_CATEGORIES = [
   { key: 'jingyuan', name: '静远七人', icon: '🎭' },
@@ -117,6 +109,7 @@ export class GameMapRenderer {
       actionPlaying: false,
       actionOnce: false,
     };
+    // 单人模式保留 dummy partner 对象以兼容旧代码引用，但始终不可见
     this.partner = {
       x: 0, y: 0,
       direction: 'down',
@@ -136,23 +129,26 @@ export class GameMapRenderer {
     this.time = 0;
     this.lastTime = 0;
     this.rafId = null;
-    this.currentMapIndex = 5;
+    this.currentMapIndex = 5; // 默认：寒门；初始化时会通过名称再次校正
     this.selectedCharacter = 'xiu-jing';
     this.selectedCategory = 'hanmen';
     this.characterFrames = {};
     this.loadingCharacter = null;
     this.partnerLoading = null;
-    this.assetManager = AssetManager;
-    this.assetManager.getAssetUrl = (relativePath) => ASSET_BASE + relativePath;
-    this.joystick = { x: 0, y: 0 };
-    this.mapBackground = null;
-    this.mapBackgroundLoaded = false;
-    this.duetFrames = null;
     this.duetMode = false;
     this.duetAction = 0;
     this.duetFrame = 0;
     this.duetFrameTimer = 0;
+    this.duetFrames = null;
     this.duetActions = ['行礼', '书画', '赏画', '撑伞', '簪花', '赠礼', '共读', '奔跑', '品茶', '舞剑'];
+    this.assetManager = AssetManager;
+    this.assetManager.getAssetUrl = (relativePath) => ASSET_BASE + relativePath;
+    this.assetManager.getAssetUrls = (relativePath) => RemoteResourceLoader.resolveAssetCandidates(relativePath, ASSET_BASE);
+    this.joystick = { x: 0, y: 0 };
+    this.mapBackground = null;
+    this.mapBackgroundLoaded = false;
+    this.backgroundWorldWidth = MAP_W * TILE;
+    this.backgroundWorldHeight = MAP_H * TILE;
 
     this.remotePlayers = {};
     this.multiplayerMode = false;
@@ -170,6 +166,12 @@ export class GameMapRenderer {
     this.chatBubbleDuration = 5000;
     this.chatBubbleFadeDuration = 500;
     this._chatBubbleElements = {};
+    this.worldItems = [];
+    this.worldItemImages = {};
+    this.nearbyWorldItem = null;
+    this.selectedTargetId = '';
+    this.damageNumbers = [];
+    this.hitFlashUntil = {};
 
     this.maps = PRESET_MAPS.map((m, i) => ({ index: i, name: m.name }));
   }
@@ -191,20 +193,25 @@ export class GameMapRenderer {
     window.addEventListener('resize', this._resizeHandler);
 
     this.setupInput();
-    this.loadMap(5);
+    // 按名称「寒门」加载地图，避免 maps 数组被 bootstrap 扩展后索引偏移
+    const hanmenIndex = this.getMapIndexByName('寒门', 5);
+    this.loadMap(hanmenIndex);
     this.loadCharacter(this.selectedCharacter);
 
     this.lastTime = performance.now();
     this.loop();
 
-    setTimeout(() => {
-      this.resize();
-      if (this.canvas.width === 0 || this.canvas.height === 0) {
-        setTimeout(() => {
-          this.resize();
-        }, 300);
-      }
-    }, 100);
+    // 初始化后多次尝试 resize（应对容器从 display:none -> visible 的情况）
+    const tryResize = (times, delay) => {
+      if (times <= 0) return;
+      setTimeout(() => {
+        this.resize();
+        if (this.canvas.width === 0 || this.canvas.height === 0) {
+          tryResize(times - 1, Math.min(delay * 2, 1000));
+        }
+      }, delay);
+    };
+    tryResize(5, 80);
   }
 
   resize() {
@@ -221,10 +228,27 @@ export class GameMapRenderer {
   }
 
   clampCamera() {
-    const maxX = MAP_W * TILE - this.canvas.width;
-    const maxY = MAP_H * TILE - this.canvas.height;
+    const world = this.getWorldSize();
+    const maxX = Math.max(0, world.width - this.canvas.width);
+    const maxY = Math.max(0, world.height - this.canvas.height);
     this.camera.x = Math.max(0, Math.min(maxX, this.camera.x));
     this.camera.y = Math.max(0, Math.min(maxY, this.camera.y));
+  }
+
+  getWorldSize() {
+    if (this.selectedCategory === 'xiejian' && this.mapBackgroundLoaded) {
+      return {
+        width: this.backgroundWorldWidth,
+        height: this.backgroundWorldHeight
+      };
+    }
+    return { width: MAP_W * TILE, height: MAP_H * TILE };
+  }
+
+  getDefaultSpawnPoint() {
+    const world = this.getWorldSize();
+    const map = MapSystem.getMap(this.currentMapBgKey);
+    return map ? map.getSpawnPixelCoords(world.width, world.height) : { x: world.width * 0.5, y: world.height * 0.72 };
   }
 
   setupInput() {
@@ -236,9 +260,18 @@ export class GameMapRenderer {
         this.playAction('martial');
       } else if (e.key === 'f' || e.key === 'F') {
         this.playAction('signature');
+      } else if (e.key === 'r' || e.key === 'R') {
+        if (typeof window.xiejianAttackCallback === 'function') {
+          window.xiejianAttackCallback(this.selectedTargetId);
+        }
       } else if (e.key === ' ' || e.code === 'Space') {
         e.preventDefault();
-        this.tryInteract();
+        const nearbyItem = this.getNearbyWorldItem(80);
+        if (nearbyItem && typeof window.xiejianWorldItemCallback === 'function') {
+          window.xiejianWorldItemCallback(nearbyItem);
+        } else {
+          this.tryInteract();
+        }
       }
     };
 
@@ -256,7 +289,15 @@ export class GameMapRenderer {
       if (this.multiplayerMode) {
         const clickedPlayer = this._findRemotePlayerAtPosition(worldX, worldY);
         if (clickedPlayer) {
-          this._initiateInteract(clickedPlayer.userId, 'greet');
+          this.selectedTargetId = clickedPlayer.userId;
+          if (typeof window.xiejianTargetCallback === 'function') {
+            window.xiejianTargetCallback(clickedPlayer.userId, clickedPlayer);
+          }
+          return;
+        }
+        const clickedItem = this._findWorldItemAtPosition(worldX, worldY);
+        if (clickedItem && typeof window.xiejianWorldItemCallback === 'function') {
+          window.xiejianWorldItemCallback(clickedItem);
           return;
         }
       }
@@ -280,9 +321,10 @@ export class GameMapRenderer {
 
     const char = this.getCharacterInfo(charId);
     if (!char) return;
+    this.currentCharacterModel = CharacterSystem.getCharacter(charId);
 
     if (JINGYUAN_CHARACTERS.some(c => c.id === charId)) {
-      await this.loadJingyuanCharacter(char.dir, 'jingyuan');
+      await this.loadJingyuanCharacter(char.dir, 'xiejian');
     } else if (HANMEN_CHARACTERS.some(c => c.id === charId)) {
       await this.loadJingyuanCharacter(char.dir, 'hanmen');
     } else {
@@ -290,53 +332,6 @@ export class GameMapRenderer {
     }
 
     this.loadingCharacter = null;
-  }
-
-  async loadPartner(charId) {
-    if (this.multiplayerMode) return;
-    if (this.partnerLoading === charId) return;
-    this.partnerLoading = charId;
-
-    const char = this.getCharacterInfo(charId);
-    if (!char) {
-      this.partner.visible = false;
-      this.partner.characterId = null;
-      this.partnerLoading = null;
-      return;
-    }
-
-    let frames = {};
-    let charType = 'main';
-
-    if (JINGYUAN_CHARACTERS.some(c => c.id === charId) || HANMEN_CHARACTERS.some(c => c.id === charId)) {
-      const category = JINGYUAN_CHARACTERS.some(c => c.id === charId) ? 'jingyuan' : 'hanmen';
-      frames = await this.loadSpritesheetFrames(char.dir, category);
-      charType = 'jingyuan';
-    } else {
-      const idlePath = `ui/icons/IconsPropsMonsters/Main Characters/${char.group}/Idle (32x32).png`;
-      const runPath = `ui/icons/IconsPropsMonsters/Main Characters/${char.group}/Run (32x32).png`;
-      const idleImg = await this.assetManager.loadImage(idlePath);
-      const runImg = await this.assetManager.loadImage(runPath);
-      frames['idle'] = [idleImg];
-      frames['run'] = [runImg];
-    }
-
-    this.partner.characterFrames = frames;
-    this.partner.characterId = charId;
-    this.partner.characterType = charType;
-    if (!this.multiplayerMode) {
-      this.partner.visible = true;
-    }
-    this.partner.x = this.player.x - 30;
-    this.partner.y = this.player.y;
-    this.partner.action = 'personality';
-    this.partner.frame = 0;
-    this.partnerLoading = null;
-  }
-
-  setPartner(charId) {
-    if (this.multiplayerMode) return;
-    this.loadPartner(charId);
   }
 
   isJingyuanCharacter(charId) {
@@ -355,49 +350,29 @@ export class GameMapRenderer {
 
   async loadSpritesheetFrames(charDir, category) {
     const frames = {};
-    
-    // 检测是否是新的寒门角色目录结构 (xiujing-xuanxuan)
-    const isHanmenNewStructure = charDir.startsWith('xiujing-xuanxuan/');
-    
-    if (isHanmenNewStructure) {
-      // 获取角色ID (xuan-xuan 或 xiu-jing)
-      // 使用路径的最后一部分来判断，避免 'xiujing-xuanxuan' 中包含 'xuanxuan' 的问题
-      const parts = charDir.split('/');
-      const lastPart = parts[parts.length - 1];
-      const charId = lastPart === 'xuanxuan' ? 'xuan-xuan' : 'xiu-jing';
-      const actionMap = HANMEN_ACTION_MAP[charId];
-      
-      if (actionMap) {
-        // 加载动作映射中的所有动作
-        const baseActions = Object.keys(actionMap);
-        
-        for (const baseAction of baseActions) {
-          const actualAction = actionMap[baseAction];
-          if (!actualAction) continue;
-          
-          const actionFrames = [];
-          // 每个动作只有1帧 (从 manifest.json 确认)
-          const frameNum = '00';
-          const path = `characters/${category}/${charDir}/frames/${actualAction}/${frameNum}.png`;
-          const img = await this.assetManager.loadImage(path);
-          if (img) {
-            actionFrames.push(img);
-          }
-          
-          if (actionFrames.length > 0) {
-            frames[baseAction] = actionFrames;
-          }
-        }
+    const model = [...CharacterSystem.getAllIds().jingyuan, ...CharacterSystem.getAllIds().hanmen]
+      .map(id => CharacterSystem.getCharacter(id))
+      .find(character => character?.dir === charDir);
+    if (model) {
+      for (const action of model.listAvailableActions()) {
+        const loaded = (await Promise.all(model.getActionFramePaths(action).map(path => this.assetManager.loadImage(path)))).filter(Boolean);
+        if (loaded.length) frames[action] = loaded;
       }
-    } else {
+      if (Object.keys(frames).length) return frames;
+    }
+    
+    if (!charDir.startsWith('xiujing-xuanxuan/')) {
       // 旧的静远七人结构
       const actions = ['personality', 'run', 'etiquette', 'martial', 'signature'];
+      const characterBase = category === 'xiejian'
+        ? `${XIEJIAN_CHARACTER_ROOT}/${charDir}`
+        : `characters/${category}/${charDir}`;
 
       for (const action of actions) {
         const actionFrames = [];
         for (let i = 0; i < 4; i++) {
           const frameNum = String(i).padStart(2, '0');
-          const path = `characters/${category}/${charDir}/frames/${action}/${frameNum}.png`;
+          const path = `${characterBase}/frames/${action}/${frameNum}.png`;
           const img = await this.assetManager.loadImage(path);
           if (img) {
             actionFrames.push(img);
@@ -409,7 +384,7 @@ export class GameMapRenderer {
       }
 
       if (Object.keys(frames).length === 0) {
-        const spritesheetPath = `characters/${category}/${charDir}/spritesheet-chroma.png`;
+        const spritesheetPath = `${characterBase}/spritesheet-chroma.png`;
         const spritesheet = await this.assetManager.loadImage(spritesheetPath);
         if (spritesheet) {
           const actionOrder = ['personality', 'etiquette', 'run', 'martial', 'signature'];
@@ -483,6 +458,29 @@ export class GameMapRenderer {
           }
         }
       }
+    } else {
+      // 寒门 xiujing-xuanxuan 角色：映射到 01-萱宣/02-修璟 目录（包含标准5动作帧结构）
+      let fallbackDir = charDir;
+      if (charDir === 'xiujing-xuanxuan/xuanxuan') fallbackDir = '01-萱宣';
+      else if (charDir === 'xiujing-xuanxuan/xiujing') fallbackDir = '02-修璟';
+
+      const actions = ['personality', 'run', 'etiquette', 'martial', 'signature'];
+      const characterBase = `characters/hanmen/${fallbackDir}`;
+
+      for (const action of actions) {
+        const actionFrames = [];
+        for (let i = 0; i < 4; i++) {
+          const frameNum = String(i).padStart(2, '0');
+          const path = `${characterBase}/frames/${action}/${frameNum}.png`;
+          const img = await this.assetManager.loadImage(path);
+          if (img) {
+            actionFrames.push(img);
+          }
+        }
+        if (actionFrames.length > 0) {
+          frames[action] = actionFrames;
+        }
+      }
     }
 
     return frames;
@@ -528,6 +526,7 @@ export class GameMapRenderer {
 
   playAction(actionName) {
     if (this.characterType !== 'jingyuan') return;
+    if (this.currentCharacterModel && !this.currentCharacterModel.canDoAction(actionName)) return;
     if (!this.characterFrames[actionName]) return;
 
     this.player.action = actionName;
@@ -549,6 +548,17 @@ export class GameMapRenderer {
     this.joystick.y = y;
   }
 
+  /**
+   * 通过地图名称查找索引，避免 GameSystems.bootstrap 注入挟剑子地图后
+   * maps 数组被扩展导致硬编码索引（如 5）指向错误的地图条目。
+   * 找不到时返回 fallbackIndex（默认 0，即村庄）。
+   */
+  getMapIndexByName(name, fallbackIndex = 0) {
+    if (!name) return fallbackIndex;
+    const idx = this.maps.findIndex(m => m && m.name === name);
+    return idx >= 0 ? idx : fallbackIndex;
+  }
+
   loadMap(index) {
     if (index < 0 || index >= this.maps.length) {
       index = 0;
@@ -568,6 +578,7 @@ export class GameMapRenderer {
     this.centerCamera();
 
     setTimeout(() => {
+      if (this.currentMapBgKey && this.currentMapBgKey.startsWith('xj-')) return;
       const mapNameEl = document.getElementById('map-name');
       if (mapNameEl) {
         mapNameEl.textContent = this.maps[this.currentMapIndex]?.name || '未知地图';
@@ -579,12 +590,21 @@ export class GameMapRenderer {
     this.mapBackgroundLoaded = false;
     this.mapBackground = null;
     this.currentMapBgKey = bgKey;
+    const requestedBgKey = bgKey;
 
     if (bgKey === null || bgKey === undefined) {
-      return;
+      return Promise.resolve(null);
     }
 
-    const xjMapMap = {
+    // 挟剑地图：bgKey='xiejian' 时默认进入静远书院子地图
+    if (bgKey === 'xiejian') {
+      bgKey = 'xj-jingyuan';
+      this.currentMapBgKey = bgKey;
+    }
+
+    // 挟剑子地图数据：模块化优先（MapSystem.legacy），缺失时 fallback 原本地数组
+    const legacy = (MapSystem._bootstrapped && MapSystem.getLegacyXiejianMaps()) || null;
+    const xjMapMap = legacy ? legacy.xjMapMap : {
       'xj-jingyuan': 'jingyuan-academy-map.png',
       'xj-daohua': 'daohua-temple-map.png',
       'xj-tianxing': 'tianxing-cult-map.png',
@@ -597,8 +617,7 @@ export class GameMapRenderer {
       'xj-forgetfulness': 'forgetfulness-river-map.png',
       'xj-border': 'border-town-map.png',
     };
-
-    const xjMapNames = {
+    const xjMapNames = legacy ? legacy.xjMapNames : {
       'xj-jingyuan': '静远书院',
       'xj-daohua': '道华观',
       'xj-tianxing': '天行教',
@@ -612,32 +631,67 @@ export class GameMapRenderer {
       'xj-border': '边陲小镇',
     };
 
+    if (bgKey.startsWith('xj-') && xjMapMap[bgKey]) {
+      const mapModel = MapSystem.getMap(bgKey);
+      this.currentMapModel = mapModel;
+      const bgPath = mapModel?.bgPath || ('xiejian/sanshi-pixel-assets/location-maps/full-maps/' + xjMapMap[bgKey]);
+      return this.assetManager.loadImage(bgPath).then(img => {
+        if (this.currentMapBgKey !== bgKey && this.currentMapBgKey !== requestedBgKey) return;
+        if (img) {
+          this.mapBackground = img;
+          this.mapBackgroundLoaded = true;
+          const worldScale = mapModel?.worldScale || 2;
+          this.backgroundWorldWidth = img.width * worldScale;
+          this.backgroundWorldHeight = img.height * worldScale;
+          this.clampCamera();
+
+          const mapNameEl = document.getElementById('map-name');
+          if (mapNameEl) {
+            mapNameEl.textContent = mapModel?.name || xjMapNames[bgKey] || bgKey;
+          }
+        }
+        return img;
+      }).catch(() => {
+        if (this.currentMapBgKey !== bgKey && this.currentMapBgKey !== requestedBgKey) return;
+        this.mapBackground = null;
+        this.mapBackgroundLoaded = false;
+        return null;
+      });
+    }
+
     let bgPath;
     if (bgKey === 'hanmen') {
       bgPath = 'maps/hanmen-bg.png';
-    } else if (xjMapMap[bgKey]) {
-      bgPath = 'xiejian/sanshi-pixel-assets/location-maps/full-maps/' + xjMapMap[bgKey];
     } else {
       bgPath = 'maps/bg-' + bgKey + '.png';
     }
 
-    this.assetManager.loadImage(bgPath).then(img => {
+    return this.assetManager.loadImage(bgPath).then(img => {
+      if (this.currentMapBgKey !== requestedBgKey) return;
       if (img) {
         this.mapBackground = img;
         this.mapBackgroundLoaded = true;
+        this.backgroundWorldWidth = MAP_W * TILE;
+        this.backgroundWorldHeight = MAP_H * TILE;
+        this.clampCamera();
 
         const mapNameEl = document.getElementById('map-name');
         if (mapNameEl) {
-          if (xjMapNames[bgKey]) {
-            mapNameEl.textContent = xjMapNames[bgKey];
-          } else {
-            mapNameEl.textContent = bgKey;
-          }
+          const bgNames = {
+            hanmen: '寒门',
+            village: '村庄',
+            desert: '沙漠',
+            snow: '雪山',
+          };
+          mapNameEl.textContent = bgNames[bgKey] || bgKey;
         }
       }
+      return img;
     }).catch(() => {
+      if (this.currentMapBgKey !== requestedBgKey) return;
       this.mapBackground = null;
       this.mapBackgroundLoaded = false;
+      return null;
     });
   }
 
@@ -650,6 +704,16 @@ export class GameMapRenderer {
   }
 
   moveTo(targetX, targetY) {
+    if (this.selectedCategory === 'xiejian') {
+      const world = this.getWorldSize();
+      this.player.path = [{
+        x: Math.max(8, Math.min(world.width - 8, targetX)),
+        y: Math.max(12, Math.min(world.height - 4, targetY))
+      }];
+      this.player.pathIndex = 0;
+      this.player.actionPlaying = false;
+      return;
+    }
     const path = this.findPath(this.player.x, this.player.y, targetX, targetY);
     if (path.length > 0) {
       this.player.path = path;
@@ -706,13 +770,13 @@ export class GameMapRenderer {
   }
 
   update(dt) {
-    // 多人模式下强制禁用搭档角色，防止任何竞态条件导致搭档显示
-    if (this.multiplayerMode) {
-      this.partner.visible = false;
-      this.duetMode = false;
-    }
+    // 单人模式：始终禁用搭档/双人模式
+    if (this.partner) this.partner.visible = false;
+    this.duetMode = false;
 
     let dx = 0, dy = 0;
+    const combatState = typeof MultiplayerSync !== 'undefined' ? MultiplayerSync.combatProfile : null;
+    const movementLocked = Date.now() < (combatState?.immobilizedUntil || 0);
 
     const manualX = (this.keys.d || this.keys.arrowright ? 1 : 0) - (this.keys.a || this.keys.arrowleft ? 1 : 0);
     const manualY = (this.keys.s || this.keys.arrowdown ? 1 : 0) - (this.keys.w || this.keys.arrowup ? 1 : 0);
@@ -723,14 +787,14 @@ export class GameMapRenderer {
       joyY = this.joystick.y;
     }
 
-    if (manualX !== 0 || manualY !== 0) {
+    if (!movementLocked && (manualX !== 0 || manualY !== 0)) {
       const length = Math.hypot(manualX, manualY);
       dx = manualX / length;
       dy = manualY / length;
       this.player.path = [];
       this.player.pathIndex = 0;
       this.player.actionPlaying = false;
-    } else if (joyX !== 0 || joyY !== 0) {
+    } else if (!movementLocked && (joyX !== 0 || joyY !== 0)) {
       const length = Math.hypot(joyX, joyY);
       dx = joyX / length;
       dy = joyY / length;
@@ -804,8 +868,9 @@ export class GameMapRenderer {
 
     this.updateAnimation(dt);
 
-    this.player.x = Math.max(8, Math.min(MAP_W * TILE - 8, this.player.x));
-    this.player.y = Math.max(12, Math.min(MAP_H * TILE - 4, this.player.y));
+    const world = this.getWorldSize();
+    this.player.x = Math.max(8, Math.min(world.width - 8, this.player.x));
+    this.player.y = Math.max(12, Math.min(world.height - 4, this.player.y));
 
     if (this.partner.visible) {
       const targetOffsetX = this.player.direction === 'left' ? 30 : -30;
@@ -843,6 +908,7 @@ export class GameMapRenderer {
     if (this.multiplayerMode) {
       this._updateRemotePlayers(dt);
       this._updateInteractionDetection();
+      this.nearbyWorldItem = this.getNearbyWorldItem(80);
       this._broadcastPlayerState();
     }
 
@@ -874,14 +940,15 @@ export class GameMapRenderer {
 
     let frameSpeed = 180;
     if (this.characterType === 'jingyuan') {
+      const configured = this.currentCharacterModel?.getAction(this.player.action)?.frameInterval;
       const actionSpeeds = {
-        personality: 240,
+        personality: this.selectedCategory === 'xiejian' ? 3000 : 240,
         run: 105,
         etiquette: 220,
         martial: 110,
         signature: 180,
       };
-      frameSpeed = actionSpeeds[this.player.action] || 180;
+      frameSpeed = configured || actionSpeeds[this.player.action] || 180;
     } else {
       frameSpeed = this.player.moving ? 100 : 200;
     }
@@ -952,6 +1019,13 @@ export class GameMapRenderer {
 
   canMoveTo(nx, ny) {
     const hw = 6, hh = 8;
+    if (this.selectedCategory === 'xiejian') {
+      const world = this.getWorldSize();
+      return nx - hw >= 0
+        && nx + hw < world.width
+        && ny - hh >= 0
+        && ny + hh < world.height;
+    }
     const corners = [
       [nx - hw, ny - hh],
       [nx + hw - 1, ny - hh],
@@ -987,11 +1061,18 @@ export class GameMapRenderer {
     if (this.mapBackgroundLoaded && this.mapBackground) {
       usingBackground = true;
       const img = this.mapBackground;
-      const scale = Math.max(this.canvas.width / img.width, this.canvas.height / img.height);
-      bgW = img.width * scale;
-      bgH = img.height * scale;
-      bgX = (this.canvas.width - bgW) / 2;
-      bgY = (this.canvas.height - bgH) / 2;
+      if (this.selectedCategory === 'xiejian') {
+        bgW = this.backgroundWorldWidth;
+        bgH = this.backgroundWorldHeight;
+        bgX = -this.camera.x;
+        bgY = -this.camera.y;
+      } else {
+        const scale = Math.max(this.canvas.width / img.width, this.canvas.height / img.height);
+        bgW = img.width * scale;
+        bgH = img.height * scale;
+        bgX = (this.canvas.width - bgW) / 2;
+        bgY = (this.canvas.height - bgH) / 2;
+      }
       this.ctx.drawImage(img, bgX, bgY, bgW, bgH);
     } else {
       const startTileX = Math.max(0, Math.floor(this.camera.x / TILE));
@@ -1010,7 +1091,7 @@ export class GameMapRenderer {
     }
 
     let px, py;
-    if (usingBackground) {
+    if (usingBackground && this.selectedCategory !== 'xiejian') {
       px = bgX + bgW * 0.5;
       py = bgY + bgH * 0.7;
     } else {
@@ -1033,24 +1114,37 @@ export class GameMapRenderer {
         this.drawPartner(ppX, ppY);
       }
 
-      if (this.multiplayerMode) {
-        this._drawPlayerAura(this.player.x, this.player.y);
-      }
-
-      this.drawCharacter(px, py);
-
-      if (this.multiplayerMode) {
-        const remotePlayerList = Object.values(this.remotePlayers)
+      if (this.selectedCategory === 'xiejian') {
+        const remotePlayerList = (this.multiplayerMode ? Object.values(this.remotePlayers) : [])
           .filter(p => p.visible)
-          .sort((a, b) => a.y - b.y);
-        
-        for (const player of remotePlayerList) {
-          const rpX = player.x - this.camera.x;
-          const rpY = player.y - this.camera.y;
-          this._drawRemotePlayer(rpX, rpY, player);
+          .map(player => ({ kind: 'remote', y: player.y, player }));
+        const scene = [
+          ...this.worldItems.map(item => ({ kind: 'item', y: item.y, item })),
+          { kind: 'local', y: this.player.y },
+          ...remotePlayerList
+        ].sort((a, b) => a.y - b.y);
+        for (const entity of scene) {
+          if (entity.kind === 'item') this._drawWorldItem(entity.item);
+          if (entity.kind === 'local') {
+            this._drawPlayerAura(this.player.x, this.player.y);
+            this.drawCharacter(px, py);
+          }
+          if (entity.kind === 'remote') {
+            const remote = entity.player;
+            this._drawRemotePlayer(remote.x - this.camera.x, remote.y - this.camera.y, remote);
+          }
         }
-
         this.renderPlayerNameTags();
+        this._drawCombatEffects();
+      } else {
+        if (this.multiplayerMode) this._drawPlayerAura(this.player.x, this.player.y);
+        this.drawCharacter(px, py);
+        if (this.multiplayerMode) {
+          for (const player of Object.values(this.remotePlayers).filter(p => p.visible).sort((a, b) => a.y - b.y)) {
+            this._drawRemotePlayer(player.x - this.camera.x, player.y - this.camera.y, player);
+          }
+          this.renderPlayerNameTags();
+        }
       }
     }
   }
@@ -1100,25 +1194,20 @@ export class GameMapRenderer {
   }
 
   toggleDuetMode() {
-    if (this.multiplayerMode) return false;
-    this.duetMode = !this.duetMode;
-    if (this.duetMode && !this.duetFrames) {
-      this.loadDuetFrames();
-    }
-    if (this.duetMode) {
-      this.player.moving = false;
-      this.player.path = [];
-      this.partner.moving = false;
-      this.duetAction = 0;
-    }
-    return this.duetMode;
+    // 单人模式：始终禁用双人模式
+    return false;
   }
 
   setDuetAction(index) {
-    if (this.multiplayerMode) return;
-    if (index >= 0 && index < this.duetActions.length) {
-      this.duetAction = index;
-    }
+    // 单人模式：no-op
+  }
+
+  setPartner(charId) {
+    // 单人模式：no-op，不再设置搭档
+  }
+
+  loadPartner(charId) {
+    // 单人模式：no-op
   }
 
   drawPartner(x, y) {
@@ -1190,7 +1279,7 @@ export class GameMapRenderer {
   }
 
   setCharacter(charId) {
-    if (this.multiplayerMode) {
+    if (this.multiplayerMode && this.selectedCategory !== 'xiejian') {
       const currentUser = this._getCurrentUser();
       if (currentUser && currentUser.role) {
         charId = currentUser.role;
@@ -1269,6 +1358,12 @@ export class GameMapRenderer {
     if (this.remotePlayers[userId]) {
       delete this.remotePlayers[userId];
     }
+    if (this.selectedTargetId === userId) {
+      this.selectedTargetId = '';
+      if (typeof window.xiejianTargetCallback === 'function') {
+        window.xiejianTargetCallback('', null);
+      }
+    }
   }
 
   updateRemotePlayer(userId, state) {
@@ -1291,6 +1386,7 @@ export class GameMapRenderer {
         player.action = state.action;
       }
     }
+    if (state.combat !== undefined) player.combat = state.combat;
     if (state.isOnline !== undefined) {
       const wasOnline = player.isOnline;
       player.isOnline = state.isOnline;
@@ -1337,6 +1433,132 @@ export class GameMapRenderer {
     return null;
   }
 
+  setWorldItems(items) {
+    this.worldItems = Array.isArray(items) ? items.slice() : [];
+    for (const item of this.worldItems) this._loadWorldItemImage(item);
+  }
+
+  addWorldItem(item) {
+    if (!item || this.worldItems.some(existing => existing.instanceId === item.instanceId)) return;
+    this.worldItems.push(item);
+    this._loadWorldItemImage(item);
+  }
+
+  removeWorldItem(instanceId) {
+    this.worldItems = this.worldItems.filter(item => item.instanceId !== instanceId);
+  }
+
+  getNearbyWorldItem(maxDistance = 80) {
+    let nearest = null;
+    let nearestDistance = Infinity;
+    for (const item of this.worldItems) {
+      const distance = Math.hypot(item.x - this.player.x, item.y - this.player.y);
+      if (distance <= maxDistance && distance < nearestDistance) {
+        nearest = item;
+        nearestDistance = distance;
+      }
+    }
+    return nearest;
+  }
+
+  _findWorldItemAtPosition(x, y) {
+    return this.worldItems.find(item => Math.hypot(item.x - x, item.y - y) <= 30) || null;
+  }
+
+  _loadWorldItemImage(item) {
+    const url = item?.definition?.icon;
+    if (!url || this.worldItemImages[url]) return;
+    const image = new Image();
+    image.src = url;
+    this.worldItemImages[url] = image;
+  }
+
+  _drawWorldItem(item) {
+    const image = this.worldItemImages[item.definition?.icon];
+    const fixed = item.definition?.portable === false;
+    const size = fixed ? 50 : 38;
+    const x = item.x - this.camera.x;
+    const y = item.y - this.camera.y;
+    if (x < -50 || y < -60 || x > this.canvas.width + 50 || y > this.canvas.height + 50) return;
+    const floatY = Math.sin(this.time * 0.003 + item.x * 0.01) * (fixed ? 1 : 3);
+    this.ctx.save();
+    const glow = this.ctx.createRadialGradient(x, y - size * .45, 2, x, y - size * .45, size * .72);
+    glow.addColorStop(0, 'rgba(255, 236, 166, .55)');
+    glow.addColorStop(1, 'rgba(255, 236, 166, 0)');
+    this.ctx.fillStyle = glow;
+    this.ctx.fillRect(x - size, y - size * 1.4, size * 2, size * 1.7);
+    this.ctx.fillStyle = 'rgba(0,0,0,.28)';
+    this.ctx.beginPath();
+    this.ctx.ellipse(x, y + 3, size * 0.32, 5, 0, 0, Math.PI * 2);
+    this.ctx.fill();
+    if (image && image.complete && image.naturalWidth > 0) {
+      this.ctx.imageSmoothingEnabled = false;
+      this.ctx.drawImage(image, x - size / 2, y - size + floatY, size, size);
+    } else {
+      this.ctx.translate(x, y - size * .52 + floatY);
+      this.ctx.rotate(Math.PI / 4);
+      this.ctx.fillStyle = '#f2d38a';
+      this.ctx.fillRect(-8, -8, 16, 16);
+      this.ctx.rotate(-Math.PI / 4);
+      this.ctx.translate(-x, -(y - size * .52 + floatY));
+    }
+    if (this.nearbyWorldItem?.instanceId === item.instanceId) {
+      this.ctx.strokeStyle = '#f4d58d';
+      this.ctx.lineWidth = 2;
+      this.ctx.strokeRect(x - size / 2 - 3, y - size - 3 + floatY, size + 6, size + 6);
+    }
+    this.ctx.restore();
+  }
+
+  setSelectedTarget(userId) {
+    this.selectedTargetId = userId || '';
+  }
+
+  showCombatHit(data) {
+    const targetId = data.targetAccountKey;
+    const position = targetId === MultiplayerSync.accountKey
+      ? this.player
+      : this.remotePlayers[targetId];
+    if (!position) return;
+    this.hitFlashUntil[targetId] = Date.now() + 220;
+    this.damageNumbers.push({
+      x: position.x,
+      y: position.y - 58,
+      value: data.damage,
+      createdAt: Date.now()
+    });
+  }
+
+  _drawCombatEffects() {
+    const now = Date.now();
+    if (this.selectedTargetId && this.remotePlayers[this.selectedTargetId]?.visible) {
+      const target = this.remotePlayers[this.selectedTargetId];
+      const x = target.x - this.camera.x;
+      const y = target.y - this.camera.y;
+      this.ctx.save();
+      this.ctx.strokeStyle = '#d9485f';
+      this.ctx.lineWidth = 2;
+      this.ctx.strokeRect(x - 32, y - 88, 64, 92);
+      this.ctx.restore();
+    }
+    this.damageNumbers = this.damageNumbers.filter(number => now - number.createdAt < 900);
+    for (const number of this.damageNumbers) {
+      const elapsed = now - number.createdAt;
+      this.ctx.save();
+      this.ctx.globalAlpha = 1 - elapsed / 900;
+      this.ctx.fillStyle = '#ffdf62';
+      this.ctx.strokeStyle = '#6b1d25';
+      this.ctx.lineWidth = 3;
+      this.ctx.font = 'bold 18px sans-serif';
+      this.ctx.textAlign = 'center';
+      const x = number.x - this.camera.x;
+      const y = number.y - this.camera.y - elapsed * 0.035;
+      this.ctx.strokeText(`-${number.value}`, x, y);
+      this.ctx.fillText(`-${number.value}`, x, y);
+      this.ctx.restore();
+    }
+  }
+
   setMultiplayerMode(enabled) {
     this.multiplayerMode = enabled;
     if (enabled) {
@@ -1359,12 +1581,14 @@ export class GameMapRenderer {
       player.loading = false;
       return;
     }
+    player.displayName = char.name || player.displayName;
+    player.characterModel = CharacterSystem.getCharacter(charId);
 
     let frames = {};
     let charType = 'main';
 
     if (JINGYUAN_CHARACTERS.some(c => c.id === charId) || HANMEN_CHARACTERS.some(c => c.id === charId)) {
-      const category = JINGYUAN_CHARACTERS.some(c => c.id === charId) ? 'jingyuan' : 'hanmen';
+      const category = JINGYUAN_CHARACTERS.some(c => c.id === charId) ? 'xiejian' : 'hanmen';
       frames = await this.loadSpritesheetFrames(char.dir, category);
       charType = 'jingyuan';
     } else {
@@ -1431,8 +1655,9 @@ export class GameMapRenderer {
 
       this._updateRemotePlayerAnimation(player, dt);
 
-      player.x = Math.max(8, Math.min(MAP_W * TILE - 8, player.x));
-      player.y = Math.max(12, Math.min(MAP_H * TILE - 4, player.y));
+      const world = this.getWorldSize();
+      player.x = Math.max(8, Math.min(world.width - 8, player.x));
+      player.y = Math.max(12, Math.min(world.height - 4, player.y));
     }
   }
 
@@ -1442,14 +1667,16 @@ export class GameMapRenderer {
 
     let frameSpeed = 180;
     if (player.characterType === 'jingyuan') {
+      const configured = player.characterModel?.getAction(player.action)?.frameInterval;
+      const isXiejianCharacter = JINGYUAN_CHARACTERS.some(character => character.id === player.characterId);
       const actionSpeeds = {
-        personality: 240,
+        personality: isXiejianCharacter ? 3000 : 240,
         run: 105,
         etiquette: 220,
         martial: 110,
         signature: 180,
       };
-      frameSpeed = actionSpeeds[player.action] || 180;
+      frameSpeed = configured || actionSpeeds[player.action] || 180;
     } else {
       frameSpeed = player.moving ? 100 : 200;
     }
@@ -1484,7 +1711,7 @@ export class GameMapRenderer {
   }
 
   renderPlayerNameTags() {
-    const drawNameTag = (x, y, name, isLocal = false, opacity = 1) => {
+    const drawNameTag = (x, y, name, isLocal = false, opacity = 1, combat = null) => {
       if (!name) return;
       const screenX = x - this.camera.x;
       const screenY = y - this.camera.y - 30;
@@ -1501,6 +1728,28 @@ export class GameMapRenderer {
 
       this.ctx.fillStyle = isLocal ? '#ffd700' : '#ffffff';
       this.ctx.fillText(name, screenX, screenY);
+      if (combat) {
+        const ratio = Math.max(0, Math.min(1, combat.hp / (combat.maxHp || 100)));
+        this.ctx.fillStyle = 'rgba(24, 20, 18, .8)';
+        this.ctx.fillRect(screenX - 24, screenY + 10, 48, 5);
+        this.ctx.fillStyle = ratio > 0.35 ? '#5fb878' : '#d9485f';
+        this.ctx.fillRect(screenX - 24, screenY + 10, 48 * ratio, 5);
+        const icons = Object.values(combat.equipment || {}).slice(0, 3);
+        if (icons.length) {
+          const startX = screenX - ((icons.length - 1) * 7);
+          icons.forEach((equipment, index) => {
+            if (!this.worldItemImages[equipment.icon]) {
+              const image = new Image();
+              image.src = equipment.icon;
+              this.worldItemImages[equipment.icon] = image;
+            }
+            const image = this.worldItemImages[equipment.icon];
+            if (image?.complete) {
+              this.ctx.drawImage(image, startX + index * 14 - 6, screenY + 17, 12, 12);
+            }
+          });
+        }
+      }
 
       this.ctx.restore();
     };
@@ -1510,12 +1759,16 @@ export class GameMapRenderer {
       if (!player.visible) continue;
       const displayName = player.displayName || userId;
       const opacity = player.opacity !== undefined ? player.opacity : 1;
-      drawNameTag(player.x, player.y, displayName, false, opacity);
+      drawNameTag(player.x, player.y, displayName, false, opacity, player.combat || null);
     }
 
     const currentUser = this._getCurrentUser();
     if (currentUser) {
-      drawNameTag(this.player.x, this.player.y, currentUser.displayName || currentUser.username, true, 1);
+      const selectedCharacter = this.getCharacterInfo(this.selectedCharacter);
+      const localName = this.selectedCategory === 'xiejian' && selectedCharacter
+        ? selectedCharacter.name
+        : (currentUser.displayName || currentUser.username);
+      drawNameTag(this.player.x, this.player.y, localName, true, 1, MultiplayerSync.combatProfile || null);
     }
   }
 
@@ -1560,6 +1813,9 @@ export class GameMapRenderer {
 
     this.ctx.save();
     this.ctx.globalAlpha = player.opacity !== undefined ? player.opacity : 1;
+    if (Date.now() < (this.hitFlashUntil[player.userId] || 0)) {
+      this.ctx.globalAlpha *= 0.45 + (Math.floor(Date.now() / 50) % 2) * 0.45;
+    }
     this.ctx.imageSmoothingEnabled = false;
 
     this.ctx.fillStyle = 'rgba(0,0,0,0.25)';
@@ -1720,11 +1976,9 @@ export class GameMapRenderer {
       const player = this.remotePlayers[userId];
       if (!player.visible || !player.isOnline) continue;
 
-      const dx = worldX - player.x;
-      const dy = worldY - player.y;
-      const dist = Math.sqrt(dx * dx + dy * dy);
-
-      if (dist < 25) {
+      const withinX = Math.abs(worldX - player.x) <= 42;
+      const withinY = worldY >= player.y - 105 && worldY <= player.y + 18;
+      if (withinX && withinY) {
         return player;
       }
     }

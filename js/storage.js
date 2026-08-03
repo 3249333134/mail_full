@@ -11,6 +11,12 @@ const STORAGE = {
   JOURNALS_KEY: 'xinjian_journals',
   SHARED_MAILBOXES_KEY: 'xinjian_shared_mailboxes',
   SHARED_LETTERS_KEY_PREFIX: 'xinjian_shared_letters_',
+  MAILBOX_CODES_INDEX_KEY: 'xinjian_mailbox_codes_index',
+
+  // 远端优先 + 本地缓存
+  _remoteMailboxCache: [],
+  _remoteMailboxCacheAt: 0,
+  REMOTE_MAILBOX_TTL_MS: 30 * 1000,
 
   db: null,
 
@@ -89,11 +95,155 @@ const STORAGE = {
 
   saveMailboxes(mailboxes) {
     localStorage.setItem(this.MAILBOXES_KEY, JSON.stringify(mailboxes));
+    // 同步私有信箱的 code 到全局索引（同时兼容 mailboxCode 与 code 两个字段名）
+    for (const mb of mailboxes || []) {
+      const code = mb.mailboxCode || mb.code;
+      if (code) this.saveMailboxCodeIndex(code, mb.id);
+    }
+    // 若 MailService 可用 & 远端开启：把本地新增/更新的信箱尝试同步到远端
+    if (Array.isArray(mailboxes) && window.MailService &&
+        typeof MailService.isRemoteAvailable === 'function' &&
+        typeof MailService.createRemoteMailbox === 'function' &&
+        typeof MailService.getAccountKey === 'function') {
+      (async () => {
+        try {
+          const ok = await MailService.isRemoteAvailable();
+          if (!ok) return;
+          const ak = MailService.getAccountKey();
+          if (!ak) return;
+          // 只同步 ownerAccountKey == ak 且 _remoteSynced != true 的信箱
+          for (const mb of mailboxes) {
+            if (mb && mb._remoteSynced) continue;
+            const owner = String(mb.ownerAccountKey || mb.owner || mb.createdBy || '').toLowerCase();
+            if (owner && owner !== ak.toLowerCase()) continue;
+            if (!mb.name) continue;
+            try {
+              // 如果本地已有 id 或 mailboxCode：后端会自动走 upsert（幂等），不会重复创建
+              const hasId = !!mb.id;
+              const hasCode = !!(mb.mailboxCode || mb.code);
+              const payload = {
+                name: mb.name,
+                desc: mb.desc || mb.description || '',
+                icon: mb.icon || '',
+                themeColor: mb.themeColor || '',
+                mapBackground: mb.mapBackground || mb.background || '',
+                isCustom: mb.isCustom !== false,
+                ownerAccountKey: ak,
+                preferCode: mb.mailboxCode || mb.code || null,
+                createdAt: mb.createdAt || Date.now(),
+                updatedAt: mb.updatedAt || Date.now(),
+                description: mb.description || mb.desc || '',
+                background: mb.background || mb.mapBackground || '',
+                owner: ak,
+                // 关键：已有 id/code 时明确带上，让后端走 upsert 而非 create
+                ...(hasId ? { id: mb.id } : {}),
+                ...(hasCode ? { mailboxCode: mb.mailboxCode || mb.code } : {}),
+                memberAccountKeys: Array.isArray(mb.memberAccountKeys)
+                  ? mb.memberAccountKeys
+                  : (Array.isArray(mb.members) ? mb.members : (ak ? [ak] : [])),
+                members: Array.isArray(mb.members)
+                  ? mb.members
+                  : (Array.isArray(mb.memberAccountKeys) ? mb.memberAccountKeys : (ak ? [ak] : []))
+              };
+              const r = await MailService.createRemoteMailbox(payload);
+              if (r && r.success && r.mailbox) {
+                mb._remoteSynced = true;
+                mb.id = r.mailbox.id || mb.id;
+                if (r.mailbox.mailboxCode && !mb.mailboxCode) {
+                  mb.mailboxCode = r.mailbox.mailboxCode;
+                  mb.code = mb.mailboxCode;
+                  this.saveMailboxCodeIndex(mb.mailboxCode, mb.id);
+                } else if (r.mailbox.code && !mb.code) {
+                  mb.code = r.mailbox.code;
+                  mb.mailboxCode = mb.code;
+                  this.saveMailboxCodeIndex(mb.code, mb.id);
+                }
+                // 后端 upsert 成功后如果返回的成员信息更全，合并回来
+                if (Array.isArray(r.mailbox.memberAccountKeys) && r.mailbox.memberAccountKeys.length > 0) {
+                  const mergedSet = new Set([
+                    ...(Array.isArray(mb.memberAccountKeys) ? mb.memberAccountKeys : []),
+                    ...(Array.isArray(mb.members) ? mb.members : []),
+                    ...r.mailbox.memberAccountKeys
+                  ]);
+                  mb.memberAccountKeys = Array.from(mergedSet);
+                  mb.members = mb.memberAccountKeys;
+                }
+              }
+            } catch (_) { /* 单条失败不影响其他 */ }
+          }
+          // 保存写回（可能增加了 mailboxCode / id / _remoteSynced）
+          localStorage.setItem(this.MAILBOXES_KEY, JSON.stringify(mailboxes));
+        } catch (_) {}
+      })();
+    }
   },
 
   loadMailboxes() {
     const data = localStorage.getItem(this.MAILBOXES_KEY);
     return data ? JSON.parse(data) : [];
+  },
+
+  /**
+   * 异步版：远端优先 + 30s 本地缓存。
+   * 返回 [{...mailbox}]，其中 _source = 'remote' | 'local'。
+   */
+  async loadMailboxesAsync(options = {}) {
+    const force = !!options.force;
+    const accountKey = options.accountKey ||
+      (window.MailService && typeof MailService.getAccountKey === 'function'
+        ? MailService.getAccountKey() : '');
+
+    // 优先用缓存
+    const now = Date.now();
+    if (!force && this._remoteMailboxCacheAt &&
+        (now - this._remoteMailboxCacheAt) < this.REMOTE_MAILBOX_TTL_MS &&
+        Array.isArray(this._remoteMailboxCache)) {
+      return this._remoteMailboxCache.map(m => ({ ...m }));
+    }
+
+    let remotes = [];
+    if (window.MailService && typeof MailService.isRemoteAvailable === 'function' &&
+        typeof MailService.listRemoteMailboxes === 'function') {
+      try {
+        const ok = await MailService.isRemoteAvailable();
+        if (ok) remotes = await MailService.listRemoteMailboxes(accountKey) || [];
+      } catch (_) { remotes = []; }
+    }
+
+    const locals = this.loadMailboxes() || [];
+    const combined = [];
+    const seen = new Set();
+    for (const r of remotes || []) {
+      if (r && r.id) { seen.add(String(r.id)); combined.push({ ...r, _source: 'remote' }); }
+    }
+    for (const l of locals || []) {
+      if (!l || !l.id) continue;
+      if (seen.has(String(l.id))) continue;
+      // 本地没同步过的也放进来（如果远端可用，下次 saveMailboxes 会再推）
+      combined.push({ ...l, _source: 'local' });
+      seen.add(String(l.id));
+    }
+
+    // 同时把 sharedMailboxes 里自己 join 的也加入列表
+    try {
+      const shared = this.loadSharedMailboxes() || [];
+      for (const s of shared) {
+        if (!s || !s.id) continue;
+        if (seen.has(String(s.id))) continue;
+        combined.push({ ...s, _source: 'shared' });
+        seen.add(String(s.id));
+      }
+    } catch (_) {}
+
+    this._remoteMailboxCache = combined.map(m => ({ ...m }));
+    this._remoteMailboxCacheAt = Date.now();
+    return combined;
+  },
+
+  /** 主动清空远端信箱缓存（例如新建/加入信箱后） */
+  clearRemoteMailboxCache() {
+    this._remoteMailboxCache = [];
+    this._remoteMailboxCacheAt = 0;
   },
 
   // --- 上次访问记录 ---
@@ -173,6 +323,18 @@ const STORAGE = {
   async deleteLetter(id) {
     const letters = this.loadLetters().filter(l => l.id !== id);
     this.saveLetters(letters);
+    // 远端同步：删除云端对应记录（异步 fire-and-forget）
+    try {
+      if (window.MailService && typeof MailService.isRemoteAvailable === 'function' &&
+          typeof MailService.deleteRemoteLetter === 'function') {
+        (async () => {
+          try {
+            const ok = await MailService.isRemoteAvailable();
+            if (ok) await MailService.deleteRemoteLetter(id);
+          } catch (_) {}
+        })();
+      }
+    } catch (_) {}
   },
 
   async exportLetterAsImage(letterId) {
@@ -250,7 +412,42 @@ const STORAGE = {
       journals.push({ ...journal, createdAt: Date.now(), updatedAt: Date.now() });
     }
     this.saveJournals(journals);
+    // 异步远端保存（可选）
+    if (window.MailService && typeof MailService.saveRemoteJournal === 'function') {
+      (async () => {
+        try {
+          const ok = await MailService.isRemoteAvailable();
+          if (!ok) return;
+          await MailService.saveRemoteJournal(journal);
+        } catch (_) {}
+      })();
+    }
     return journal;
+  },
+
+  /** 异步：从远端拉手账 + 合并到本地（init 预热调用） */
+  async mergeRemoteJournalsToLocal() {
+    if (!(window.MailService && typeof MailService.isRemoteAvailable === 'function' &&
+        typeof MailService.loadRemoteJournals === 'function')) return;
+    try {
+      const ok = await MailService.isRemoteAvailable();
+      if (!ok) return;
+      const list = await MailService.loadRemoteJournals();
+      if (!Array.isArray(list) || !list.length) return;
+      const locals = this.loadJournals();
+      const byId = new Map(locals.map(j => [j.id, j]));
+      let changed = false;
+      for (const r of list || []) {
+        if (!r || !r.id) continue;
+        const existing = byId.get(r.id);
+        if (!existing) { locals.push(r); changed = true; }
+        else if ((r.updatedAt || 0) > (existing.updatedAt || 0)) {
+          byId.set(r.id, { ...existing, ...r });
+          changed = true;
+        }
+      }
+      if (changed) this.saveJournals(byId.size === locals.length ? locals : Array.from(byId.values()));
+    } catch (_) {}
   },
 
   loadJournal(id) {
@@ -285,7 +482,7 @@ const STORAGE = {
     const letters = this.loadLetters();
     const idx = letters.findIndex(l => l.id === letterId);
     if (idx >= 0) {
-      letters[idx] = { ...letters[idx], ...fields, updatedAt: Date.now() };
+      letters[idx] = { ...letters[idx], ...fields, updatedAt: Date.now(), _remoteSynced: false };
       this.saveLetters(letters);
       return letters[idx];
     }
@@ -349,12 +546,94 @@ const STORAGE = {
       mailboxes.push({ ...mailboxData, createdAt: Date.now(), updatedAt: Date.now() });
     }
     localStorage.setItem(this.SHARED_MAILBOXES_KEY, JSON.stringify(mailboxes));
+
+    // 同步信箱号索引
+    if (mailboxData.code) {
+      this.saveMailboxCodeIndex(mailboxData.code, mailboxData.id);
+    }
+
     return mailboxData;
   },
 
   loadSharedMailbox(mailboxId) {
     const mailboxes = this.loadSharedMailboxes();
     return mailboxes.find(m => m.id === mailboxId) || null;
+  },
+
+  // --- 信箱号索引（全局唯一 6 位 code -> mailboxId） ---
+  loadMailboxCodesIndex() {
+    const data = localStorage.getItem(this.MAILBOX_CODES_INDEX_KEY);
+    return data ? JSON.parse(data) : {};
+  },
+
+  saveMailboxCodesIndex(index) {
+    localStorage.setItem(this.MAILBOX_CODES_INDEX_KEY, JSON.stringify(index));
+  },
+
+  saveMailboxCodeIndex(code, mailboxId) {
+    if (!code || !mailboxId) return;
+    const index = this.loadMailboxCodesIndex();
+    index[String(code).toUpperCase()] = mailboxId;
+    this.saveMailboxCodesIndex(index);
+  },
+
+  getMailboxIdByCode(code) {
+    if (!code) return null;
+    const norm = String(code).replace(/[\s\-_·.•,，。、;；]/g, '').toUpperCase();
+    const index = this.loadMailboxCodesIndex();
+    // 异步后台尝试远端 lookup，命中则补写到本地索引
+    if (window.MailService && typeof MailService.lookupMailboxCode === 'function' && norm) {
+      (async () => {
+        try {
+          const r = await MailService.lookupMailboxCode(norm);
+          if (r && r.mailbox && r.mailbox.id) {
+            this.saveMailboxCodeIndex(norm, r.mailbox.id);
+            // 如果本地 /shared 里还没存，则也保存一份到 sharedMailboxes 方便离线可用
+            this.saveSharedMailbox(r.mailbox).catch ? null : null;
+          }
+        } catch (_) {}
+      })();
+    }
+    return index[norm] || null;
+  },
+
+  /**
+   * 异步版信箱号 lookup（核心跨用户）：
+   * 1) 先查远端 /api/mailbox_codes/lookup
+   * 2) 命中则写入本地缓存 & sharedMailboxes & codes_index，返回 { mailbox, source: 'remote' }
+   * 3) 否则回退本地索引 -> sharedMailboxes -> mailboxes，返回 { mailbox, source: 'local' } 或 null
+   */
+  async getMailboxByCodeAsync(code) {
+    if (!code) return null;
+    const norm = String(code).replace(/[\s\-_·.•,，。、;；]/g, '').toUpperCase();
+    let mailbox = null;
+
+    if (window.MailService && typeof MailService.isRemoteAvailable === 'function' &&
+        typeof MailService.lookupMailboxCode === 'function') {
+      try {
+        const ok = await MailService.isRemoteAvailable();
+        if (ok) {
+          const r = await MailService.lookupMailboxCode(norm);
+          if (r && r.mailbox && (r.mailbox.id || r.mailbox._id)) {
+            mailbox = r.mailbox;
+            const mid = mailbox.id || mailbox._id;
+            this.saveMailboxCodeIndex(norm, mid);
+            try { this.saveSharedMailbox(mailbox); } catch (_) {}
+            return { mailbox, source: 'remote' };
+          }
+        }
+      } catch (_) {}
+    }
+
+    // 本地回退
+    const localId = (this.loadMailboxCodesIndex() || {})[norm];
+    if (localId) {
+      const locals = this.loadMailboxes() || [];
+      mailbox = locals.find(m => String(m.id) === String(localId)) || null;
+      if (!mailbox) mailbox = this.loadSharedMailbox(localId);
+    }
+    if (!mailbox) return null;
+    return { mailbox, source: 'local' };
   },
 
   loadSharedMailboxes() {
@@ -366,6 +645,11 @@ const STORAGE = {
     const mailboxId = 'mailbox-hanmen-duet';
     const existing = this.loadSharedMailbox(mailboxId);
     if (existing) {
+      // 确保寒门信笺有稳定信箱号（固定：HM2024）
+      if (!existing.code) {
+        existing.code = 'HM2024';
+        this.saveSharedMailbox(existing);
+      }
       return existing;
     }
 
@@ -377,6 +661,7 @@ const STORAGE = {
 
     const mailboxData = {
       id: mailboxId,
+      code: 'HM2024',
       name: '寒门信笺',
       icon: '🏮',
       desc: '修璟与萱宣的双人信箱',
@@ -445,5 +730,49 @@ const STORAGE = {
     this.saveSharedLetters(mailboxId, sampleLetters);
 
     return mailboxData;
+  },
+
+  // --- 背包数据存储 ---
+  INVENTORY_KEY: 'xinjian_inventory',
+
+  saveInventory(mailboxId, inventory) {
+    const all = this.loadAllInventories();
+    all[mailboxId] = { ...inventory, updatedAt: Date.now() };
+    localStorage.setItem(this.INVENTORY_KEY, JSON.stringify(all));
+  },
+
+  loadInventory(mailboxId) {
+    const all = this.loadAllInventories();
+    return all[mailboxId] || null;
+  },
+
+  loadAllInventories() {
+    const data = localStorage.getItem(this.INVENTORY_KEY);
+    return data ? JSON.parse(data) : {};
+  },
+
+  // --- 角色绑定存储 ---
+  CHARACTER_BINDINGS_KEY: 'xinjian_character_bindings',
+
+  saveCharacterBinding(mailboxId, characterId) {
+    const bindings = this.loadCharacterBindings();
+    bindings[mailboxId] = characterId;
+    localStorage.setItem(this.CHARACTER_BINDINGS_KEY, JSON.stringify(bindings));
+  },
+
+  loadCharacterBinding(mailboxId) {
+    const bindings = this.loadCharacterBindings();
+    return bindings[mailboxId] || null;
+  },
+
+  loadCharacterBindings() {
+    const data = localStorage.getItem(this.CHARACTER_BINDINGS_KEY);
+    return data ? JSON.parse(data) : {};
+  },
+
+  deleteCharacterBinding(mailboxId) {
+    const bindings = this.loadCharacterBindings();
+    delete bindings[mailboxId];
+    localStorage.setItem(this.CHARACTER_BINDINGS_KEY, JSON.stringify(bindings));
   }
 };

@@ -170,6 +170,33 @@ const martialByCharacter = {
   'tang-wanchu': 7
 };
 
+const CHARACTER_META = {
+  'zhou-ran': ['周然', '道华观', '01-周然'],
+  'he-qingfeng': ['贺清风', '天行教', '02-贺清风'],
+  'ren-chaoye': ['任朝野', '天行教', '03-任朝野'],
+  'shen-chiyi': ['沈池懿', '静远书院', '04-沈池懿'],
+  'qi-pingchuan': ['戚凭川', '桃止门', '05-戚凭川'],
+  'jiang-huaian': ['江淮安', '丹溪谷', '06-江淮安'],
+  'tang-wanchu': ['唐挽初', '不还门', '07-唐挽初']
+};
+
+const standardActions = {
+  personality: { label: '静息', frameDir: 'personality', frameCount: 4, frameInterval: 3000, loop: true },
+  run: { label: '奔跑', frameDir: 'run', frameCount: 4, frameInterval: 105, loop: true },
+  etiquette: { label: '礼仪', frameDir: 'etiquette', frameCount: 4, frameInterval: 220, loop: false },
+  martial: { label: '武术', frameDir: 'martial', frameCount: 4, frameInterval: 110, loop: false },
+  signature: { label: '招牌', frameDir: 'signature', frameCount: 4, frameInterval: 180, loop: false }
+};
+
+const characterDefinitions = Object.fromEntries(Object.entries(CHARACTER_META).map(([id, [name, sect, dir]]) => [id, {
+  id, name, sect, dir, category: 'jingyuan', enabled: true,
+  frameRoot: `../../fill/jingyuan-chibi20-delivery-20260719/${dir}/frames`,
+  portraitPath: `../../fill/jingyuan-chibi20-delivery-20260719/${dir}/frames/personality/00.png`,
+  collision: { width: 42, height: 34, offsetY: 34 }, render: { width: 112, height: 112, nameplateOffsetY: 62 },
+  baseStats: { maxHp: 100, martial: martialByCharacter[id], attack: 6 + martialByCharacter[id] * 2, defense: 4, speed: 1 },
+  defaultItems: starterItems[id], equipmentSlots: ['weapon', 'clothing', 'accessory'], actions: standardActions
+}]));
+
 const placements = [
   ['xj-jingyuan', 'disciple_rooms', 'academy_outer_robe', 7],
   ['xj-jingyuan', 'main_hall', 'three_wish_slips'], ['xj-jingyuan', 'main_hall', 'graduation_wish_slip'],
@@ -238,7 +265,25 @@ function nearestRoutePosition(mapKey, x, y) {
   return { nodeId: nearest.id, nx: nearest.x, ny: nearest.y };
 }
 
+const MAP_NAMES = {
+  'xj-jingyuan': '静远书院', 'xj-daohua': '道华观', 'xj-tianxing': '天行教',
+  'xj-danxi': '丹溪谷', 'xj-buhuan': '不还门', 'xj-taozhi': '桃止门',
+  'xj-dongjia': '东嘉沈府', 'xj-ren': '任府', 'xj-capital': '京城翰林院',
+  'xj-forgetfulness': '忘川', 'xj-border': '边陲小镇'
+};
+
+const mapDefinitions = Object.fromEntries(Object.entries(MAPS).map(([key, [routeGraphId, bgFileName]]) => [key, {
+  key, name: MAP_NAMES[key], category: 'xiejian', routeGraphId, bgFileName,
+  bgPath: `xiejian/sanshi-pixel-assets/location-maps/full-maps/${bgFileName}`,
+  bgThumbnailPath: `xiejian/sanshi-pixel-assets/location-maps/full-maps/${bgFileName}`,
+  worldScale: 2, worldSize: mapDimensions[key],
+  allowedCharacterIds: Object.keys(characterDefinitions),
+  initialWorldItems: placements.filter(row => row[0] === key).map(row => ({ nodeId: row[1], defId: row[2], count: Number(row[3] || 1) }))
+}]));
+
 module.exports = {
+  characterDefinitions,
+  mapDefinitions,
   itemDefinitions,
   starterItems,
   martialByCharacter,

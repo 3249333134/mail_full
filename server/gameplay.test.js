@@ -12,6 +12,7 @@ const serverProcess = spawn(process.execPath, ['server.js'], {
     ...process.env,
     PORT: String(port),
     DATA_DIR: dataDir,
+    MONGO_ENABLED: '0',
     ITEM_RESPAWN_MS: '50',
     COMBAT_ATTACK_COOLDOWN_MS: '10'
   },

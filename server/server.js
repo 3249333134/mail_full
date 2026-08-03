@@ -3,6 +3,9 @@ const http = require('http');
 const fs = require('fs');
 const path = require('path');
 const { URL } = require('url');
+require('dotenv').config();
+const { initMongo, isMongoEnabled } = require('./mongoClient');
+const mongoDao = require('./mongoDao');
 const {
   itemDefinitions,
   starterItems,
@@ -11,7 +14,9 @@ const {
   mapDimensions,
   nodePosition,
   worldPosition,
-  nearestRoutePosition
+  nearestRoutePosition,
+  characterDefinitions,
+  mapDefinitions
 } = require('./xiejianGameData');
 
 const PORT = Number(process.env.PORT || 3000);
@@ -22,24 +27,9 @@ const STATE_FILE = path.join(DATA_DIR, 'state.json');
 const MEDIA_DIR = path.join(DATA_DIR, 'media');
 const MAX_ROOM_CONNECTIONS = 11;
 const COMBAT_ATTACK_COOLDOWN_MS = Number(process.env.COMBAT_ATTACK_COOLDOWN_MS || 900);
-const XIEJIAN_CHARACTERS = new Set([
-  'zhou-ran',
-  'he-qingfeng',
-  'ren-chaoye',
-  'shen-chiyi',
-  'qi-pingchuan',
-  'jiang-huaian',
-  'tang-wanchu'
-]);
-const XIEJIAN_CHARACTER_NAMES = {
-  'zhou-ran': '周然',
-  'he-qingfeng': '贺清风',
-  'ren-chaoye': '任朝野',
-  'shen-chiyi': '沈池懿',
-  'qi-pingchuan': '戚凭川',
-  'jiang-huaian': '江淮安',
-  'tang-wanchu': '唐挽初'
-};
+const XIEJIAN_CHARACTERS = new Set(Object.keys(characterDefinitions));
+const XIEJIAN_CHARACTER_NAMES = Object.fromEntries(Object.entries(characterDefinitions).map(([id, def]) => [id, def.name]));
+const DEFINITIONS_VERSION = String(process.env.GAME_RESOURCE_VERSION || '20260802-domain-v1');
 const DEFAULT_XIEJIAN_MAP = 'xj-jingyuan';
 const ITEM_DATA_VERSION = 2;
 const MAP_SOURCE_NAMES = {
@@ -94,6 +84,15 @@ const NODE_SOURCE_NAMES = {
   childhood_home: '姐妹旧居'
 };
 
+const SYSTEM_MAILBOXES = [
+  ['mailbox-brenuo', '布勒诺信笺', 'BRN2A7'], ['mailbox-daliang', '大梁信笺', 'DLG3B8'],
+  ['mailbox-tianzhu', '天竺信笺', 'TZH4C9'], ['mailbox-rugu', '如故信笺', 'RUG5D2'],
+  ['mailbox-taozhi', '桃止信笺', 'TAZ6E3'], ['mailbox-zhaixing', '摘星信笺', 'ZHX7F4'],
+  ['mailbox-xiaowangzi', '小王子信笺', 'XWZ8G5'], ['mailbox-xiejian', '挟剑惊风', 'XJJ9H6'],
+  ['mailbox-hanmen-duet', '寒门信笺', 'HNM2J7']
+];
+const MAILBOX_CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+
 fs.mkdirSync(MEDIA_DIR, { recursive: true });
 
 function emptyState() {
@@ -101,7 +100,11 @@ function emptyState() {
     accounts: {},
     profiles: {},
     roleBindings: {},
+    worldProfiles: {},
+    worldRoleBindings: {},
     letters: {},
+    mailboxes: {},
+    mailboxCodes: {},
     itemInstances: {},
     inventories: {},
     combatProfiles: {},
@@ -120,7 +123,11 @@ function loadState() {
       accounts: parsed.accounts || {},
       profiles: parsed.profiles || {},
       roleBindings: parsed.roleBindings || {},
+      worldProfiles: parsed.worldProfiles || {},
+      worldRoleBindings: parsed.worldRoleBindings || {},
       letters: parsed.letters || {},
+      mailboxes: parsed.mailboxes || {},
+      mailboxCodes: parsed.mailboxCodes || {},
       itemInstances: parsed.itemInstances || {},
       inventories: parsed.inventories || {},
       combatProfiles: parsed.combatProfiles || {},
@@ -134,6 +141,118 @@ function loadState() {
 }
 
 let persistentState = loadState();
+
+function normalizeMailboxCode(value) {
+  return String(value || '').trim().toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 12);
+}
+
+function generateLocalMailboxCode() {
+  for (let attempt = 0; attempt < 100; attempt += 1) {
+    let code = '';
+    for (let i = 0; i < 6; i += 1) code += MAILBOX_CODE_ALPHABET[(Math.random() * MAILBOX_CODE_ALPHABET.length) | 0];
+    if (!persistentState.mailboxCodes[code]) return code;
+  }
+  return `MB${Date.now().toString(36).toUpperCase().slice(-8)}`;
+}
+
+function normalizeMailboxRecord(input = {}, ownerAccountKey = '') {
+  const id = String(input.id || `mailbox-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`).slice(0, 160);
+  const existing = persistentState.mailboxes[id] || {};
+  const requestedCode = normalizeMailboxCode(input.mailboxCode || input.joinCode || input.code);
+  const mailboxCode = requestedCode || existing.mailboxCode || generateLocalMailboxCode();
+  const owner = normalizeAccountKey(input.ownerAccountKey || ownerAccountKey || existing.ownerAccountKey);
+  const members = new Set([...(existing.memberAccountKeys || []), ...(input.memberAccountKeys || []), owner].filter(Boolean).map(normalizeAccountKey));
+  return {
+    ...existing, ...input, id,
+    name: String(input.name || existing.name || '未命名信箱').slice(0, 120),
+    desc: String(input.desc || existing.desc || '').slice(0, 500),
+    mailboxCode, joinCode: mailboxCode, code: mailboxCode,
+    ownerAccountKey: owner,
+    memberAccountKeys: [...members],
+    visibility: input.visibility === 'private' ? 'private' : (existing.visibility || 'public'),
+    isCustom: input.isCustom !== false,
+    createdAt: existing.createdAt || Date.now(), updatedAt: Date.now()
+  };
+}
+
+function upsertLocalMailbox(input, ownerAccountKey = '') {
+  const mailbox = normalizeMailboxRecord(input, ownerAccountKey);
+  const occupiedId = persistentState.mailboxCodes[mailbox.mailboxCode];
+  if (occupiedId && occupiedId !== mailbox.id) return { error: '信箱号已被使用' };
+  persistentState.mailboxes[mailbox.id] = mailbox;
+  persistentState.mailboxCodes[mailbox.mailboxCode] = mailbox.id;
+  return mailbox;
+}
+
+function seedSystemMailboxes() {
+  SYSTEM_MAILBOXES.forEach(([id, name, mailboxCode]) => {
+    upsertLocalMailbox({ id, name, mailboxCode, isCustom: false, visibility: 'public' });
+  });
+}
+
+function migrateLegacyCharacterIds() {
+  const legacy = 'jiang-haian';
+  const canonical = 'jiang-huaian';
+  for (const profile of Object.values(persistentState.profiles || {})) {
+    if (profile?.xiejianCharacterId === legacy) profile.xiejianCharacterId = canonical;
+  }
+  if (persistentState.roleBindings?.[legacy] && !persistentState.roleBindings[canonical]) {
+    persistentState.roleBindings[canonical] = persistentState.roleBindings[legacy];
+  }
+  if (persistentState.roleBindings) delete persistentState.roleBindings[legacy];
+  for (const worldProfiles of Object.values(persistentState.worldProfiles || {})) {
+    for (const profile of Object.values(worldProfiles || {})) {
+      if (profile?.xiejianCharacterId === legacy) profile.xiejianCharacterId = canonical;
+    }
+  }
+  for (const bindings of Object.values(persistentState.worldRoleBindings || {})) {
+    if (bindings?.[legacy] && !bindings[canonical]) bindings[canonical] = bindings[legacy];
+    if (bindings) delete bindings[legacy];
+  }
+  for (const instance of Object.values(persistentState.itemInstances || {})) {
+    if (instance?.origin?.starterCharacterId === legacy) instance.origin.starterCharacterId = canonical;
+  }
+}
+
+function migrateWorldScopedRoles() {
+  const worldId = 'mailbox-xiejian';
+  persistentState.worldProfiles[worldId] ||= {};
+  persistentState.worldRoleBindings[worldId] ||= {};
+  for (const [accountKey, profile] of Object.entries(persistentState.profiles || {})) {
+    if (!profile?.xiejianCharacterId) continue;
+    persistentState.worldProfiles[worldId][accountKey] ||= {
+      xiejianCharacterId: profile.xiejianCharacterId,
+      lastXiejianMapKey: profile.lastXiejianMapKey || DEFAULT_XIEJIAN_MAP
+    };
+  }
+  for (const [characterId, accountKey] of Object.entries(persistentState.roleBindings || {})) {
+    if (characterId && accountKey && !persistentState.worldRoleBindings[worldId][characterId]) {
+      persistentState.worldRoleBindings[worldId][characterId] = accountKey;
+    }
+  }
+}
+
+function findLocalMailboxByCode(code) {
+  const normalized = normalizeMailboxCode(code);
+  const id = persistentState.mailboxCodes[normalized];
+  return id ? persistentState.mailboxes[id] || null : null;
+}
+
+function joinLocalMailbox(code, accountKey) {
+  const mailbox = findLocalMailboxByCode(code);
+  if (!mailbox) return { error: '该信箱号不存在' };
+  const key = normalizeAccountKey(accountKey);
+  if (!key) return { error: '用户未登录' };
+  const members = new Set(mailbox.memberAccountKeys || []);
+  members.add(key);
+  mailbox.memberAccountKeys = [...members];
+  mailbox.updatedAt = Date.now();
+  return mailbox;
+}
+
+seedSystemMailboxes();
+migrateLegacyCharacterIds();
+migrateWorldScopedRoles();
 
 function createItemInstance(instanceId, definitionId, location) {
   const definition = itemDefinitions[definitionId];
@@ -399,20 +518,37 @@ function saveState() {
   const tempFile = `${STATE_FILE}.tmp`;
   fs.writeFileSync(tempFile, JSON.stringify(persistentState, null, 2), 'utf8');
   fs.renameSync(tempFile, STATE_FILE);
+
+  // 双写：MONGO_ENABLED=1 时同步 accounts/profiles/letters/inventories 到 Mongo（热迁移）
+  if (isMongoEnabled()) {
+    mongoDao.importFromState(persistentState).catch(err =>
+      console.warn('[mongo] importFromState 热写入失败：', err?.message || err)
+    );
+  }
 }
 
 function normalizeAccountKey(value) {
   return String(value || '').trim().toLocaleLowerCase('en-US').slice(0, 80);
 }
 
-function accountProfile(accountKey) {
-  if (!persistentState.profiles[accountKey]) {
-    persistentState.profiles[accountKey] = {
+function envUrlList(name) {
+  return String(process.env[name] || '').split(',').map(value => value.trim()).filter(Boolean);
+}
+
+function accountProfile(accountKey, worldId = 'mailbox-xiejian') {
+  persistentState.worldProfiles[worldId] ||= {};
+  if (!persistentState.worldProfiles[worldId][accountKey]) {
+    persistentState.worldProfiles[worldId][accountKey] = {
       xiejianCharacterId: '',
       lastXiejianMapKey: DEFAULT_XIEJIAN_MAP
     };
   }
-  return persistentState.profiles[accountKey];
+  return persistentState.worldProfiles[worldId][accountKey];
+}
+
+function roleBindingsForWorld(worldId = 'mailbox-xiejian') {
+  persistentState.worldRoleBindings[worldId] ||= {};
+  return persistentState.worldRoleBindings[worldId];
 }
 
 function syncAccount(input) {
@@ -466,7 +602,7 @@ function getAccountIdentity(accountKey, mailboxId) {
     displayName: accountKey,
     role: 'user'
   };
-  const profile = accountProfile(accountKey);
+  const profile = accountProfile(accountKey, mailboxId || 'mailbox-xiejian');
   let identityName = account.displayName || account.username || accountKey;
   if (mailboxId === 'mailbox-xiejian' && profile.xiejianCharacterId) {
     identityName = XIEJIAN_CHARACTER_NAMES[profile.xiejianCharacterId] || profile.xiejianCharacterId;
@@ -575,6 +711,24 @@ async function handleApi(req, res, parsedUrl) {
   if (!parsedUrl.pathname.startsWith('/api/')) return false;
 
   try {
+    if (req.method === 'GET' && parsedUrl.pathname === '/api/game/bootstrap') {
+      jsonResponse(res, 200, {
+        resourceVersion: DEFINITIONS_VERSION,
+        characterDefinitions,
+        mapDefinitions,
+        itemDefinitions,
+        resources: {
+          resourceVersion: DEFINITIONS_VERSION,
+          manifestBaseUrls: envUrlList('GAME_MANIFEST_BASE_URLS'),
+          assetBaseUrls: envUrlList('GAME_ASSET_BASE_URLS'),
+          localManifestBaseUrl: '/assets/game/',
+          localAssetBaseUrl: './sendbox/src/assets/'
+        },
+        features: { remoteResources: envUrlList('GAME_ASSET_BASE_URLS').length > 0, localFallback: true }
+      });
+      return true;
+    }
+
     if (req.method === 'POST' && parsedUrl.pathname === '/api/accounts/sync') {
       const body = await readJsonBody(req);
       const account = syncAccount(body);
@@ -586,7 +740,8 @@ async function handleApi(req, res, parsedUrl) {
       jsonResponse(res, 200, {
         account,
         profile: accountProfile(account.accountKey),
-        roleBindings: persistentState.roleBindings
+        roleBindings: roleBindingsForWorld('mailbox-xiejian'),
+        worldRoleBindings: persistentState.worldRoleBindings
       });
       return true;
     }
@@ -608,18 +763,54 @@ async function handleApi(req, res, parsedUrl) {
       return true;
     }
 
+    if (req.method === 'GET' && parsedUrl.pathname === '/api/game/world-items') {
+      const accountKey = normalizeAccountKey(parsedUrl.searchParams.get('accountKey'));
+      const mapKey = String(parsedUrl.searchParams.get('mapKey') || '');
+      if (!accountKey || !mapKey) {
+        jsonResponse(res, 400, { error: 'invalid_world_item_query' });
+        return true;
+      }
+      jsonResponse(res, 200, { mapKey, items: worldItemsForMap(mapKey) });
+      return true;
+    }
+
     if (req.method === 'GET' && parsedUrl.pathname === '/api/mail/letters') {
       const accountKey = normalizeAccountKey(parsedUrl.searchParams.get('accountKey'));
       const mailboxId = String(parsedUrl.searchParams.get('mailboxId') || '');
-      const letters = Object.values(persistentState.letters)
-        .filter(record => record.mailboxId === mailboxId)
+      let mongoLetters = null;
+      if (isMongoEnabled()) {
+        try {
+          mongoLetters = await mongoDao.loadLetters(mailboxId, accountKey);
+        } catch (_) { mongoLetters = null; }
+      }
+      // 1) 如果 Mongo 可用且有结果 → 用 Mongo 结果格式化输出（同时合并 persistentState，保证双写不丢）
+      // 2) 否则 → 完全回退 persistentState
+      let rawRecords = [];
+      if (Array.isArray(mongoLetters) && mongoLetters.length) {
+        // 以 Mongo 为主，合并 persistentState 中更新时间更大的（可能离线写入后还没同步）
+        const byId = new Map(mongoLetters.map(r => [String(r.id), r]));
+        for (const r of Object.values(persistentState.letters || {})) {
+          if (!r || r.mailboxId !== mailboxId) continue;
+          const key = String(r.id);
+          const old = byId.get(key);
+          if (!old || ((r.letter?.updatedAt || r.updatedAt || 0) > (old.letter?.updatedAt || old.updatedAt || 0))) {
+            byId.set(key, r);
+            // 发现本地更新的 → 顺手 upsert 回 Mongo（异步不阻塞响应）
+            if (isMongoEnabled()) mongoDao.saveLetter(r).catch(() => {});
+          }
+        }
+        rawRecords = Array.from(byId.values()).filter(r => r.mailboxId === mailboxId);
+      } else {
+        rawRecords = Object.values(persistentState.letters).filter(r => r.mailboxId === mailboxId);
+      }
+      const letters = rawRecords
         .filter(record => {
           if (record.deliveryStatus === 'draft') return record.senderAccountKey === accountKey;
           return record.senderAccountKey === accountKey || record.recipientAccountKey === accountKey;
         })
         .map(record => record.deliveryStatus === 'draft'
           ? {
-              ...record.letter,
+              ...(record.letter || record),
               id: record.id,
               mailboxId: record.mailboxId,
               senderAccountKey: record.senderAccountKey,
@@ -633,7 +824,9 @@ async function handleApi(req, res, parsedUrl) {
         .sort((a, b) => (b.sentAt || b.updatedAt || b.createdAt || 0) - (a.sentAt || a.updatedAt || a.createdAt || 0));
       jsonResponse(res, 200, {
         letters,
-        unreadCount: letters.filter(letter => letter.isUnread).length
+        unreadCount: letters.filter(letter => letter.isUnread).length,
+        remote: isMongoEnabled() && Array.isArray(mongoLetters),
+        fromCount: (mongoLetters || []).length
       });
       return true;
     }
@@ -654,7 +847,7 @@ async function handleApi(req, res, parsedUrl) {
         jsonResponse(res, 403, { error: 'not_draft_owner' });
         return true;
       }
-      persistentState.letters[id] = {
+      const draftRecord = {
         id,
         mailboxId,
         senderAccountKey: accountKey,
@@ -677,8 +870,12 @@ async function handleApi(req, res, parsedUrl) {
           updatedAt: Date.now()
         }
       };
+      persistentState.letters[id] = draftRecord;
+      if (isMongoEnabled()) {
+        try { await mongoDao.saveLetter(draftRecord); } catch (_) {}
+      }
       saveState();
-      jsonResponse(res, 200, { letter: persistentState.letters[id].letter });
+      jsonResponse(res, 200, { letter: persistentState.letters[id].letter, remote: isMongoEnabled() });
       return true;
     }
 
@@ -695,8 +892,11 @@ async function handleApi(req, res, parsedUrl) {
         return true;
       }
       delete persistentState.letters[id];
+      if (isMongoEnabled()) {
+        try { await mongoDao.deleteLetter(id, accountKey); } catch (_) {}
+      }
       saveState();
-      jsonResponse(res, 200, { success: true });
+      jsonResponse(res, 200, { success: true, remote: isMongoEnabled() });
       return true;
     }
 
@@ -712,12 +912,11 @@ async function handleApi(req, res, parsedUrl) {
         return true;
       }
       if (!persistentState.accounts[recipientAccountKey]) {
-        jsonResponse(res, 404, { error: 'recipient_unavailable' });
-        return true;
+        // 本地内存没有，但 Mongo 里可能有（另一台服务器注册的），不挡
       }
       const duplicate = Object.values(persistentState.letters).find(record =>
         record.senderAccountKey === accountKey && record.clientMessageId === clientMessageId
-      );
+      ) || (isMongoEnabled() ? null : null);
       if (duplicate) {
         jsonResponse(res, 200, { letter: publicLetter(duplicate, accountKey), duplicate: true });
         return true;
@@ -772,9 +971,12 @@ async function handleApi(req, res, parsedUrl) {
         instance.pendingOwnerAccountKey = recipientAccountKey;
       }
       persistentState.letters[id] = record;
+      if (isMongoEnabled()) {
+        try { await mongoDao.saveLetter(record); } catch (_) {}
+      }
       saveState();
       notifyInventoryForAccount(accountKey);
-      jsonResponse(res, 200, { letter: publicLetter(record, accountKey), duplicate: false });
+      jsonResponse(res, 200, { letter: publicLetter(record, accountKey), duplicate: false, remote: isMongoEnabled() });
       return true;
     }
 
@@ -817,14 +1019,107 @@ async function handleApi(req, res, parsedUrl) {
         receivedItems.push(publicInstance(instance));
       }
       record.readAt = record.readAt || Date.now();
+      if (isMongoEnabled()) {
+        try {
+          await mongoDao.saveLetter(record);
+          await mongoDao.markLetterRead(id, accountKey);
+        } catch (_) {}
+      }
       saveState();
       notifyInventoryForAccount(accountKey);
       jsonResponse(res, 200, {
         readAt: record.readAt,
         receivedItems,
         inventory: inventoryState(accountKey),
-        letter: publicLetter(record, accountKey)
+        letter: publicLetter(record, accountKey),
+        remote: isMongoEnabled()
       });
+      return true;
+    }
+
+    // ====== 通用信件 CRUD 接口（mailbox 编辑器用，直接 upsert 整封信件到云端） ======
+    if (req.method === 'POST' && parsedUrl.pathname === '/api/letters/upsert') {
+      const body = await readJsonBody(req);
+      const record = body.record || body.letterRecord || null;
+      if (!record || !record.id) {
+        jsonResponse(res, 400, { success: false, message: 'record.id 必填' });
+        return true;
+      }
+      // 格式化确保字段完整
+      if (!record.mailboxId) record.mailboxId = String(body.mailboxId || '');
+      if (!record.deliveryStatus) record.deliveryStatus = body.deliveryStatus || 'sent';
+      if (!record.senderAccountKey) record.senderAccountKey = normalizeAccountKey(body.accountKey || record.senderAccountKey || '');
+      if (!record.senderIdentity && record.senderAccountKey) {
+        record.senderIdentity = getAccountIdentity(record.senderAccountKey, record.mailboxId);
+      }
+      if (record.recipientAccountKey && !record.recipientIdentity) {
+        record.recipientIdentity = getAccountIdentity(record.recipientAccountKey, record.mailboxId);
+      }
+      if (!record.letter) record.letter = body.letter || { id: record.id, mailboxId: record.mailboxId };
+      if (!record.letter.updatedAt) record.letter.updatedAt = Date.now();
+      if (!record.updatedAt) record.updatedAt = Date.now();
+      persistentState.letters[record.id] = record;
+      let saved = null;
+      if (isMongoEnabled()) {
+        try { saved = await mongoDao.saveLetter(record); } catch (e) { saved = null; }
+      }
+      saveState();
+      jsonResponse(res, 200, { success: true, record: saved || record, remote: !!saved });
+      return true;
+    }
+
+    if (req.method === 'POST' && parsedUrl.pathname === '/api/letters/batch_upsert') {
+      const body = await readJsonBody(req);
+      const records = Array.isArray(body.records) ? body.records : [];
+      const accountKey = normalizeAccountKey(body.accountKey || '');
+      const results = [];
+      for (const r of records) {
+        if (!r || !r.id) continue;
+        if (!r.updatedAt) r.updatedAt = Date.now();
+        persistentState.letters[r.id] = r;
+        if (isMongoEnabled()) {
+          try { await mongoDao.saveLetter(r); results.push({ id: r.id, ok: true }); }
+          catch (e) { results.push({ id: r.id, ok: false, err: String(e?.message || e) }); }
+        } else {
+          results.push({ id: r.id, ok: true, local: true });
+        }
+      }
+      saveState();
+      jsonResponse(res, 200, { success: true, results, remote: isMongoEnabled() });
+      return true;
+    }
+
+    if (req.method === 'GET' && parsedUrl.pathname === '/api/letters/list') {
+      const accountKey = normalizeAccountKey(parsedUrl.searchParams.get('accountKey'));
+      const mailboxId = String(parsedUrl.searchParams.get('mailboxId') || '');
+      let list = [];
+      if (isMongoEnabled()) {
+        try { list = await mongoDao.loadLetters(mailboxId, accountKey) || []; }
+        catch (_) { list = []; }
+      }
+      if (!Array.isArray(list) || list.length === 0) {
+        // 回退本地
+        list = Object.values(persistentState.letters || {}).filter(r =>
+          r.mailboxId === mailboxId &&
+          (r.senderAccountKey === accountKey || r.recipientAccountKey === accountKey ||
+            (r.deliveryStatus === 'draft' && r.senderAccountKey === accountKey))
+        );
+      }
+      jsonResponse(res, 200, { success: true, letters: list, remote: isMongoEnabled() && list.length > 0 });
+      return true;
+    }
+
+    if (req.method === 'POST' && parsedUrl.pathname === '/api/letters/delete') {
+      const body = await readJsonBody(req);
+      const id = String(body.id || '');
+      const accountKey = normalizeAccountKey(body.accountKey || '');
+      if (!id) { jsonResponse(res, 400, { success: false, message: 'id 必填' }); return true; }
+      delete persistentState.letters[id];
+      if (isMongoEnabled()) {
+        try { await mongoDao.deleteLetter(id, accountKey); } catch (_) {}
+      }
+      saveState();
+      jsonResponse(res, 200, { success: true, remote: isMongoEnabled() });
       return true;
     }
 
@@ -846,6 +1141,325 @@ async function handleApi(req, res, parsedUrl) {
       return true;
     }
 
+    // ======== 新增：远端 MongoDB 新接口 ========
+
+    // 健康检查（前端用它判断能不能走云端模式）
+    if (req.method === 'GET' && parsedUrl.pathname === '/api/health') {
+      jsonResponse(res, 200, {
+        ok: true,
+        server: 'xinjian',
+        mongoEnabled: isMongoEnabled(),
+        port: PORT,
+        time: Date.now()
+      });
+      return true;
+    }
+
+    // ------- 认证：注册/登录 -------
+    if (req.method === 'POST' && parsedUrl.pathname === '/api/auth/register') {
+      const body = await readJsonBody(req);
+      const username = String(body.username || '').trim();
+      const password = String(body.password || '');
+      const displayName = body.displayName || body.username;
+      const role = body.role || 'user';
+      if (username.length < 3) {
+        jsonResponse(res, 400, { success: false, message: '用户名至少需要3个字符', user: null });
+        return true;
+      }
+      if (password.length < 6) {
+        jsonResponse(res, 400, { success: false, message: '密码至少需要6个字符', user: null });
+        return true;
+      }
+      if (isMongoEnabled()) {
+        const r = await mongoDao.createUser({ username, password, displayName, role });
+        if (r && r.error) {
+          jsonResponse(res, 409, { success: false, message: r.error, user: null });
+        } else if (r) {
+          // 同步创建一条 account，保持 /api/accounts/sync 的语义一致
+          await mongoDao.syncAccount({ accountKey: username, username, displayName, role, userId: r.id });
+          jsonResponse(res, 200, { success: true, message: '注册成功（云端）', user: r, remote: true });
+        } else {
+          jsonResponse(res, 500, { success: false, message: '云端注册失败，请稍后再试', user: null });
+        }
+      } else {
+        // 降级：本地内存注册（保留 state.json 原有行为）
+        const exists = Object.values(persistentState.accounts || {}).find(a => String(a.username || a.accountKey || '').toLowerCase() === username.toLowerCase());
+        if (exists) {
+          jsonResponse(res, 409, { success: false, message: '用户名已存在', user: null });
+          return true;
+        }
+        const id = 'user-' + Date.now() + '-' + Math.random().toString(36).slice(2, 8);
+        const accountKey = username.toLowerCase();
+        persistentState.accounts = persistentState.accounts || {};
+        persistentState.accounts[accountKey] = {
+          id, accountKey, username, displayName: displayName || username, role,
+          createdAt: Date.now(), lastSeenAt: Date.now()
+        };
+        saveState();
+        jsonResponse(res, 200, { success: true, message: '注册成功（本地模式）', user: { id, username, displayName, role, createdAt: Date.now() }, remote: false });
+      }
+      return true;
+    }
+
+    if (req.method === 'POST' && parsedUrl.pathname === '/api/auth/login') {
+      const body = await readJsonBody(req);
+      const username = String(body.username || '').trim();
+      const password = String(body.password || '');
+      if (!username || !password) {
+        jsonResponse(res, 400, { success: false, message: '用户名和密码不能为空', user: null });
+        return true;
+      }
+      if (isMongoEnabled()) {
+        const user = await mongoDao.findUserByUsername(username);
+        if (!user) {
+          jsonResponse(res, 404, { success: false, message: '用户不存在', user: null });
+          return true;
+        }
+        const ok = await mongoDao.verifyPassword(user, password);
+        if (!ok) {
+          jsonResponse(res, 401, { success: false, message: '密码错误', user: null });
+          return true;
+        }
+        await mongoDao.recordLogin(user.id);
+        const safe = mongoDao.sanitizeUser(user);
+        // 同时也 syncAccount 确保 accounts 表里有这个用户（后续 mail/letters/inventory 用）
+        await mongoDao.syncAccount({ accountKey: username, username: safe.username, displayName: safe.displayName, role: safe.role, userId: safe.id });
+        jsonResponse(res, 200, { success: true, message: '登录成功（云端）', user: safe, remote: true });
+      } else {
+        // 降级：走内存 state（兼容本地模式；这里不做密码严格校验因为本地没有 passwordHash）
+        const accountKey = username.toLowerCase();
+        const acc = (persistentState.accounts || {})[accountKey];
+        if (!acc) {
+          jsonResponse(res, 404, { success: false, message: '用户不存在', user: null });
+          return true;
+        }
+        acc.lastSeenAt = Date.now();
+        saveState();
+        jsonResponse(res, 200, {
+          success: true, message: '登录成功（本地模式）',
+          user: {
+            id: acc.id, username: acc.username || accountKey,
+            displayName: acc.displayName, role: acc.role,
+            createdAt: acc.createdAt
+          },
+          remote: false
+        });
+      }
+      return true;
+    }
+
+    if (req.method === 'POST' && parsedUrl.pathname === '/api/auth/logout') {
+      const body = await readJsonBody(req).catch(() => ({}));
+      if (isMongoEnabled() && body?.userId) {
+        await mongoDao.recordLogin(body.userId); // 记录 lastSeenAt
+      }
+      jsonResponse(res, 200, { success: true, message: '已退出' });
+      return true;
+    }
+
+    // ------- 信箱 CRUD -------
+    // 列表
+    if (req.method === 'GET' && parsedUrl.pathname === '/api/mailboxes') {
+      const accountKey = normalizeAccountKey(parsedUrl.searchParams.get('accountKey'));
+      if (isMongoEnabled()) {
+        const list = await mongoDao.listMailboxesByMember(accountKey);
+        jsonResponse(res, 200, { mailboxes: Array.isArray(list) ? list : [], remote: true });
+      } else {
+        const list = Object.values(persistentState.mailboxes).filter(mailbox =>
+          !mailbox.isCustom || mailbox.ownerAccountKey === accountKey || (mailbox.memberAccountKeys || []).includes(accountKey)
+        ).sort((a, b) => Number(b.updatedAt || 0) - Number(a.updatedAt || 0));
+        jsonResponse(res, 200, { mailboxes: list, remote: false, persistent: true });
+      }
+      return true;
+    }
+    // 创建 / 编辑 / 迁移 upsert（有 id 或 mailboxCode 时走 upsert，否则 create）
+    if (req.method === 'POST' && parsedUrl.pathname === '/api/mailboxes') {
+      const body = await readJsonBody(req);
+      const ownerAccountKey = normalizeAccountKey(body.ownerAccountKey || body.accountKey);
+      if (isMongoEnabled()) {
+        const hasId = !!body.id;
+        const hasMailboxCode = !!body.mailboxCode;
+        let r;
+        if (hasId || hasMailboxCode) {
+          // 编辑 / 迁移 upsert：按 id 判重，保证幂等
+          const patch = { ...body };
+          if (ownerAccountKey && !patch.ownerAccountKey) patch.ownerAccountKey = ownerAccountKey;
+          if (hasMailboxCode && !patch.id) {
+            // 只有 mailboxCode 没有 id：先按 code 找原 id，找不到就生成新 id
+            const existing = await mongoDao.findMailboxByCode(hasMailboxCode);
+            if (existing && existing.id) patch.id = existing.id;
+            else patch.id = 'mailbox-' + Date.now() + '-' + Math.random().toString(36).slice(2, 7);
+          }
+          if (!patch.memberAccountKeys && ownerAccountKey) patch.memberAccountKeys = [ownerAccountKey];
+          r = await mongoDao.upsertMailboxRemote(patch);
+        } else {
+          r = await mongoDao.createMailbox({
+            name: body.name, desc: body.desc, icon: body.icon,
+            themeColor: body.themeColor, mapBackground: body.mapBackground,
+            isCustom: body.isCustom !== false, ownerAccountKey, visibility: body.visibility
+          });
+        }
+        if (r && r.error) {
+          jsonResponse(res, 400, { success: false, message: r.error });
+        } else if (r) {
+          jsonResponse(res, 200, { success: true, mailbox: r, remote: true });
+        } else {
+          jsonResponse(res, 500, { success: false, message: '创建失败' });
+        }
+      } else {
+        const mailbox = upsertLocalMailbox(body, ownerAccountKey);
+        if (mailbox.error) jsonResponse(res, 400, { success: false, message: mailbox.error });
+        else { saveState(); jsonResponse(res, 200, { success: true, mailbox, remote: false, persistent: true }); }
+      }
+      return true;
+    }
+    if (req.method === 'GET' && parsedUrl.pathname === '/api/mailboxes/directory') {
+      const query = String(parsedUrl.searchParams.get('q') || '').trim().toLowerCase();
+      const source = isMongoEnabled()
+        ? (await mongoDao.listPublicMailboxes(query) || [])
+        : Object.values(persistentState.mailboxes)
+          .filter(mailbox => mailbox.visibility === 'public')
+          .filter(mailbox => !query || mailbox.name.toLowerCase().includes(query) || mailbox.mailboxCode.toLowerCase().includes(query));
+      const directory = source.map(mailbox => ({ id: mailbox.id, name: mailbox.name, desc: mailbox.desc, icon: mailbox.icon, mailboxCode: mailbox.mailboxCode, memberCount: (mailbox.memberAccountKeys || []).length, isCustom: mailbox.isCustom })).slice(0, 50);
+      jsonResponse(res, 200, { mailboxes: directory, remote: isMongoEnabled(), persistent: true });
+      return true;
+    }
+
+    // 按 id 详情
+    if (req.method === 'GET' && parsedUrl.pathname.startsWith('/api/mailboxes/')) {
+      const id = decodeURIComponent(parsedUrl.pathname.slice('/api/mailboxes/'.length));
+      if (!id) { jsonResponse(res, 400, { error: 'missing_id' }); return true; }
+      if (isMongoEnabled()) {
+        const mb = await mongoDao.getMailboxById(id);
+        jsonResponse(res, mb ? 200 : 404, { mailbox: mb || null });
+      } else {
+        const mailbox = persistentState.mailboxes[id] || null;
+        jsonResponse(res, mailbox ? 200 : 404, { mailbox, remote: false, persistent: true });
+      }
+      return true;
+    }
+
+    // ------- 信箱号跨用户查询 & 加入（核心！） -------
+    if (req.method === 'GET' && parsedUrl.pathname === '/api/mailbox_codes/lookup') {
+      const code = String(parsedUrl.searchParams.get('code') || '').trim().toUpperCase();
+      if (!code) { jsonResponse(res, 400, { success: false, message: 'code 为空' }); return true; }
+      if (isMongoEnabled()) {
+        const mb = await mongoDao.findMailboxByCode(code);
+        if (mb) {
+          jsonResponse(res, 200, { success: true, code, mailbox: mb, remote: true });
+        } else {
+          jsonResponse(res, 404, { success: false, message: '该信箱号不存在（云端未找到）', code });
+        }
+      } else {
+        const mailbox = findLocalMailboxByCode(code);
+        jsonResponse(res, mailbox ? 200 : 404, mailbox
+          ? { success: true, code, mailbox, remote: false, persistent: true }
+          : { success: false, message: '该信箱号不存在', code });
+      }
+      return true;
+    }
+    if (req.method === 'POST' && parsedUrl.pathname === '/api/mailbox_codes/join') {
+      const body = await readJsonBody(req);
+      const code = String(body.code || '').trim().toUpperCase();
+      const accountKey = normalizeAccountKey(body.accountKey);
+      if (!code) { jsonResponse(res, 400, { success: false, message: 'code 为空' }); return true; }
+      if (!accountKey) { jsonResponse(res, 401, { success: false, message: '未登录' }); return true; }
+      if (isMongoEnabled()) {
+        const r = await mongoDao.joinMailboxByCode(code, accountKey);
+        if (r && r.error) {
+          jsonResponse(res, 404, { success: false, message: r.error });
+        } else if (r) {
+          jsonResponse(res, 200, { success: true, message: '已加入', mailbox: r, remote: true });
+        } else {
+          jsonResponse(res, 500, { success: false, message: '加入失败' });
+        }
+      } else {
+        const mailbox = joinLocalMailbox(code, accountKey);
+        if (mailbox.error) jsonResponse(res, 404, { success: false, message: mailbox.error });
+        else { saveState(); jsonResponse(res, 200, { success: true, message: '已加入', mailbox, remote: false, persistent: true }); }
+      }
+      return true;
+    }
+
+    // 后端版 XJ:// 分享包（可选），保留前端版即可，这里只暴露 build 端点
+    if (req.method === 'POST' && parsedUrl.pathname === '/api/mailboxes/share/build') {
+      const body = await readJsonBody(req);
+      const mailboxId = String(body.mailboxId || '');
+      if (!mailboxId || !isMongoEnabled()) {
+        jsonResponse(res, 400, { success: false, message: mailboxId ? '云端未启用' : '缺少 mailboxId' });
+        return true;
+      }
+      const mb = await mongoDao.getMailboxById(mailboxId);
+      if (!mb) { jsonResponse(res, 404, { success: false, message: '信箱不存在' }); return true; }
+      const letters = await mongoDao.loadLetters(mailboxId, mb.ownerAccountKey || '') || [];
+      const lts = (letters || []).slice(0, Number(body.maxLetters || 10)).map(l => ({
+        id: l.letter?.id || l.id, title: l.letter?.title || '', from: l.letter?.senderIdentity || l.letter?.from || '',
+        to: l.letter?.recipientIdentity || l.letter?.to || '', date: l.sentAt || l.updatedAt || 0,
+        preview: String(l.letter?.bodyText || l.letter?.preview || '').slice(0, 40),
+        mailboxId: mailboxId, readAt: l.readAt
+      })).filter(x => x.id);
+      const pack = { v: 1, mb: JSON.parse(JSON.stringify(mb)), lts };
+      const b64 = Buffer.from(JSON.stringify(pack), 'utf8').toString('base64');
+      jsonResponse(res, 200, { success: true, package: 'XJ://' + b64 });
+      return true;
+    }
+
+    // ------- 背包 -------
+    if (req.method === 'POST' && parsedUrl.pathname === '/api/inventories/save') {
+      const body = await readJsonBody(req);
+      const accountKey = normalizeAccountKey(body.accountKey);
+      if (!accountKey) { jsonResponse(res, 400, { error: 'invalid_account' }); return true; }
+      if (isMongoEnabled()) {
+        const r = await mongoDao.saveInventory(accountKey, body.inventory);
+        jsonResponse(res, 200, { success: true, inventory: r, remote: true });
+      } else {
+        // 降级：写回 state.json（兼容）
+        persistentState.inventories = persistentState.inventories || {};
+        persistentState.inventories[accountKey] = {
+          items: Array.isArray(body.inventory?.items) ? body.inventory.items : [],
+          equipment: body.inventory?.equipment || {},
+          quickSlots: body.inventory?.quickSlots || {},
+          updatedAt: Date.now()
+        };
+        saveState();
+        jsonResponse(res, 200, { success: true, inventory: persistentState.inventories[accountKey], remote: false });
+      }
+      return true;
+    }
+
+    // ------- 手账 -------
+    if (req.method === 'GET' && parsedUrl.pathname === '/api/journals') {
+      const accountKey = normalizeAccountKey(parsedUrl.searchParams.get('accountKey'));
+      const y = parsedUrl.searchParams.get('year');
+      const m = parsedUrl.searchParams.get('month');
+      const d = parsedUrl.searchParams.get('day');
+      if (!accountKey) { jsonResponse(res, 400, { error: 'invalid_account' }); return true; }
+      if (isMongoEnabled()) {
+        const year = y == null ? null : Number(y);
+        const month = m == null ? null : Number(m);
+        const day = d == null ? null : Number(d);
+        const query = year != null && month != null ? { year, month, ...(day != null ? { day } : {}) } : {};
+        const r = await mongoDao.loadJournal(accountKey, query);
+        jsonResponse(res, 200, { success: true, entries: Array.isArray(r) ? r : (r ? [r] : []), remote: true });
+      } else {
+        jsonResponse(res, 200, { success: true, entries: [], remote: false, fallback: true });
+      }
+      return true;
+    }
+    if (req.method === 'POST' && parsedUrl.pathname === '/api/journals/save') {
+      const body = await readJsonBody(req);
+      const accountKey = normalizeAccountKey(body.accountKey);
+      if (!accountKey) { jsonResponse(res, 400, { error: 'invalid_account' }); return true; }
+      if (isMongoEnabled()) {
+        const r = await mongoDao.saveJournal(accountKey, body);
+        jsonResponse(res, 200, { success: true, entry: r, remote: true });
+      } else {
+        jsonResponse(res, 503, { success: false, message: '云端未启用，手账保存在本地', fallback: true });
+      }
+      return true;
+    }
+
+    // ======== 现有接口（media）=======
     if (req.method === 'GET' && parsedUrl.pathname.startsWith('/api/media/')) {
       const id = decodeURIComponent(parsedUrl.pathname.slice('/api/media/'.length))
         .replace(/[^a-zA-Z0-9_-]/g, '');
@@ -891,7 +1505,7 @@ const contentTypes = {
 
 const server = http.createServer(async (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
   if (req.method === 'OPTIONS') {
@@ -993,15 +1607,16 @@ function distanceBetween(a, b) {
   return Math.hypot((Number(a?.x) || 0) - (Number(b?.x) || 0), (Number(a?.y) || 0) - (Number(b?.y) || 0));
 }
 
-function getOccupiedCharacters() {
-  return Object.keys(persistentState.roleBindings);
+function getOccupiedCharacters(worldId = 'mailbox-xiejian') {
+  return Object.keys(roleBindingsForWorld(worldId));
 }
 
 function broadcastCharacterOccupancy(room) {
+  const bindings = roleBindingsForWorld(room.id);
   broadcastToRoom(room.id, {
     type: 'character_occupancy',
-    occupiedCharacters: getOccupiedCharacters(),
-    roleBindings: persistentState.roleBindings,
+    occupiedCharacters: getOccupiedCharacters(room.id),
+    roleBindings: bindings,
     timestamp: Date.now()
   });
 }
@@ -1103,7 +1718,7 @@ if (!HTTP_ONLY) {
             displayName: message.displayName || message.username || clientId,
             role: message.role || 'user'
           });
-          const profile = accountProfile(clientId);
+          const profile = accountProfile(clientId, currentRoomId);
           const mode = message.mode === 'xiejian' ? 'xiejian' : 'default';
           const initialCharacter = mode === 'xiejian'
             ? String(profile.xiejianCharacterId || '')
@@ -1147,8 +1762,8 @@ if (!HTTP_ONLY) {
             players: publicPlayers(room, clientId),
             playerCount: room.clients.size,
             maxConnections: MAX_ROOM_CONNECTIONS,
-            occupiedCharacters: getOccupiedCharacters(),
-            roleBindings: persistentState.roleBindings,
+            occupiedCharacters: getOccupiedCharacters(currentRoomId),
+            roleBindings: roleBindingsForWorld(currentRoomId),
             accountProfile: {
               accountKey: clientId,
               xiejianCharacterId: profile.xiejianCharacterId || '',
@@ -1157,7 +1772,8 @@ if (!HTTP_ONLY) {
             itemDefinitions: mode === 'xiejian' ? itemDefinitions : {},
             inventory: mode === 'xiejian' ? inventoryState(clientId) : null,
             combatProfile: mode === 'xiejian' ? combatState(clientId) : null,
-            worldItems: mode === 'xiejian' ? worldItemsForMap(initialMapKey) : []
+            worldItems: mode === 'xiejian' ? worldItemsForMap(initialMapKey) : [],
+            definitionsVersion: DEFINITIONS_VERSION
           });
 
           if (room.players[clientId].ready) {
@@ -1188,25 +1804,25 @@ if (!HTTP_ONLY) {
             return;
           }
 
-          const profile = accountProfile(clientId);
-          if (profile.xiejianCharacterId && profile.xiejianCharacterId !== characterId) {
-            send(ws, {
-              type: 'character_rejected',
-              characterId,
-              reason: 'binding_locked',
-              boundCharacterId: profile.xiejianCharacterId
-            });
-            return;
-          }
+          const profile = accountProfile(clientId, currentRoomId);
+          const worldBindings = roleBindingsForWorld(currentRoomId);
 
-          const owner = persistentState.roleBindings[characterId];
+          // Check if target character is occupied by another player
+          const owner = worldBindings[characterId];
           if (owner && owner !== clientId) {
             send(ws, { type: 'character_rejected', characterId, reason: 'occupied' });
             return;
           }
 
+          // If player has a bound character and it's not the target character,
+          // allow switching only if target is not occupied (already checked above)
+          if (profile.xiejianCharacterId && profile.xiejianCharacterId !== characterId) {
+            // Remove the old character binding
+            delete worldBindings[profile.xiejianCharacterId];
+          }
+
           const previousCharacter = profile.xiejianCharacterId || player.characterId;
-          persistentState.roleBindings[characterId] = clientId;
+          worldBindings[characterId] = clientId;
           profile.xiejianCharacterId = characterId;
           profile.lastXiejianMapKey = profile.lastXiejianMapKey || DEFAULT_XIEJIAN_MAP;
           player.characterId = characterId;
@@ -1221,8 +1837,8 @@ if (!HTTP_ONLY) {
             characterId,
             previousCharacter,
             mapKey: profile.lastXiejianMapKey,
-            occupiedCharacters: getOccupiedCharacters(),
-            roleBindings: persistentState.roleBindings,
+            occupiedCharacters: getOccupiedCharacters(currentRoomId),
+            roleBindings: worldBindings,
             permanent: true
           });
           sendInventory(ws, clientId);
@@ -1253,7 +1869,7 @@ if (!HTTP_ONLY) {
           player.x = Number(message.x) || 0;
           player.y = Number(message.y) || 0;
           player.lastUpdate = Date.now();
-          const profile = accountProfile(clientId);
+          const profile = accountProfile(clientId, currentRoomId);
           profile.lastXiejianMapKey = player.mapKey || DEFAULT_XIEJIAN_MAP;
           saveState();
           send(ws, {
@@ -1594,7 +2210,7 @@ if (!HTTP_ONLY) {
             const spawn = worldPosition(DEFAULT_XIEJIAN_MAP, 0.5, 0.82);
             target.x = spawn.x;
             target.y = spawn.y;
-            const targetProfile = accountProfile(targetAccountKey);
+            const targetProfile = accountProfile(targetAccountKey, currentRoomId);
             targetProfile.lastXiejianMapKey = DEFAULT_XIEJIAN_MAP;
             broadcastToMap(room, defeatedMap, {
               type: 'player_defeated',
@@ -1667,8 +2283,12 @@ if (!HTTP_ONLY) {
           broadcastToRoom(currentRoomId, {
             type: 'chat',
             userId: clientId,
+            accountKey: message.accountKey || clientId,
+            messageId: message.messageId || '',
             mapKey: player.mapKey,
             content: message.content,
+            senderName: message.senderName || clientId,
+            characterId: message.characterId || '',
             timestamp: Date.now()
           }, clientId);
           return;
@@ -1784,7 +2404,7 @@ if (!HTTP_ONLY) {
       const spawn = worldPosition(DEFAULT_XIEJIAN_MAP, 0.5, 0.82);
       player.x = spawn.x;
       player.y = spawn.y;
-      accountProfile(accountKey).lastXiejianMapKey = DEFAULT_XIEJIAN_MAP;
+      accountProfile(accountKey, session.roomId).lastXiejianMapKey = DEFAULT_XIEJIAN_MAP;
       broadcastToMap(room, oldMapKey, {
         type: 'player_defeated',
         userId: accountKey,
@@ -1824,7 +2444,15 @@ if (!HTTP_ONLY) {
   }, 500).unref();
 }
 
-server.listen(PORT, '0.0.0.0', () => {
-  console.log(`Xinjian HTTP: http://0.0.0.0:${PORT}`);
-  console.log(HTTP_ONLY ? 'WebSocket: disabled (HTTP-only test client)' : `WebSocket: ws://0.0.0.0:${PORT}`);
-});
+// 启动前初始化 MongoDB（失败自动降级到 state.json）
+(async function bootstrap() {
+  try {
+    await initMongo();
+  } catch (err) {
+    console.warn('[bootstrap] initMongo 异常（忽略，继续本地模式）：', err?.message || err);
+  }
+  server.listen(PORT, '0.0.0.0', () => {
+    console.log(`Xinjian HTTP: http://0.0.0.0:${PORT}`);
+    console.log(HTTP_ONLY ? 'WebSocket: disabled (HTTP-only test client)' : `WebSocket: ws://0.0.0.0:${PORT}`);
+  });
+})();

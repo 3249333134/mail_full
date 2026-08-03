@@ -11,6 +11,30 @@ export class SaveSystem {
     try {
       const envelope = { version: SAVE_VERSION, savedAt: Date.now(), ...payload };
       this.storage.setItem(SAVE_KEY, JSON.stringify(envelope));
+      // 若父窗口或本窗口存在 MailService，则把 farm 背包同步到远端 /api/inventories/save
+      if (payload?.farm) {
+        try {
+          const MailService = globalThis.MailService || (globalThis.parent && globalThis.parent.MailService);
+          if (MailService && typeof MailService.isRemoteAvailable === 'function' &&
+              typeof MailService.saveRemoteInventory === 'function') {
+            const entries = Array.isArray(payload.farm.inventory) ? payload.farm.inventory : [];
+            const items = entries.map(([itemId, quantity]) => ({
+              id: itemId,
+              itemId,
+              quantity: Number(quantity) || 0,
+              type: /^seed-/i.test(itemId) ? 'seed' : 'item'
+            })).filter(x => x.quantity > 0);
+            const equipment = payload.farm.equipment || {};
+            const quickSlots = payload.farm.quickSlots || {};
+            (async () => {
+              try {
+                const ok = await MailService.isRemoteAvailable();
+                if (ok) await MailService.saveRemoteInventory({ items, equipment, quickSlots });
+              } catch (_) {}
+            })();
+          }
+        } catch (_) { /* ignore remote push errors */ }
+      }
       return true;
     } catch {
       return false;
