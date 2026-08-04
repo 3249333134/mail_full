@@ -1,0 +1,266 @@
+{
+  "source": "D:\\prj\\sendbox\\taoyuan-main\\public\\assets\\characters\\poxiao\\action-sheets\\jiang_yan-20-actions-transparent.png",
+  "padding": 10,
+  "actions": {
+    "01_沉静站立": {
+      "speed": 160,
+      "frames": [
+        {
+          "left": 0,
+          "top": 0,
+          "width": 346,
+          "height": 213,
+          "keepAll": true,
+          "padding": 10
+        }
+      ]
+    },
+    "02_戴检验手套": {
+      "speed": 160,
+      "frames": [
+        {
+          "left": 364,
+          "top": 0,
+          "width": 337,
+          "height": 213,
+          "keepAll": true,
+          "padding": 10
+        }
+      ]
+    },
+    "03_蹲查现场": {
+      "speed": 160,
+      "frames": [
+        {
+          "left": 719,
+          "top": 0,
+          "width": 336,
+          "height": 213,
+          "keepAll": true,
+          "padding": 10
+        }
+      ]
+    },
+    "04_棉签取样": {
+      "speed": 160,
+      "frames": [
+        {
+          "left": 1073,
+          "top": 0,
+          "width": 337,
+          "height": 213,
+          "keepAll": true,
+          "padding": 10
+        }
+      ]
+    },
+    "05_显微镜检验": {
+      "speed": 160,
+      "frames": [
+        {
+          "left": 1428,
+          "top": 0,
+          "width": 346,
+          "height": 213,
+          "keepAll": true,
+          "padding": 10
+        }
+      ]
+    },
+    "06_记录夹书写": {
+      "speed": 160,
+      "frames": [
+        {
+          "left": 0,
+          "top": 231,
+          "width": 346,
+          "height": 204,
+          "keepAll": true,
+          "padding": 10
+        }
+      ]
+    },
+    "07_封装证物袋": {
+      "speed": 160,
+      "frames": [
+        {
+          "left": 364,
+          "top": 231,
+          "width": 337,
+          "height": 204,
+          "keepAll": true,
+          "padding": 10
+        }
+      ]
+    },
+    "08_相机取证": {
+      "speed": 160,
+      "frames": [
+        {
+          "left": 719,
+          "top": 231,
+          "width": 336,
+          "height": 204,
+          "keepAll": true,
+          "padding": 10
+        }
+      ]
+    },
+    "09_持法医刀": {
+      "speed": 160,
+      "frames": [
+        {
+          "left": 1073,
+          "top": 231,
+          "width": 337,
+          "height": 204,
+          "keepAll": true,
+          "padding": 10
+        }
+      ]
+    },
+    "10_打开医药箱": {
+      "speed": 160,
+      "frames": [
+        {
+          "left": 1428,
+          "top": 231,
+          "width": 346,
+          "height": 204,
+          "keepAll": true,
+          "padding": 10
+        }
+      ]
+    },
+    "11_举瓶分析": {
+      "speed": 160,
+      "frames": [
+        {
+          "left": 0,
+          "top": 453,
+          "width": 346,
+          "height": 203,
+          "keepAll": true,
+          "padding": 10
+        }
+      ]
+    },
+    "12_书写案情": {
+      "speed": 160,
+      "frames": [
+        {
+          "left": 364,
+          "top": 453,
+          "width": 337,
+          "height": 203,
+          "keepAll": true,
+          "padding": 10
+        }
+      ]
+    },
+    "13_紧急通话": {
+      "speed": 160,
+      "frames": [
+        {
+          "left": 719,
+          "top": 453,
+          "width": 336,
+          "height": 203,
+          "keepAll": true,
+          "padding": 10
+        }
+      ]
+    },
+    "14_携箱奔跑": {
+      "speed": 160,
+      "frames": [
+        {
+          "left": 1073,
+          "top": 453,
+          "width": 337,
+          "height": 203,
+          "keepAll": true,
+          "padding": 10
+        }
+      ]
+    },
+    "15_跪地急救": {
+      "speed": 160,
+      "frames": [
+        {
+          "left": 1428,
+          "top": 453,
+          "width": 346,
+          "height": 203,
+          "keepAll": true,
+          "padding": 10
+        }
+      ]
+    },
+    "16_手握红围巾": {
+      "speed": 160,
+      "frames": [
+        {
+          "left": 0,
+          "top": 674,
+          "width": 346,
+          "height": 213,
+          "keepAll": true,
+          "padding": 10
+        }
+      ]
+    },
+    "17_栽种橄榄树": {
+      "speed": 160,
+      "frames": [
+        {
+          "left": 364,
+          "top": 674,
+          "width": 337,
+          "height": 213,
+          "keepAll": true,
+          "padding": 10
+        }
+      ]
+    },
+    "18_凝视传承坠饰": {
+      "speed": 160,
+      "frames": [
+        {
+          "left": 719,
+          "top": 674,
+          "width": 336,
+          "height": 213,
+          "keepAll": true,
+          "padding": 10
+        }
+      ]
+    },
+    "19_警察敬礼": {
+      "speed": 160,
+      "frames": [
+        {
+          "left": 1073,
+          "top": 674,
+          "width": 337,
+          "height": 213,
+          "keepAll": true,
+          "padding": 10
+        }
+      ]
+    },
+    "20_坐读报告": {
+      "speed": 160,
+      "frames": [
+        {
+          "left": 1428,
+          "top": 674,
+          "width": 346,
+          "height": 213,
+          "keepAll": true,
+          "padding": 10
+        }
+      ]
+    }
+  }
+}

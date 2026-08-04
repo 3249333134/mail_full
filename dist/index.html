@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿﻿﻿﻿<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8">
@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Ma+Shan+Zheng&family=Noto+Serif+SC:wght@400;500;700&family=ZCOOL+KuaiLe&family=ZCOOL+QingKe+HuangYou&family=ZCOOL+XiaoWei&family=Noto+Sans+SC:wght@400;500;700&family=Long+Cang&family=Liu+Jian+Mao+Cao&family=ZCOOL+KuaiLe&family=ZCOOL+XiaoWei&family=Ma+Shan+Zheng&family=Noto+Serif+SC&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/main.css?v=20260803k">
+  <link rel="stylesheet" href="css/main.css?v=20260804v">
   <link rel="stylesheet" href="css/community-redesign.css?v=20260803c">
   <link rel="stylesheet" href="css/envelopes.css?v=20260801h">
   <link rel="stylesheet" href="css/paper.css?v=20260801h">
@@ -124,10 +124,17 @@
           <div class="user-info-main">
             <div class="user-avatar" id="user-avatar">👤</div>
             <div class="user-details">
-              <div class="user-name" id="user-name">访客</div>
+              <div class="user-name-row">
+                <div class="user-name" id="user-name">访客</div>
+                <button class="user-equip-toggle" id="user-equip-toggle" title="行囊与装备" aria-label="行囊与装备" hidden>
+                  <span class="equip-icon">🎒</span>
+                  <span class="equip-count-badge" id="user-equip-count-badge">0</span>
+                </button>
+              </div>
               <div class="user-role" id="user-role">访客模式</div>
             </div>
           </div>
+          <div class="user-equip-count" id="user-equip-count" hidden>行囊 0 件</div>
           <button class="switch-account-btn" id="switch-account-btn" style="display:none;">
             <span class="switch-icon">🔄</span>
             <span class="switch-text">切换账号</span>
@@ -359,7 +366,7 @@
           
           <!-- 在线玩家列表 -->
           <div class="online-players-panel" id="online-players-panel">
-            <div class="online-players-title"><span>在线成员</span><strong id="online-players-count">0 人</strong></div>
+            <div class="online-players-title"><span>信箱世界总在线</span><strong id="online-players-count">0 人</strong></div>
             <div class="online-players-list" id="online-players-list"></div>
           </div>
           
@@ -410,6 +417,7 @@
                   <button class="char-tab active" data-category="jingyuan">🎭 静远七人</button>
                   <button class="char-tab" data-category="hanmen">🏮 寒门</button>
                   <button class="char-tab" data-category="xiejian">⚔️ 挟剑</button>
+                  <button class="char-tab" data-category="poxiao">🌅 破晓</button>
                   <button class="char-tab" data-category="main">🦸 主角</button>
                 </div>
                 <div class="character-grid" id="character-grid">
@@ -468,7 +476,7 @@
           <!-- 地图切换按钮 -->
           <div class="map-controls">
             <button class="map-control-btn mobile-map-controls-toggle mobile-only" id="mobile-map-controls-toggle" type="button" aria-label="展开地图控制" aria-expanded="false">🧭</button>
-            <button class="map-control-btn online-players-toggle" id="xiejian-online-toggle" type="button" title="查看在线成员" aria-label="查看在线成员" aria-expanded="false">
+            <button class="map-control-btn online-players-toggle" id="xiejian-online-toggle" type="button" title="查看信箱世界总在线成员" aria-label="查看信箱世界总在线成员" aria-expanded="false">
               <span aria-hidden="true">👥</span><span class="online-count-badge" id="xiejian-online-count">0</span>
             </button>
             <label class="map-select-control" for="map-select">
@@ -645,6 +653,12 @@
               <button class="duet-action-btn" data-action="martial">武艺</button>
               <button class="duet-action-btn" data-action="signature">招牌</button>
             </div>
+          </div>
+
+          <!-- 破晓动作面板 -->
+          <div class="poxiao-action-panel" id="poxiao-action-panel" style="display:none;">
+            <div class="poxiao-action-title">角色动作</div>
+            <div class="poxiao-action-buttons" id="poxiao-action-buttons"></div>
           </div>
 
         <!-- 游戏地图canvas容器 - 自动适配mapContainer尺寸 -->
@@ -1062,6 +1076,12 @@
               </div>
               <span>挟剑地图</span>
             </div>
+            <div class="map-bg-option" data-map-bg="poxiao">
+              <div class="map-bg-preview">
+                <img src="sendbox/src/assets/poxiao/maps/overview.jpg" alt="破晓世界">
+              </div>
+              <span>破晓世界</span>
+            </div>
             <div class="map-bg-option" data-map-bg="null">
               <div class="map-bg-preview map-bg-pixel">
                 <span class="pixel-icon">🎮</span>
@@ -1426,20 +1446,37 @@
     </div>
   </div>
 
+  <!-- 行囊弹窗 -->
+  <div id="equipment-modal" class="equipment-modal" hidden>
+    <div class="equipment-modal-overlay" id="equipment-modal-overlay"></div>
+    <div class="equipment-modal-content">
+      <button class="equipment-modal-close" id="equipment-modal-close">&times;</button>
+      <div class="equipment-modal-header">
+        <h3>🎒 行囊</h3>
+        <span class="equipment-modal-count" id="equipment-modal-count">共 0 件</span>
+      </div>
+      <div class="equipment-modal-body" id="equipment-modal-body">
+        <div class="equipment-modal-equipped" id="equipment-modal-equipped"></div>
+        <div class="equipment-modal-section-title">全部物品</div>
+        <div class="equipment-modal-grid" id="equipment-modal-grid"></div>
+      </div>
+    </div>
+  </div>
+
   <script src="js/auth.js?v=20260801e"></script>
   <script src="js/resourceManager.js?v=20260804b"></script>
-  <script src="js/storage.js?v=20260804a"></script>
-  <script src="js/mailService.js?v=20260804g"></script>
-  <script src="js/multiplayerSync.js?v=20260803i"></script>
+  <script src="js/storage.js?v=20260804a3"></script>
+  <script src="js/mailService.js?v=20260804h"></script>
+  <script src="js/multiplayerSync.js?v=20260804debug1"></script>
   <script src="js/media.js?v=20260801e"></script>
   <script src="js/imageFrames.js?v=20260801e"></script>
-  <script src="js/mailbox.js?v=20260803e"></script>
+  <script src="js/mailbox.js?v=20260804v"></script>
   <script src="js/modules/mailbox-letters.js?v=20260801e"></script>
-  <script src="js/app.js?v=20260804k"></script>
+  <script src="js/app.js?v=20260804v"></script>
   <script src="js/modules/app-reader.js?v=20260804f"></script>
   <script src="js/modules/app-bgm.js?v=20260804a"></script>
   <script src="js/modules/app-voice.js?v=20260802c"></script>
-  <script src="js/modules/app-mailbox-modal.js?v=20260802c"></script>
+  <script src="js/modules/app-mailbox-modal.js?v=20260804b3"></script>
   <script src="js/modules/app-diary.js?v=20260801e"></script>
   <script src="js/modules/app-features.js?v=20260801e"></script>
   <script src="js/editor.js?v=20260804i"></script>
@@ -1450,6 +1487,6 @@
   <script src="js/journal.js?v=20260801e"></script>
   <script src="js/diary.js?v=20260801e"></script>
   <script src="js/map.js?v=20260801e"></script>
-  <script type="module" src="js/gameMapRenderer.js?v=20260804e"></script>
+  <script type="module" src="js/gameMapRenderer.js?v=20260804v"></script>
 </body>
 </html>

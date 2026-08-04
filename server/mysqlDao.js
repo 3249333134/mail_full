@@ -590,21 +590,22 @@ async function saveInventory(accountKey, inventory) {
   const equipment = JSON.stringify(inventory?.equipment || {});
   const quickSlots = JSON.stringify(inventory?.quickSlots || []);
   const starterGrantVersion = Number(inventory?.starterGrantVersion) || 0;
+  const starterCharacterId = String(inventory?.starterCharacterId || '');
   const pendingCoating = String(inventory?.pendingCoating || '');
 
   const existing = await query('SELECT id FROM inventories WHERE accountKey = ? LIMIT 1', [acc]);
   if (existing && existing.length > 0) {
     await execute(
-      `UPDATE inventories SET itemIds = ?, equipment = ?, quickSlots = ?, starterGrantVersion = ?, pendingCoating = ?, updatedAt = ?
+      `UPDATE inventories SET itemIds = ?, equipment = ?, quickSlots = ?, starterGrantVersion = ?, starterCharacterId = ?, pendingCoating = ?, updatedAt = ?
        WHERE accountKey = ?`,
-      [items, equipment, quickSlots, starterGrantVersion, pendingCoating, now, acc]
+      [items, equipment, quickSlots, starterGrantVersion, starterCharacterId, pendingCoating, now, acc]
     );
   } else {
     const id = `inv-${acc}-${Date.now().toString(36)}`;
     await execute(
-      `INSERT INTO inventories (id, accountKey, itemIds, equipment, quickSlots, starterGrantVersion, pendingCoating, createdAt, updatedAt)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [id, acc, items, equipment, quickSlots, starterGrantVersion, pendingCoating, now, now]
+      `INSERT INTO inventories (id, accountKey, itemIds, equipment, quickSlots, starterGrantVersion, starterCharacterId, pendingCoating, createdAt, updatedAt)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [id, acc, items, equipment, quickSlots, starterGrantVersion, starterCharacterId, pendingCoating, now, now]
     );
   }
   return {
@@ -613,6 +614,7 @@ async function saveInventory(accountKey, inventory) {
     equipment: inventory?.equipment || {},
     quickSlots: inventory?.quickSlots || [],
     starterGrantVersion,
+    starterCharacterId,
     pendingCoating,
     updatedAt: now
   };
@@ -1188,6 +1190,7 @@ async function loadAllFromState(persistentState) {
           equipment,
           quickSlots,
           starterGrantVersion: inv.starterGrantVersion || 0,
+          starterCharacterId: inv.starterCharacterId || '',
           pendingCoating: inv.pendingCoating || ''
         };
       }

@@ -1,5 +1,5 @@
 /* Server-backed account identity and mail delivery. */
-const MailService = {
+window.MailService = MailService = {
   _cache: new Map(),
   profile: null,
   account: null,
@@ -173,9 +173,13 @@ const MailService = {
 
   async getWorldItems(mapKey) {
     const accountKey = this.getAccountKey();
-    if (!accountKey || !mapKey) return [];
-    const query = new URLSearchParams({ accountKey, mapKey });
+    console.log('[MailService] getWorldItems:', { mapKey, accountKey, baseUrl: this.getBaseUrl() });
+    // 注意：服务端 world-items 接口现在已放宽，即使没有 accountKey 也能返回（world 道具是公共的）
+    if (!mapKey) return [];
+    const query = new URLSearchParams({ mapKey });
+    if (accountKey) query.set('accountKey', accountKey);
     const data = await this._request(`/api/game/world-items?${query}`);
+    console.log('[MailService] getWorldItems returned:', data?.items?.length, 'items');
     return Array.isArray(data.items) ? data.items : [];
   },
 

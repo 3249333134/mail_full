@@ -174,6 +174,24 @@ const MailboxManager = {
         placeName: '中原武林',
         region: '江湖'
       }
+    },
+    {
+      id: 'mailbox-poxiao',
+      mailboxCode: 'PX2026', code: 'PX2026',
+      name: '破晓世界',
+      icon: '🌅',
+      desc: 'D市缉毒风云与七人命运',
+      accent: '#1a365d',
+      bgGradient: 'linear-gradient(135deg, #ebf8ff, #bee3f8)',
+      cardAccent: '#2c5282',
+      category: 'poxiao',
+      mapBackground: 'poxiao',
+      location: {
+        lat: 31.23,
+        lng: 121.47,
+        placeName: 'D市',
+        region: '现代都市'
+      }
     }
   ],
 
@@ -379,7 +397,7 @@ Object.assign(MailboxManager, {
         const presetIds = new Set([
           'mailbox-brenuo','mailbox-daliang','mailbox-tianzhu',
           'mailbox-rugu','mailbox-taozhi','mailbox-zhaixing',
-          'mailbox-xiaowangzi','mailbox-xiejian','mailbox-hanmen-duet'
+          'mailbox-xiaowangzi','mailbox-xiejian','mailbox-poxiao','mailbox-hanmen-duet'
         ]);
         const MK = (STORAGE && STORAGE.MAILBOXES_KEY) ? STORAGE.MAILBOXES_KEY : 'xinjian_mailboxes';
         const LK = (STORAGE && STORAGE.LETTERS_KEY) ? STORAGE.LETTERS_KEY : 'xinjian_letters';
@@ -1495,6 +1513,18 @@ Object.assign(MailboxManager, {
               }
               STORAGE.saveMailboxes(locals);
             } catch (_) {}
+            // 补同步：把刚加入的成员数据推到远端，并强制拉回本账号信箱列表，
+            // 确保另一台设备/端口立即可见
+            (async () => {
+              try {
+                if (typeof STORAGE.flushRemoteMailboxes === 'function') {
+                  await STORAGE.flushRemoteMailboxes(accountKey);
+                }
+                if (typeof STORAGE.forceReloadMailboxesFromRemote === 'function') {
+                  await STORAGE.forceReloadMailboxesFromRemote(accountKey);
+                }
+              } catch (_) {}
+            })();
             return { success: true, message: r.message || '加入成功（云端）', mailbox: mb };
           }
           if (r && !r.success) return { success: false, message: r.message || '加入失败', mailbox: null };

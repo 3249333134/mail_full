@@ -19,6 +19,17 @@ const {
   mapDefinitions
 } = require('./xiejianGameData');
 
+const poxiaoData = require('./poxiaoGameData');
+const poxiaoItemDefinitions = poxiaoData.itemDefinitions;
+const poxiaoCharacterDefinitions = poxiaoData.characterDefinitions;
+const poxiaoMapDefinitions = poxiaoData.mapDefinitions;
+const poxiaoPlacements = poxiaoData.placements;
+const poxiaoMapDimensions = poxiaoData.mapDimensions;
+const poxiaoNodePosition = poxiaoData.nodePosition;
+const poxiaoWorldPosition = poxiaoData.worldPosition;
+const poxiaoStarterItems = poxiaoData.starterItems;
+const poxiaoMartialByCharacter = poxiaoData.martialByCharacter;
+
 const PORT = Number(process.env.PORT || 3000);
 const HTTP_ONLY = process.env.HTTP_ONLY === '1';
 const ROOT_DIR = path.resolve(__dirname, '..');
@@ -29,14 +40,39 @@ const MAX_ROOM_CONNECTIONS = 11;
 const COMBAT_ATTACK_COOLDOWN_MS = Number(process.env.COMBAT_ATTACK_COOLDOWN_MS || 900);
 const XIEJIAN_CHARACTERS = new Set(Object.keys(characterDefinitions));
 const XIEJIAN_CHARACTER_NAMES = Object.fromEntries(Object.entries(characterDefinitions).map(([id, def]) => [id, def.name]));
+const POXIAO_CHARACTERS_SET = new Set(Object.keys(poxiaoCharacterDefinitions));
+const POXIAO_CHARACTER_NAMES = Object.fromEntries(Object.entries(poxiaoCharacterDefinitions).map(([id, def]) => [id, def.name]));
 // 全局角色名映射（所有信箱的角色）
 const GLOBAL_CHARACTER_NAMES = {
   ...XIEJIAN_CHARACTER_NAMES,
+  ...POXIAO_CHARACTER_NAMES,
   'xiu-jing': '修璟',
   'xuan-xuan': '萱宣',
 };
+// 寒门角色初始装备（复用既有 itemDefinitions 中的同类物品）
+// 修璟（儒生）→ 防身剑 + 儒生袍 + 玉佩；萱宣 → 白羽扇 + 书院外袍 + 白玉镯
+const HANMEN_STARTER_ITEMS = {
+  'xiu-jing': ['scholar_defensive_sword', 'scholar_robe', 'jade_pendant'],
+  'xuan-xuan': ['white_feather_fan', 'academy_outer_robe', 'white_jade_bracelet']
+};
+// 合并后的初始物品查询表（挟剑 + 寒门 + 破晓）
+const STARTER_ITEMS_ALL = { ...starterItems, ...HANMEN_STARTER_ITEMS, ...poxiaoStarterItems };
+// 合并后的道具定义查询表（挟剑 + 破晓）
+const ALL_ITEM_DEFINITIONS = { ...itemDefinitions, ...poxiaoItemDefinitions };
+// 统一位置函数：根据 mapKey 前缀分发到破晓或挟剑
+function unifiedWorldPosition(mapKey, nx, ny) {
+  if (String(mapKey || '').startsWith('px-')) return poxiaoWorldPosition(mapKey, nx, ny);
+  return worldPosition(mapKey, nx, ny);
+}
+function unifiedNodePosition(mapKey, nodeId, index) {
+  if (String(mapKey || '').startsWith('px-')) return poxiaoNodePosition(mapKey, nodeId, index);
+  return nodePosition(mapKey, nodeId, index);
+}
+// 寒门角色支持的武术值（与 characterDefinitions 解耦，default 模式下用）
+const HANMEN_MARTIAL = { 'xiu-jing': 4, 'xuan-xuan': 5 };
 const DEFINITIONS_VERSION = String(process.env.GAME_RESOURCE_VERSION || '20260802-domain-v1');
 const DEFAULT_XIEJIAN_MAP = 'xj-jingyuan';
+const DEFAULT_POXIAO_MAP = 'px-d-city';
 const ITEM_DATA_VERSION = 2;
 const MAP_SOURCE_NAMES = {
   'xj-jingyuan': '静远书院',
@@ -49,7 +85,13 @@ const MAP_SOURCE_NAMES = {
   'xj-ren': '任府',
   'xj-capital': '京城翰林院',
   'xj-forgetfulness': '忘川',
-  'xj-border': '边陲小镇'
+  'xj-border': '边陲小镇',
+  'px-d-city': 'D市总览',
+  'px-stella': 'STELLA画廊',
+  'px-seafood': '海鲜市场-冷库-生石灰厂',
+  'px-police': '公安大学',
+  'px-village': '西南边陲小村',
+  'px-docks': '郊区厂房-码头'
 };
 const NODE_SOURCE_NAMES = {
   disciple_rooms: '弟子厢房',
@@ -95,6 +137,7 @@ const SYSTEM_MAILBOXES = [
   ['mailbox-tianzhu', '天竺信笺', 'TZH4C9'], ['mailbox-rugu', '如故信笺', 'RUG5D2'],
   ['mailbox-taozhi', '桃止信笺', 'TAZ6E3'], ['mailbox-zhaixing', '摘星信笺', 'ZHX7F4'],
   ['mailbox-xiaowangzi', '小王子信笺', 'XWZ8G5'], ['mailbox-xiejian', '挟剑惊风', 'XJJ9H6'],
+  ['mailbox-poxiao', '破晓世界', 'PX2026'],
   ['mailbox-hanmen-duet', '寒门信笺', 'HNM2J7']
 ];
 const MAILBOX_CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
@@ -116,6 +159,7 @@ function emptyState() {
     combatProfiles: {},
     itemRespawns: [],
     worldSeedVersion: 0,
+    poxiaoSeedVersion: 0,
     itemDataVersion: 0
   };
 }
@@ -139,6 +183,7 @@ function loadState() {
       combatProfiles: parsed.combatProfiles || {},
       itemRespawns: parsed.itemRespawns || [],
       worldSeedVersion: Number(parsed.worldSeedVersion) || 0,
+      poxiaoSeedVersion: Number(parsed.poxiaoSeedVersion) || 0,
       itemDataVersion: Number(parsed.itemDataVersion) || 0
     };
   } catch (_) {
@@ -261,7 +306,7 @@ migrateLegacyCharacterIds();
 migrateWorldScopedRoles();
 
 function createItemInstance(instanceId, definitionId, location) {
-  const definition = itemDefinitions[definitionId];
+  const definition = ALL_ITEM_DEFINITIONS[definitionId];
   if (!definition) return null;
   return {
     instanceId,
@@ -315,6 +360,36 @@ function ensureWorldSeed() {
   }
 }
 
+function ensurePoxiaoWorldSeed() {
+  if (persistentState.poxiaoSeedVersion >= 1) return;
+  const itemsToSave = [];
+  for (const [mapKey, nodeId, definitionId] of poxiaoPlacements) {
+    const instanceId = `world:px:v1:${mapKey}:${definitionId}:1`;
+    if (persistentState.itemInstances[instanceId]) continue;
+    const position = poxiaoNodePosition(mapKey, nodeId, 0);
+    const instance = createItemInstance(instanceId, definitionId, {
+      locationType: 'world',
+      mapKey,
+      nodeId,
+      ...position,
+      origin: { type: 'map', mapKey, nodeId, ...position },
+      acquisition: { method: 'world', at: Date.now(), mapKey, nodeId }
+    });
+    if (instance) {
+      persistentState.itemInstances[instanceId] = instance;
+      itemsToSave.push(instance);
+    }
+  }
+  persistentState.poxiaoSeedVersion = 1;
+  if (isMysqlEnabled() && itemsToSave.length > 0) {
+    itemsToSave.forEach(item => {
+      mysqlDao.saveItemInstance(item).catch(err => {
+        console.warn('[ensurePoxiaoWorldSeed] 保存道具实例到 MySQL 失败:', err?.message || err);
+      });
+    });
+  }
+}
+
 function ensureInventory(accountKey) {
   if (!persistentState.inventories[accountKey]) {
     persistentState.inventories[accountKey] = {
@@ -345,7 +420,7 @@ function ensureCombatProfile(accountKey, characterId = '') {
     persistentState.combatProfiles[accountKey] = {
       hp: 100,
       maxHp: 100,
-      martial: martialByCharacter[characterId] || 0,
+      martial: martialByCharacter[characterId] || poxiaoMartialByCharacter[characterId] || HANMEN_MARTIAL[characterId] || 0,
       baseDefense: 4,
       poisonedUntil: 0,
       nextPoisonTickAt: 0,
@@ -359,19 +434,40 @@ function ensureCombatProfile(accountKey, characterId = '') {
   const profile = persistentState.combatProfiles[accountKey];
   profile.maxHp = 100;
   profile.hp = Math.max(0, Math.min(100, Number(profile.hp ?? 100)));
-  profile.martial = martialByCharacter[characterId] || Number(profile.martial) || 0;
+  profile.martial = martialByCharacter[characterId] || poxiaoMartialByCharacter[characterId] || HANMEN_MARTIAL[characterId] || Number(profile.martial) || 0;
   profile.baseDefense = 4;
   return profile;
 }
 
 function grantStarterItems(accountKey, characterId) {
   const inventory = ensureInventory(accountKey);
-  if (!characterId || inventory.starterGrantVersion >= 1) {
+  if (!characterId) {
     ensureCombatProfile(accountKey, characterId);
     return;
   }
-  for (const definitionId of starterItems[characterId] || []) {
-    const instanceId = `starter:v1:${accountKey}:${definitionId}`;
+  // 角色切换时（如从挟剑角色切换到寒门角色）需要重新发放并替换装备
+  const characterChanged = inventory.starterCharacterId && inventory.starterCharacterId !== characterId;
+  // 从 v1/v2 升级到 v3 时，也需要清空旧 starter 装备（starterCharacterId 可能未记录或装备未替换）
+  const upgradingFromOld = inventory.starterGrantVersion < 3;
+  if (inventory.starterGrantVersion >= 3 && !characterChanged) {
+    ensureCombatProfile(accountKey, characterId);
+    return;
+  }
+  // 合并查询：挟剑 starterItems + 寒门 HANMEN_STARTER_ITEMS
+  const list = STARTER_ITEMS_ALL[characterId] || [];
+  // 角色切换或旧版本升级时，清空旧 starter 装备槽，让新角色装备能顶上
+  if (characterChanged || upgradingFromOld) {
+    for (const slot of ['weapon', 'clothing', 'accessory']) {
+      const oldId = inventory.equipment[slot];
+      if (oldId && String(oldId).startsWith('starter:')) {
+        inventory.equipment[slot] = '';
+        const oldInst = persistentState.itemInstances[oldId];
+        if (oldInst) oldInst.equippedSlot = '';
+      }
+    }
+  }
+  for (const definitionId of list) {
+    const instanceId = `starter:v2:${accountKey}:${definitionId}`;
     if (!persistentState.itemInstances[instanceId]) {
       persistentState.itemInstances[instanceId] = createItemInstance(instanceId, definitionId, {
         locationType: 'inventory',
@@ -381,20 +477,44 @@ function grantStarterItems(accountKey, characterId) {
       });
     }
     if (!inventory.itemIds.includes(instanceId)) inventory.itemIds.push(instanceId);
-    const slot = itemDefinitions[definitionId]?.equipmentSlot;
+    const slot = ALL_ITEM_DEFINITIONS[definitionId]?.equipmentSlot;
     if (slot && !inventory.equipment[slot]) {
       inventory.equipment[slot] = instanceId;
       persistentState.itemInstances[instanceId].equippedSlot = slot;
     }
   }
-  inventory.starterGrantVersion = 1;
+  inventory.starterGrantVersion = 3;
+  inventory.starterCharacterId = characterId;
   ensureCombatProfile(accountKey, characterId);
+  // 同步到 MySQL（物品实例 + 背包），保证跨重启持久化
+  if (isMysqlEnabled()) {
+    for (const definitionId of list) {
+      const instanceId = `starter:v2:${accountKey}:${definitionId}`;
+      const inst = persistentState.itemInstances[instanceId];
+      if (inst) {
+        mysqlDao.saveItemInstance(inst).catch(err => {
+          console.warn('[grantStarterItems] 保存初始物品到 MySQL 失败:', err?.message || err);
+        });
+      }
+    }
+    // 注意：mysqlDao.saveInventory 读取 inventory.items，而本地结构用 itemIds，需要映射
+    mysqlDao.saveInventory(accountKey, {
+      items: inventory.itemIds,
+      equipment: inventory.equipment,
+      quickSlots: inventory.quickSlots,
+      starterGrantVersion: inventory.starterGrantVersion,
+      starterCharacterId: inventory.starterCharacterId,
+      pendingCoating: inventory.pendingCoating
+    }).catch(err => {
+      console.warn('[grantStarterItems] 保存背包到 MySQL 失败:', err?.message || err);
+    });
+  }
 }
 
 function originLabel(instance) {
   const origin = instance?.origin || {};
   if (origin.starterCharacterId) {
-    const characterName = XIEJIAN_CHARACTER_NAMES[origin.starterCharacterId] || origin.starterCharacterId;
+    const characterName = GLOBAL_CHARACTER_NAMES[origin.starterCharacterId] || origin.starterCharacterId;
     return `来自 ${characterName}的初始行囊`;
   }
   if (origin.mapKey) {
@@ -460,11 +580,16 @@ function ensureItemMetadata() {
 
 function publicInstance(instance) {
   if (!instance) return null;
-  const definition = itemDefinitions[instance.definitionId];
+  const definition = ALL_ITEM_DEFINITIONS[instance.definitionId];
   if (!definition) return null;
-  const position = instance.locationType === 'world'
-    ? worldPosition(instance.mapKey, instance.nx, instance.ny)
-    : { x: 0, y: 0 };
+  let position = { x: 0, y: 0 };
+  if (instance.locationType === 'world') {
+    // 优先使用 origin.nx/ny（节点归一化坐标，历史数据可能 instance.nx/ny 为旧版算法残留）
+    // 兼容历史数据：若 nx/ny 是整数（0/1）或与 origin 不一致，以 origin 为准
+    const nx = Number(instance.origin?.nx ?? instance.nx);
+    const ny = Number(instance.origin?.ny ?? instance.ny);
+    position = unifiedWorldPosition(instance.mapKey, nx, ny);
+  }
   return {
     ...instance,
     ...position,
@@ -485,8 +610,24 @@ function inventoryState(accountKey) {
   };
 }
 
+// 解析账号当前绑定的角色 ID（优先 mailbox.memberCharacters，其次 account.role，最后 xiejianCharacterId）
+function resolveCharacterId(accountKey, mailboxId = '') {
+  if (mailboxId) {
+    const mailbox = persistentState.mailboxes[mailboxId];
+    if (mailbox?.memberCharacters && mailbox.memberCharacters[accountKey]) {
+      const raw = mailbox.memberCharacters[accountKey];
+      const cid = typeof raw === 'string' ? raw : (raw.characterId || raw.id || '');
+      if (cid) return cid;
+    }
+  }
+  const account = persistentState.accounts[accountKey];
+  if (account?.role === 'xiu-jing' || account?.role === 'xuan-xuan') return account.role;
+  const profile = accountProfile(accountKey);
+  return profile.poxiaoCharacterId || profile.xiejianCharacterId || '';
+}
+
 function combatState(accountKey) {
-  const characterId = accountProfile(accountKey).xiejianCharacterId || '';
+  const characterId = resolveCharacterId(accountKey);
   const profile = ensureCombatProfile(accountKey, characterId);
   const inventory = ensureInventory(accountKey);
   let attackBonus = 0;
@@ -494,7 +635,7 @@ function combatState(accountKey) {
   const equipped = {};
   for (const [slot, instanceId] of Object.entries(inventory.equipment)) {
     const instance = persistentState.itemInstances[instanceId];
-    const definition = instance && itemDefinitions[instance.definitionId];
+    const definition = instance && ALL_ITEM_DEFINITIONS[instance.definitionId];
     if (!definition) continue;
     equipped[slot] = { instanceId, definitionId: definition.id, icon: definition.icon, name: definition.name };
     attackBonus += definition.attackBonus || 0;
@@ -524,6 +665,7 @@ function worldItemsForMap(mapKey) {
 
 if (!HTTP_ONLY) {
   ensureWorldSeed();
+  ensurePoxiaoWorldSeed();
   for (const [accountKey, profile] of Object.entries(persistentState.profiles)) {
     if (profile?.xiejianCharacterId) grantStarterItems(accountKey, profile.xiejianCharacterId);
   }
@@ -552,7 +694,9 @@ function accountProfile(accountKey, worldId = 'mailbox-xiejian') {
   if (!persistentState.worldProfiles[worldId][accountKey]) {
     persistentState.worldProfiles[worldId][accountKey] = {
       xiejianCharacterId: '',
-      lastXiejianMapKey: DEFAULT_XIEJIAN_MAP
+      lastXiejianMapKey: DEFAULT_XIEJIAN_MAP,
+      poxiaoCharacterId: '',
+      lastPoxiaoMapKey: DEFAULT_POXIAO_MAP
     };
   }
   return persistentState.worldProfiles[worldId][accountKey];
@@ -626,9 +770,12 @@ function getAccountIdentity(accountKey, mailboxId) {
     }
   }
   
-  // 2. 如果 mailbox 没有，再从 worldProfiles 获取（挟剑地图）
+  // 2. 如果 mailbox 没有，再从 worldProfiles 获取（挟剑/破晓地图）
   if (!characterId && mailboxId === 'mailbox-xiejian' && profile.xiejianCharacterId) {
     characterId = profile.xiejianCharacterId;
+  }
+  if (!characterId && mailboxId === 'mailbox-poxiao' && profile.poxiaoCharacterId) {
+    characterId = profile.poxiaoCharacterId;
   }
   
   // 3. 从 account.role 获取（寒门双主角）
@@ -644,6 +791,8 @@ function getAccountIdentity(accountKey, mailboxId) {
     identityName = GLOBAL_CHARACTER_NAMES[characterId];
   } else if (mailboxId === 'mailbox-xiejian' && characterId) {
     identityName = XIEJIAN_CHARACTER_NAMES[characterId] || characterId;
+  } else if (mailboxId === 'mailbox-poxiao' && characterId) {
+    identityName = POXIAO_CHARACTER_NAMES[characterId] || characterId;
   } else if (mailboxId === 'mailbox-hanmen-duet') {
     if (account.role === 'xiu-jing') identityName = '修璟';
     if (account.role === 'xuan-xuan') identityName = '萱宣';
@@ -654,7 +803,7 @@ function getAccountIdentity(accountKey, mailboxId) {
     username: account.username,
     displayName: account.displayName,
     role: account.role,
-    characterId: characterId || (mailboxId === 'mailbox-xiejian' ? profile.xiejianCharacterId : account.role),
+    characterId: characterId || (mailboxId === 'mailbox-xiejian' ? profile.xiejianCharacterId : (mailboxId === 'mailbox-poxiao' ? profile.poxiaoCharacterId : account.role)),
     identityName
   };
 }
@@ -665,6 +814,7 @@ function getMailboxRecipients(mailboxId, requesterKey) {
     .map(accountKey => getAccountIdentity(accountKey, mailboxId))
     .filter(identity => {
       if (mailboxId === 'mailbox-xiejian') return Boolean(identity.characterId);
+      if (mailboxId === 'mailbox-poxiao') return Boolean(identity.characterId);
       if (mailboxId === 'mailbox-hanmen-duet') {
         return identity.role === 'xiu-jing' || identity.role === 'xuan-xuan';
       }
@@ -706,7 +856,7 @@ function normalizeAttachmentIds(value) {
 }
 
 function attachmentSnapshot(instance, status = 'escrow') {
-  const definition = itemDefinitions[instance.definitionId];
+  const definition = ALL_ITEM_DEFINITIONS[instance.definitionId];
   return {
     instanceId: instance.instanceId,
     definitionId: instance.definitionId,
@@ -813,6 +963,12 @@ async function handleApi(req, res, parsedUrl) {
         jsonResponse(res, 400, { error: 'invalid_account' });
         return true;
       }
+      // 确保账号按当前绑定角色发放初始装备（寒门角色也会在此补发）
+      const characterId = resolveCharacterId(accountKey);
+      if (characterId) {
+        grantStarterItems(accountKey, characterId);
+        saveState();
+      }
       jsonResponse(res, 200, { inventory: inventoryState(accountKey) });
       return true;
     }
@@ -820,11 +976,11 @@ async function handleApi(req, res, parsedUrl) {
     if (req.method === 'GET' && parsedUrl.pathname === '/api/game/world-items') {
       const accountKey = normalizeAccountKey(parsedUrl.searchParams.get('accountKey'));
       const mapKey = String(parsedUrl.searchParams.get('mapKey') || '');
-      if (!accountKey || !mapKey) {
+      if (!mapKey) {
         jsonResponse(res, 400, { error: 'invalid_world_item_query' });
         return true;
       }
-      jsonResponse(res, 200, { mapKey, items: worldItemsForMap(mapKey) });
+      jsonResponse(res, 200, { mapKey, accountKey: accountKey || '', items: worldItemsForMap(mapKey) });
       return true;
     }
 
@@ -1791,14 +1947,16 @@ if (!HTTP_ONLY) {
             role: message.role || 'user'
           });
           const profile = accountProfile(clientId, currentRoomId);
-          const mode = message.mode === 'xiejian' ? 'xiejian' : 'default';
-          const initialCharacter = mode === 'xiejian'
-            ? String(profile.xiejianCharacterId || '')
+          const mode = (message.mode === 'xiejian' || message.mode === 'poxiao') ? message.mode : 'default';
+          const isGameMode = mode === 'xiejian' || mode === 'poxiao';
+          const initialCharacter = isGameMode
+            ? String((mode === 'poxiao' ? profile.poxiaoCharacterId : profile.xiejianCharacterId) || '')
             : String(message.characterId || '');
-          const initialMapKey = mode === 'xiejian'
-            ? String(profile.lastXiejianMapKey || DEFAULT_XIEJIAN_MAP)
+          const initialMapKey = isGameMode
+            ? String((mode === 'poxiao' ? (profile.lastPoxiaoMapKey || DEFAULT_POXIAO_MAP) : (profile.lastXiejianMapKey || DEFAULT_XIEJIAN_MAP)) || '')
             : String(message.mapKey || '');
-          if (mode === 'xiejian' && initialCharacter) {
+          if (initialCharacter) {
+            // 挟剑模式 与 寒门(default)模式 都发放初始装备
             grantStarterItems(clientId, initialCharacter);
           }
 
@@ -1823,7 +1981,7 @@ if (!HTTP_ONLY) {
             action: message.action || 'personality',
             frame: Number(message.frame) || 0,
             moving: false,
-            ready: mode !== 'xiejian' || Boolean(initialCharacter),
+            ready: !isGameMode || Boolean(initialCharacter),
             lastUpdate: Date.now(),
             isOnline: true
           };
@@ -1839,12 +1997,14 @@ if (!HTTP_ONLY) {
             accountProfile: {
               accountKey: clientId,
               xiejianCharacterId: profile.xiejianCharacterId || '',
-              lastXiejianMapKey: profile.lastXiejianMapKey || DEFAULT_XIEJIAN_MAP
+              lastXiejianMapKey: profile.lastXiejianMapKey || DEFAULT_XIEJIAN_MAP,
+              poxiaoCharacterId: profile.poxiaoCharacterId || '',
+              lastPoxiaoMapKey: profile.lastPoxiaoMapKey || DEFAULT_POXIAO_MAP
             },
-            itemDefinitions: mode === 'xiejian' ? itemDefinitions : {},
-            inventory: mode === 'xiejian' ? inventoryState(clientId) : null,
-            combatProfile: mode === 'xiejian' ? combatState(clientId) : null,
-            worldItems: mode === 'xiejian' ? worldItemsForMap(initialMapKey) : [],
+            itemDefinitions: isGameMode ? ALL_ITEM_DEFINITIONS : {},
+            inventory: isGameMode ? inventoryState(clientId) : null,
+            combatProfile: isGameMode ? combatState(clientId) : null,
+            worldItems: isGameMode ? worldItemsForMap(initialMapKey) : [],
             definitionsVersion: DEFINITIONS_VERSION
           });
 
@@ -1852,7 +2012,7 @@ if (!HTTP_ONLY) {
             broadcastToRoom(currentRoomId, {
               type: 'join',
               ...room.players[clientId],
-              combat: mode === 'xiejian' ? combatState(clientId) : null,
+              combat: isGameMode ? combatState(clientId) : null,
               timestamp: Date.now()
             }, clientId);
           }
@@ -1871,7 +2031,8 @@ if (!HTTP_ONLY) {
 
         if (message.type === 'select_character') {
           const characterId = String(message.characterId || '');
-          if (!XIEJIAN_CHARACTERS.has(characterId)) {
+          const isPoxiaoChar = POXIAO_CHARACTERS_SET.has(characterId);
+          if (!XIEJIAN_CHARACTERS.has(characterId) && !isPoxiaoChar) {
             send(ws, { type: 'character_rejected', characterId, reason: 'unavailable' });
             return;
           }
@@ -1888,17 +2049,20 @@ if (!HTTP_ONLY) {
 
           // If player has a bound character and it's not the target character,
           // allow switching only if target is not occupied (already checked above)
-          if (profile.xiejianCharacterId && profile.xiejianCharacterId !== characterId) {
+          const profileCharKey = isPoxiaoChar ? 'poxiaoCharacterId' : 'xiejianCharacterId';
+          const profileMapKey = isPoxiaoChar ? 'lastPoxiaoMapKey' : 'lastXiejianMapKey';
+          const defaultMap = isPoxiaoChar ? DEFAULT_POXIAO_MAP : DEFAULT_XIEJIAN_MAP;
+          if (profile[profileCharKey] && profile[profileCharKey] !== characterId) {
             // Remove the old character binding
-            delete worldBindings[profile.xiejianCharacterId];
+            delete worldBindings[profile[profileCharKey]];
           }
 
-          const previousCharacter = profile.xiejianCharacterId || player.characterId;
+          const previousCharacter = profile[profileCharKey] || player.characterId;
           worldBindings[characterId] = clientId;
-          profile.xiejianCharacterId = characterId;
-          profile.lastXiejianMapKey = profile.lastXiejianMapKey || DEFAULT_XIEJIAN_MAP;
+          profile[profileCharKey] = characterId;
+          profile[profileMapKey] = profile[profileMapKey] || defaultMap;
           player.characterId = characterId;
-          player.mapKey = profile.lastXiejianMapKey;
+          player.mapKey = profile[profileMapKey];
           player.ready = true;
           player.lastUpdate = Date.now();
           grantStarterItems(clientId, characterId);
@@ -1908,7 +2072,7 @@ if (!HTTP_ONLY) {
             type: 'character_selected',
             characterId,
             previousCharacter,
-            mapKey: profile.lastXiejianMapKey,
+            mapKey: profile[profileMapKey],
             occupiedCharacters: getOccupiedCharacters(currentRoomId),
             roleBindings: worldBindings,
             permanent: true
@@ -1933,7 +2097,9 @@ if (!HTTP_ONLY) {
         if (message.type === 'map_change') {
           if (!player.ready) return;
           const requestedMapKey = String(message.mapKey || '');
-          if (!mapDimensions[requestedMapKey]) {
+          const isPoxiaoMap = String(requestedMapKey).startsWith('px-');
+          const validMap = isPoxiaoMap ? poxiaoMapDimensions[requestedMapKey] : mapDimensions[requestedMapKey];
+          if (!validMap) {
             send(ws, { type: 'map_change_rejected', reason: 'invalid_map', mapKey: requestedMapKey });
             return;
           }
@@ -1942,7 +2108,11 @@ if (!HTTP_ONLY) {
           player.y = Number(message.y) || 0;
           player.lastUpdate = Date.now();
           const profile = accountProfile(clientId, currentRoomId);
-          profile.lastXiejianMapKey = player.mapKey || DEFAULT_XIEJIAN_MAP;
+          if (isPoxiaoMap) {
+            profile.lastPoxiaoMapKey = player.mapKey;
+          } else {
+            profile.lastXiejianMapKey = player.mapKey || DEFAULT_XIEJIAN_MAP;
+          }
           saveState();
           send(ws, {
             type: 'world_items',
@@ -1994,7 +2164,7 @@ if (!HTTP_ONLY) {
         if (message.type === 'item_pickup') {
           const instanceId = String(message.instanceId || '');
           const instance = persistentState.itemInstances[instanceId];
-          const definition = instance && itemDefinitions[instance.definitionId];
+          const definition = instance && ALL_ITEM_DEFINITIONS[instance.definitionId];
           if (!instance || instance.locationType !== 'world') {
             rejectItem(ws, 'pickup', 'already_taken', { instanceId });
             return;
@@ -2003,7 +2173,7 @@ if (!HTTP_ONLY) {
             rejectItem(ws, 'pickup', 'different_map', { instanceId });
             return;
           }
-          const itemPosition = worldPosition(instance.mapKey, instance.nx, instance.ny);
+          const itemPosition = unifiedWorldPosition(instance.mapKey, instance.nx, instance.ny);
           if (distanceBetween(player, itemPosition) > 80) {
             rejectItem(ws, 'pickup', 'too_far', { instanceId });
             return;
@@ -2126,7 +2296,7 @@ if (!HTTP_ONLY) {
             method: 'gift',
             at: Date.now(),
             fromAccountKey: clientId,
-            fromIdentity: getAccountIdentity(clientId, 'mailbox-xiejian').identityName
+            fromIdentity: getAccountIdentity(clientId, currentRoomId).identityName
           };
           saveState();
           sendInventory(ws, clientId);
@@ -2140,7 +2310,7 @@ if (!HTTP_ONLY) {
           const instanceId = String(message.instanceId || '');
           const inventory = ensureInventory(clientId);
           const instance = persistentState.itemInstances[instanceId];
-          const definition = instance && itemDefinitions[instance.definitionId];
+          const definition = instance && ALL_ITEM_DEFINITIONS[instance.definitionId];
           if (!instance || instance.ownerAccountKey !== clientId || !inventory.itemIds.includes(instanceId)) {
             rejectItem(ws, 'equip', 'not_owned', { instanceId });
             return;
@@ -2176,7 +2346,7 @@ if (!HTTP_ONLY) {
           const instanceId = String(message.instanceId || '');
           const inventory = ensureInventory(clientId);
           const instance = persistentState.itemInstances[instanceId];
-          const definition = instance && itemDefinitions[instance.definitionId];
+          const definition = instance && ALL_ITEM_DEFINITIONS[instance.definitionId];
           if (!instance || instance.ownerAccountKey !== clientId || !inventory.itemIds.includes(instanceId)) {
             rejectItem(ws, 'use', 'not_owned', { instanceId });
             return;
@@ -2295,22 +2465,25 @@ if (!HTTP_ONLY) {
           sendInventory(targetClient.ws, targetAccountKey);
           if (targetCombat.hp <= 0) {
             const defeatedMap = target.mapKey;
+            const isPoxiaoWorld = String(defeatedMap).startsWith('px-');
+            const returnMap = isPoxiaoWorld ? DEFAULT_POXIAO_MAP : DEFAULT_XIEJIAN_MAP;
             targetCombat.hp = 100;
             targetCombat.poisonedUntil = 0;
             targetCombat.nextPoisonTickAt = 0;
             targetCombat.immobilizedUntil = 0;
             targetCombat.invulnerableUntil = now + 5000;
-            target.mapKey = DEFAULT_XIEJIAN_MAP;
-            const spawn = worldPosition(DEFAULT_XIEJIAN_MAP, 0.5, 0.82);
+            target.mapKey = returnMap;
+            const spawn = unifiedWorldPosition(returnMap, 0.5, 0.82);
             target.x = spawn.x;
             target.y = spawn.y;
             const targetProfile = accountProfile(targetAccountKey, currentRoomId);
-            targetProfile.lastXiejianMapKey = DEFAULT_XIEJIAN_MAP;
+            if (isPoxiaoWorld) targetProfile.lastPoxiaoMapKey = returnMap;
+            else targetProfile.lastXiejianMapKey = returnMap;
             broadcastToMap(room, defeatedMap, {
               type: 'player_defeated',
               userId: targetAccountKey,
               byAccountKey: clientId,
-              returnMapKey: DEFAULT_XIEJIAN_MAP,
+              returnMapKey: returnMap,
               x: target.x,
               y: target.y,
               timestamp: now
@@ -2319,22 +2492,22 @@ if (!HTTP_ONLY) {
               type: 'player_defeated',
               userId: targetAccountKey,
               byAccountKey: clientId,
-              returnMapKey: DEFAULT_XIEJIAN_MAP,
+              returnMapKey: returnMap,
               x: target.x,
               y: target.y,
               timestamp: now
             });
             send(targetClient.ws, {
               type: 'world_items',
-              mapKey: DEFAULT_XIEJIAN_MAP,
-              items: worldItemsForMap(DEFAULT_XIEJIAN_MAP),
+              mapKey: returnMap,
+              items: worldItemsForMap(returnMap),
               timestamp: now
             });
             sendInventory(targetClient.ws, targetAccountKey);
             broadcastToRoom(currentRoomId, {
               type: 'map_change',
               userId: targetAccountKey,
-              mapKey: DEFAULT_XIEJIAN_MAP,
+              mapKey: returnMap,
               x: target.x,
               y: target.y,
               timestamp: now
@@ -2524,21 +2697,25 @@ if (!HTTP_ONLY) {
       if (combat.hp > 0) continue;
 
       const oldMapKey = player.mapKey;
+      const isPoxiaoWorld = String(oldMapKey).startsWith('px-');
+      const returnMap = isPoxiaoWorld ? DEFAULT_POXIAO_MAP : DEFAULT_XIEJIAN_MAP;
       combat.hp = 100;
       combat.poisonedUntil = 0;
       combat.nextPoisonTickAt = 0;
       combat.immobilizedUntil = 0;
       combat.invulnerableUntil = now + 5000;
-      player.mapKey = DEFAULT_XIEJIAN_MAP;
-      const spawn = worldPosition(DEFAULT_XIEJIAN_MAP, 0.5, 0.82);
+      player.mapKey = returnMap;
+      const spawn = unifiedWorldPosition(returnMap, 0.5, 0.82);
       player.x = spawn.x;
       player.y = spawn.y;
-      accountProfile(accountKey, session.roomId).lastXiejianMapKey = DEFAULT_XIEJIAN_MAP;
+      const poisonProfile = accountProfile(accountKey, session.roomId);
+      if (isPoxiaoWorld) poisonProfile.lastPoxiaoMapKey = returnMap;
+      else poisonProfile.lastXiejianMapKey = returnMap;
       broadcastToMap(room, oldMapKey, {
         type: 'player_defeated',
         userId: accountKey,
         byAccountKey: 'status:poison',
-        returnMapKey: DEFAULT_XIEJIAN_MAP,
+        returnMapKey: returnMap,
         x: player.x,
         y: player.y,
         timestamp: now
@@ -2547,22 +2724,22 @@ if (!HTTP_ONLY) {
         type: 'player_defeated',
         userId: accountKey,
         byAccountKey: 'status:poison',
-        returnMapKey: DEFAULT_XIEJIAN_MAP,
+        returnMapKey: returnMap,
         x: player.x,
         y: player.y,
         timestamp: now
       });
       send(client.ws, {
         type: 'world_items',
-        mapKey: DEFAULT_XIEJIAN_MAP,
-        items: worldItemsForMap(DEFAULT_XIEJIAN_MAP),
+        mapKey: returnMap,
+        items: worldItemsForMap(returnMap),
         timestamp: now
       });
       sendInventory(client.ws, accountKey);
       broadcastToRoom(room.id, {
         type: 'map_change',
         userId: accountKey,
-        mapKey: DEFAULT_XIEJIAN_MAP,
+        mapKey: returnMap,
         x: player.x,
         y: player.y,
         timestamp: now

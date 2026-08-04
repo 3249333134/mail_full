@@ -1,7 +1,7 @@
 import { TILE, MAP_W, MAP_H, PLAYER_SPEED, TILE_TYPE, TILE_SOLID } from '../sendbox/src/gameConfig.js';
 import { PixelArt } from '../sendbox/src/pixelArt.js';
 import { MapManager, PRESET_MAPS } from '../sendbox/src/mapManager.js';
-import { AssetManager } from '../sendbox/src/assetManager.js?v=20260804b';
+import { AssetManager } from '../sendbox/src/assetManager.js?v=20260804r';
 import { ASSET_CATEGORIES } from '../sendbox/src/assetManifest.js';
 
 // ===== 模块化数据接入（替换点A：优先用 CharacterSystem / MapSystem，缺失再兜底）=====
@@ -12,7 +12,16 @@ import { RemoteResourceLoader } from './game/remote/RemoteResourceLoader.js';
 const ASSET_BASE = './sendbox/src/assets/';
 const XIEJIAN_CHARACTER_ROOT = '../../fill/jingyuan-chibi20-delivery-20260719';
 
-AssetManager.getAssetUrl = (relativePath) => ASSET_BASE + relativePath;
+// 避免重复前缀：部分资源路径（如道具 icon）已含 "sendbox/src/assets/" 前缀，
+// 再拼接 ASSET_BASE 会导致 "./sendbox/src/assets/sendbox/src/assets/..." 双重前缀 404。
+// 此处统一去重：若 relativePath 已含 ASSET_BASE 去掉 "./" 后的前缀，则只拼接一次。
+const ASSET_BASE_CLEAN = ASSET_BASE.replace(/^\.\//, '');
+AssetManager.getAssetUrl = (relativePath) => {
+  if (typeof relativePath === 'string' && relativePath.startsWith(ASSET_BASE_CLEAN)) {
+    return ASSET_BASE + relativePath.slice(ASSET_BASE_CLEAN.length);
+  }
+  return ASSET_BASE + relativePath;
+};
 AssetManager.getAssetUrls = (relativePath) => RemoteResourceLoader.resolveAssetCandidates(relativePath, ASSET_BASE);
 
 const _JINGYUAN_CHARACTERS_FALLBACK = [
@@ -84,10 +93,39 @@ const JINGYUAN_CHARACTERS = JINGYUAN_CHARACTERS_PROXY;
 const HANMEN_CHARACTERS = HANMEN_CHARACTERS_PROXY;
 const MAIN_CHARACTERS = MAIN_CHARACTERS_PROXY;
 
+const _POXIAO_CHARACTERS_FALLBACK = [
+  { id: 'px-tangqi', name: '唐岐', dir: 'tang_qi', sect: '缉毒警', portraitPath: 'poxiao/characters/portraits/07_tang_qi.png', martial: 7, defaultItems: ['handcuffs', 'evidence_syringe'], actions: ['personality', 'run', 'etiquette', 'martial', 'signature'] },
+  { id: 'px-lipingchuan', name: '李平川', dir: 'li_pingchuan', sect: '奶茶店老板', portraitPath: 'poxiao/characters/portraits/05_li_pingchuan.png', martial: 5, defaultItems: ['red_scarf', 'star_flower'], actions: ['personality', 'run', 'etiquette', 'martial', 'signature'] },
+  { id: 'px-jiangyan', name: '江宴', dir: 'jiang_yan', sect: '法医', portraitPath: 'poxiao/characters/portraits/03_jiang_yan.png', martial: 3, defaultItems: ['olive_sapling', 'casablanca_lilies'], actions: ['personality', 'run', 'etiquette', 'martial', 'signature'] },
+  { id: 'px-xinghe', name: '沈星何', dir: 'shen_xinghe', sect: '情报科', portraitPath: 'poxiao/characters/portraits/06_shen_xinghe.png', martial: 4, defaultItems: ['half_jade_pendant', 'goldfish_bowl'], actions: ['personality', 'run', 'etiquette', 'martial', 'signature'] },
+  { id: 'px-heyinsheng', name: '贺引生', dir: 'he_yinsheng', sect: '缉毒警', portraitPath: 'poxiao/characters/portraits/02_he_yinsheng.png', martial: 6, defaultItems: ['super_s_necklace', 'protection_talisman', 'crystal_pendant'], actions: ['personality', 'run', 'etiquette', 'martial', 'signature'] },
+  { id: 'px-chenzhou', name: '陈昼', dir: 'chen_zhou', sect: '卧底', portraitPath: 'poxiao/characters/portraits/04_chen_zhou.png', martial: 8, defaultItems: ['rainflower_stone', 'divination_pendant'], actions: ['personality', 'run', 'etiquette', 'martial', 'signature'] },
+  { id: 'px-zhouran', name: '周然', dir: 'zhou_ran', sect: '画家', portraitPath: 'poxiao/characters/portraits/01_zhou_ran.png', martial: 5, defaultItems: ['painter_apron', 'divorce_agreement', 'legless_bird_board'], actions: ['personality', 'run', 'etiquette', 'martial', 'signature'] },
+];
+function _getPOXIAO() {
+  try {
+    if (typeof CharacterSystem !== 'undefined' && CharacterSystem.getCharacterListForCategory) {
+      return CharacterSystem.getCharacterListForCategory('poxiao');
+    }
+  } catch (_) {}
+  return _POXIAO_CHARACTERS_FALLBACK;
+}
+const POXIAO_CHARACTERS_PROXY = new Proxy(_POXIAO_CHARACTERS_FALLBACK, {
+  get(target, prop, receiver) {
+    const list = _getPOXIAO();
+    if (prop === 'length') return list.length;
+    if (typeof prop === 'string' && /^\d+$/.test(prop)) return list[Number(prop)];
+    const value = list[prop];
+    return typeof value === 'function' ? value.bind(list) : value;
+  }
+});
+const POXIAO_CHARACTERS = POXIAO_CHARACTERS_PROXY;
+
 const CHARACTER_CATEGORIES = [
   { key: 'jingyuan', name: '静远七人', icon: '🎭' },
   { key: 'hanmen', name: '寒门', icon: '🏮' },
   { key: 'main', name: '主角', icon: '🦸' },
+  { key: 'poxiao', name: '破晓', icon: '🌅' },
 ];
 
 export class GameMapRenderer {
@@ -128,6 +166,8 @@ export class GameMapRenderer {
     this.keys = {};
     this.time = 0;
     this.lastTime = 0;
+    this._lastRenderedAction = null;
+    this._actionChangeTime = 0;
     this.rafId = null;
     this.currentMapIndex = 5; // 默认：寒门；初始化时会通过名称再次校正
     this.selectedCharacter = 'xiu-jing';
@@ -142,7 +182,12 @@ export class GameMapRenderer {
     this.duetFrames = null;
     this.duetActions = ['行礼', '书画', '赏画', '撑伞', '簪花', '赠礼', '共读', '奔跑', '品茶', '舞剑'];
     this.assetManager = AssetManager;
-    this.assetManager.getAssetUrl = (relativePath) => ASSET_BASE + relativePath;
+    this.assetManager.getAssetUrl = (relativePath) => {
+      if (typeof relativePath === 'string' && relativePath.startsWith(ASSET_BASE_CLEAN)) {
+        return ASSET_BASE + relativePath.slice(ASSET_BASE_CLEAN.length);
+      }
+      return ASSET_BASE + relativePath;
+    };
     this.assetManager.getAssetUrls = (relativePath) => RemoteResourceLoader.resolveAssetCandidates(relativePath, ASSET_BASE);
     this.joystick = { x: 0, y: 0 };
     this.mapBackground = null;
@@ -236,7 +281,7 @@ export class GameMapRenderer {
   }
 
   getWorldSize() {
-    if (this.selectedCategory === 'xiejian' && this.mapBackgroundLoaded) {
+    if ((this.selectedCategory === 'xiejian' || this.selectedCategory === 'poxiao') && this.mapBackgroundLoaded) {
       return {
         width: this.backgroundWorldWidth,
         height: this.backgroundWorldHeight
@@ -329,6 +374,8 @@ export class GameMapRenderer {
       await this.loadJingyuanCharacter(char.dir, 'xiejian');
     } else if (HANMEN_CHARACTERS.some(c => c.id === charId)) {
       await this.loadJingyuanCharacter(char.dir, 'hanmen');
+    } else if (POXIAO_CHARACTERS.some(c => c.id === charId)) {
+      await this.loadJingyuanCharacter(char.dir, 'poxiao');
     } else {
       await this.loadMainCharacter(char.group);
     }
@@ -340,7 +387,7 @@ export class GameMapRenderer {
   }
 
   isJingyuanCharacter(charId) {
-    return JINGYUAN_CHARACTERS.some(c => c.id === charId) || HANMEN_CHARACTERS.some(c => c.id === charId);
+    return JINGYUAN_CHARACTERS.some(c => c.id === charId) || HANMEN_CHARACTERS.some(c => c.id === charId) || POXIAO_CHARACTERS.some(c => c.id === charId);
   }
 
   getCharacterInfo(charId) {
@@ -348,6 +395,8 @@ export class GameMapRenderer {
     if (jingyuan) return jingyuan;
     const hanmen = HANMEN_CHARACTERS.find(c => c.id === charId);
     if (hanmen) return hanmen;
+    const poxiao = POXIAO_CHARACTERS.find(c => c.id === charId);
+    if (poxiao) return poxiao;
     const main = MAIN_CHARACTERS.find(c => c.id === charId);
     if (main) return main;
     return null;
@@ -355,7 +404,7 @@ export class GameMapRenderer {
 
   async loadSpritesheetFrames(charDir, category) {
     const frames = {};
-    const model = [...CharacterSystem.getAllIds().jingyuan, ...CharacterSystem.getAllIds().hanmen]
+    const model = [...CharacterSystem.getAllIds().jingyuan, ...CharacterSystem.getAllIds().hanmen, ...CharacterSystem.getAllIds().poxiao]
       .map(id => CharacterSystem.getCharacter(id))
       .find(character => character?.dir === charDir);
     if (model) {
@@ -369,7 +418,7 @@ export class GameMapRenderer {
     if (!charDir.startsWith('xiujing-xuanxuan/')) {
       // 旧的静远七人结构
       const actions = ['personality', 'run', 'etiquette', 'martial', 'signature'];
-      const characterBase = category === 'xiejian'
+      const characterBase = (category === 'xiejian' || category === 'poxiao')
         ? `${XIEJIAN_CHARACTER_ROOT}/${charDir}`
         : `characters/${category}/${charDir}`;
 
@@ -539,7 +588,18 @@ export class GameMapRenderer {
     this.player.frameTimer = 0;
     this.player.actionPlaying = true;
     this.player.actionOnce = true;
-    this.player.actionDuration = 3000;
+
+    // 根据动作配置动态计算持续时间（支持破晓 act_01~act_20 等各角色自定义动作）
+    const actionCfg = this.currentCharacterModel?.getAction(actionName);
+    if (actionCfg) {
+      const frameCount = Math.max(actionCfg.frameCount || 1, 1);
+      const frameInterval = actionCfg.frameInterval || 200;
+      // 非循环动作：播完所有帧；循环动作：至少展示一轮
+      this.player.actionDuration = frameCount * frameInterval;
+    } else {
+      this.player.actionDuration = 3000;
+    }
+
     this.player.actionStartTime = Date.now();
     this.player.actionHold = true;
 
@@ -583,7 +643,7 @@ export class GameMapRenderer {
     this.centerCamera();
 
     setTimeout(() => {
-      if (this.currentMapBgKey && this.currentMapBgKey.startsWith('xj-')) return;
+      if (this.currentMapBgKey && (this.currentMapBgKey.startsWith('xj-') || this.currentMapBgKey.startsWith('px-'))) return;
       const mapNameEl = document.getElementById('map-name');
       if (mapNameEl) {
         mapNameEl.textContent = this.maps[this.currentMapIndex]?.name || '未知地图';
@@ -604,6 +664,12 @@ export class GameMapRenderer {
     // 挟剑地图：bgKey='xiejian' 时默认进入静远书院子地图
     if (bgKey === 'xiejian') {
       bgKey = 'xj-jingyuan';
+      this.currentMapBgKey = bgKey;
+    }
+
+    // 破晓地图：bgKey='poxiao' 时默认进入 D市总览 子地图
+    if (bgKey === 'poxiao') {
+      bgKey = 'px-d-city';
       this.currentMapBgKey = bgKey;
     }
 
@@ -636,6 +702,25 @@ export class GameMapRenderer {
       'xj-border': '边陲小镇',
     };
 
+    // 破晓子地图数据：模块化优先（MapSystem.legacy），缺失时 fallback 原本地数组
+    const pxLegacy = (MapSystem._bootstrapped && MapSystem.getLegacyPoxiaoMaps()) || null;
+    const pxMapMap = pxLegacy ? pxLegacy.pxMapMap : {
+      'px-d-city': '01-d-city-overview.png',
+      'px-stella': '02-stella-gallery.png',
+      'px-seafood': '03-seafood-lime-compound.png',
+      'px-police': '04-police-university.png',
+      'px-village': '05-southwest-village.png',
+      'px-docks': '06-industrial-docks-region.png',
+    };
+    const pxMapNames = pxLegacy ? pxLegacy.pxMapNames : {
+      'px-d-city': 'D市总览',
+      'px-stella': 'STELLA画廊',
+      'px-seafood': '海鲜市场-冷库-生石灰厂',
+      'px-police': '公安大学',
+      'px-village': '西南边陲小村',
+      'px-docks': '郊区厂房-码头',
+    };
+
     if (bgKey.startsWith('xj-') && xjMapMap[bgKey]) {
       const mapModel = MapSystem.getMap(bgKey);
       this.currentMapModel = mapModel;
@@ -653,6 +738,37 @@ export class GameMapRenderer {
           const mapNameEl = document.getElementById('map-name');
           if (mapNameEl) {
             mapNameEl.textContent = mapModel?.name || xjMapNames[bgKey] || bgKey;
+          }
+          
+          // 加载该地图的世界道具
+          this._loadWorldItemsForMap(bgKey);
+        }
+        return img;
+      }).catch(() => {
+        if (this.currentMapBgKey !== bgKey && this.currentMapBgKey !== requestedBgKey) return;
+        this.mapBackground = null;
+        this.mapBackgroundLoaded = false;
+        return null;
+      });
+    }
+
+    if (bgKey.startsWith('px-') && pxMapMap[bgKey]) {
+      const pxMapModel = MapSystem.getMap(bgKey);
+      this.currentMapModel = pxMapModel;
+      const pxBgPath = pxMapModel?.bgPath || ('poxiao/maps/' + pxMapMap[bgKey]);
+      return this.assetManager.loadImage(pxBgPath).then(img => {
+        if (this.currentMapBgKey !== bgKey && this.currentMapBgKey !== requestedBgKey) return;
+        if (img) {
+          this.mapBackground = img;
+          this.mapBackgroundLoaded = true;
+          const worldScale = pxMapModel?.worldScale || 2;
+          this.backgroundWorldWidth = img.width * worldScale;
+          this.backgroundWorldHeight = img.height * worldScale;
+          this.clampCamera();
+
+          const mapNameEl = document.getElementById('map-name');
+          if (mapNameEl) {
+            mapNameEl.textContent = pxMapModel?.name || pxMapNames[bgKey] || bgKey;
           }
           
           // 加载该地图的世界道具
@@ -714,8 +830,12 @@ export class GameMapRenderer {
     ];
   }
 
+  getPoxiaoMapKeys() {
+    return ['px-d-city', 'px-stella', 'px-seafood', 'px-police', 'px-village', 'px-docks'];
+  }
+
   moveTo(targetX, targetY) {
-    if (this.selectedCategory === 'xiejian') {
+    if (this.selectedCategory === 'xiejian' || this.selectedCategory === 'poxiao') {
       const world = this.getWorldSize();
       this.player.path = [{
         x: Math.max(8, Math.min(world.width - 8, targetX)),
@@ -953,7 +1073,7 @@ export class GameMapRenderer {
     if (this.characterType === 'jingyuan') {
       const configured = this.currentCharacterModel?.getAction(this.player.action)?.frameInterval;
       const actionSpeeds = {
-        personality: this.selectedCategory === 'xiejian' ? 3000 : 240,
+        personality: (this.selectedCategory === 'xiejian' || this.selectedCategory === 'poxiao') ? 3000 : 240,
         run: 105,
         etiquette: 220,
         martial: 110,
@@ -1030,7 +1150,7 @@ export class GameMapRenderer {
 
   canMoveTo(nx, ny) {
     const hw = 6, hh = 8;
-    if (this.selectedCategory === 'xiejian') {
+    if (this.selectedCategory === 'xiejian' || this.selectedCategory === 'poxiao') {
       const world = this.getWorldSize();
       return nx - hw >= 0
         && nx + hw < world.width
@@ -1072,7 +1192,7 @@ export class GameMapRenderer {
     if (this.mapBackgroundLoaded && this.mapBackground) {
       usingBackground = true;
       const img = this.mapBackground;
-      if (this.selectedCategory === 'xiejian') {
+      if (this.selectedCategory === 'xiejian' || this.selectedCategory === 'poxiao') {
         bgW = this.backgroundWorldWidth;
         bgH = this.backgroundWorldHeight;
         bgX = -this.camera.x;
@@ -1102,7 +1222,7 @@ export class GameMapRenderer {
     }
 
     let px, py;
-    if (usingBackground && this.selectedCategory !== 'xiejian') {
+    if (usingBackground && this.selectedCategory !== 'xiejian' && this.selectedCategory !== 'poxiao') {
       px = bgX + bgW * 0.5;
       py = bgY + bgH * 0.7;
     } else {
@@ -1125,7 +1245,7 @@ export class GameMapRenderer {
         this.drawPartner(ppX, ppY);
       }
 
-      if (this.selectedCategory === 'xiejian') {
+      if (this.selectedCategory === 'xiejian' || this.selectedCategory === 'poxiao') {
         const remotePlayerList = (this.multiplayerMode ? Object.values(this.remotePlayers) : [])
           .filter(p => p.visible)
           .map(player => ({ kind: 'remote', y: player.y, player }));
@@ -1233,8 +1353,10 @@ export class GameMapRenderer {
     const w = frame.width * scale;
     const h = frame.height * scale;
     
-    // 浮动动画效果（与玩家不同步，错开相位）
-    const floatY = Math.sin(this.time * 0.003 + Math.PI) * 2;
+    // 浮动动画效果（与玩家不同步，错开相位）；破晓增强呼吸幅度
+    const floatY = (this.selectedCategory === 'poxiao' && !this.partner.moving)
+      ? Math.sin(this.time * 0.0018 + Math.PI * 0.7) * 3
+      : Math.sin(this.time * 0.003 + Math.PI) * 2;
 
     this.ctx.save();
     this.ctx.imageSmoothingEnabled = false;
@@ -1264,11 +1386,44 @@ export class GameMapRenderer {
 
     // 寒门和静远的角色缩小到 0.5，主角保持原始大小
     const scale = this.characterType === 'jingyuan' ? 0.5 : 1;
-    const w = frame.width * scale;
-    const h = frame.height * scale;
-    
-    // 移动时不浮动，静止时添加浮动动画
-    const floatY = this.player.moving ? 0 : Math.sin(this.time * 0.003) * 2;
+
+    // === 破晓角色动画增强 ===
+    let floatY = 0, breathScale = 1.0, runTilt = 0, runSway = 0;
+    if (this.selectedCategory === 'poxiao') {
+      if (this.player.moving) {
+        // 跑步弹跳：模拟步频节奏（垂直上下弹跳 + 身体倾斜 + 左右摇摆）
+        const runCycle = this.time * 0.011;
+        floatY = -Math.abs(Math.sin(runCycle)) * 8;      // 加大弹跳 8px
+        runTilt = Math.sin(runCycle * 2) * 0.055;          // 跑步身体摆动 ±3°
+        runSway = Math.sin(runCycle) * 2;                // 左右微摆 2px
+      } else {
+        // 空闲呼吸：缓慢的缩放振荡 + 浮动
+        floatY = Math.sin(this.time * 0.0018) * 3;
+        breathScale = 1.0 + Math.sin(this.time * 0.0012) * 0.022;
+      }
+    } else {
+      floatY = this.player.moving ? 0 : Math.sin(this.time * 0.003) * 2;
+    }
+
+    // === 动作切换过渡脉冲 ===
+    let transitionScale = 1.0;
+    if (this.selectedCategory === 'poxiao') {
+      if (this._lastRenderedAction !== this.player.action) {
+        this._lastRenderedAction = this.player.action;
+        this._actionChangeTime = this.time;
+      }
+      if (this._actionChangeTime) {
+        const elapsed = this.time - this._actionChangeTime;
+        if (elapsed < 180) {
+          // 短暂脉冲：先膨胀再收缩，产生 "pop" 感
+          transitionScale = 1.0 + Math.sin((elapsed / 180) * Math.PI) * 0.05;
+        }
+      }
+    }
+
+    const finalScale = scale * breathScale * transitionScale;
+    const w = frame.width * finalScale;
+    const h = frame.height * finalScale;
 
     this.ctx.save();
     this.ctx.imageSmoothingEnabled = false;
@@ -1279,18 +1434,23 @@ export class GameMapRenderer {
     this.ctx.fill();
 
     if (this.player.direction === 'left') {
-      this.ctx.translate(x + w / 2, y - h + floatY);
+      this.ctx.translate(x + w / 2 + runSway, y - h / 2 + floatY);
       this.ctx.scale(-1, 1);
-      this.ctx.drawImage(frame, -w / 2, 0, w, h);
+      this.ctx.rotate(runTilt);
+      this.ctx.drawImage(frame, -w / 2, -h / 2, w, h);
     } else {
-      this.ctx.drawImage(frame, x - w / 2, y - h + floatY, w, h);
+      this.ctx.save();
+      this.ctx.translate(x + runSway, y - h / 2 + floatY);
+      this.ctx.rotate(-runTilt);
+      this.ctx.drawImage(frame, -w / 2, -h / 2, w, h);
+      this.ctx.restore();
     }
 
     this.ctx.restore();
   }
 
   setCharacter(charId) {
-    if (this.multiplayerMode && this.selectedCategory !== 'xiejian') {
+    if (this.multiplayerMode && this.selectedCategory !== 'xiejian' && this.selectedCategory !== 'poxiao') {
       const currentUser = this._getCurrentUser();
       if (currentUser && currentUser.role) {
         charId = currentUser.role;
@@ -1310,6 +1470,8 @@ export class GameMapRenderer {
       return HANMEN_CHARACTERS;
     } else if (categoryKey === 'xiejian') {
       return JINGYUAN_CHARACTERS;
+    } else if (categoryKey === 'poxiao') {
+      return POXIAO_CHARACTERS;
     } else if (categoryKey === 'main') {
       return MAIN_CHARACTERS;
     }
@@ -1446,6 +1608,19 @@ export class GameMapRenderer {
 
   setWorldItems(items) {
     this.worldItems = Array.isArray(items) ? items.slice() : [];
+    console.log('[GameMapRenderer] setWorldItems count:', this.worldItems.length);
+    if (this.worldItems.length > 0) {
+      const firstItem = this.worldItems[0];
+      console.log('[GameMapRenderer] first worldItem:', {
+        instanceId: firstItem?.instanceId,
+        defId: firstItem?.defId,
+        x: firstItem?.x,
+        y: firstItem?.y,
+        hasDefinition: !!firstItem?.definition,
+        definitionIcon: firstItem?.definition?.icon,
+        portable: firstItem?.portable ?? firstItem?.definition?.portable
+      });
+    }
     for (const item of this.worldItems) this._loadWorldItemImage(item);
   }
 
@@ -1476,35 +1651,65 @@ export class GameMapRenderer {
     return this.worldItems.find(item => Math.hypot(item.x - x, item.y - y) <= 30) || null;
   }
 
-  async _loadWorldItemsForMap(mapKey) {
+  async _loadWorldItemsForMap(mapKey, opts = {}) {
     if (!mapKey) return;
+    const { forceReload = false } = opts;
     try {
+      console.log('[GameMapRenderer] _loadWorldItemsForMap called with mapKey:', mapKey, 'forceReload:', forceReload, 'existingWorldItems:', this.worldItems?.length || 0);
       // 从服务端加载世界道具
       if (typeof MailService !== 'undefined' && MailService.getWorldItems) {
-        const accountKey = typeof AuthManager !== 'undefined' 
-          ? (MailService.getAccountKey?.(AuthManager.getCurrentUser()) || '') 
+        const accountKey = typeof AuthManager !== 'undefined'
+          ? (MailService.getAccountKey?.(AuthManager.getCurrentUser()) || '')
           : '';
-        if (accountKey) {
+        console.log('[GameMapRenderer] accountKey:', accountKey, 'AuthManager exists:', typeof AuthManager !== 'undefined');
+        // 只要有 MailService 就尝试调用服务端 API（MailService.getWorldItems 自己会处理无 accountKey 的情况）
+        if (typeof MailService.getWorldItems === 'function') {
+          console.log('[GameMapRenderer] calling MailService.getWorldItems...');
           const items = await MailService.getWorldItems(mapKey);
-          if (Array.isArray(items) && items.length > 0) {
-            this.setWorldItems(items);
-            return;
+          console.log('[GameMapRenderer] getWorldItems returned:', items?.length, 'items');
+          if (Array.isArray(items)) {
+            // 服务端返回了数组就采用：长度>0 时更新，长度=0 时如果已有内容也不要强行清空（保持现有更安全）
+            if (items.length > 0) {
+              this.setWorldItems(items);
+              return;
+            }
+            // 服务端返回空数组：若当前已有 worldItems 则保留，否则继续走 fallback
+            if (this.worldItems && this.worldItems.length > 0 && !forceReload) {
+              console.log('[GameMapRenderer] server returned empty but keep existing worldItems count:', this.worldItems.length);
+              return;
+            }
           }
         }
       }
-      
+
       // 兜底：使用本地地图数据初始化道具
-      this._initWorldItemsFromMapData(mapKey);
+      console.log('[GameMapRenderer] falling back to local map data');
+      this._initWorldItemsFromMapData(mapKey, { forceReload });
     } catch (e) {
-      console.warn('[GameMapRenderer] 加载世界道具失败:', e?.message || e);
+      console.warn('[GameMapRenderer] 加载世界道具失败:', e?.message || e, e);
       // 兜底：使用本地地图数据初始化道具
-      this._initWorldItemsFromMapData(mapKey);
+      this._initWorldItemsFromMapData(mapKey, { forceReload });
     }
   }
 
-  _initWorldItemsFromMapData(mapKey) {
+  _initWorldItemsFromMapData(mapKey, opts = {}) {
+    const { forceReload = false } = opts;
     const mapModel = MapSystem.getMap(mapKey);
-    if (!mapModel || !mapModel.initialWorldItemDefs) {
+    const defCount = mapModel?.initialWorldItemDefs?.length || 0;
+    console.log('[GameMapRenderer] _initWorldItemsFromMapData:', {
+      mapKey,
+      hasMapModel: !!mapModel,
+      hasInitialWorldItemDefs: !!mapModel?.initialWorldItemDefs,
+      initialWorldItemDefsCount: defCount,
+      existingWorldItems: this.worldItems?.length || 0
+    });
+    if (!mapModel || !mapModel.initialWorldItemDefs || defCount === 0) {
+      // 本地没有配置初始道具时：如果当前已有 worldItems 就不清空（避免覆盖 app.js 已经从服务端加载到的道具）
+      if (this.worldItems && this.worldItems.length > 0 && !forceReload) {
+        console.log('[GameMapRenderer] no local initialWorldItemDefs, keep existing worldItems count:', this.worldItems.length);
+        return;
+      }
+      console.log('[GameMapRenderer] no map model or initialWorldItemDefs, setting empty worldItems');
       this.setWorldItems([]);
       return;
     }
@@ -1515,26 +1720,51 @@ export class GameMapRenderer {
       worldW: worldSize.width,
       worldH: worldSize.height
     });
+    console.log('[GameMapRenderer] instantiated', items.length, 'world items');
     
     this.setWorldItems(items);
   }
 
   _loadWorldItemImage(item) {
     const iconPath = item?.definition?.icon;
-    if (!iconPath) return;
+    console.log('[GameMapRenderer] _loadWorldItemImage:', {
+      instanceId: item?.instanceId,
+      defId: item?.defId,
+      iconPath: iconPath,
+      hasDefinition: !!item?.definition,
+      definitionKeys: item?.definition ? Object.keys(item.definition) : 'no definition'
+    });
+    if (!iconPath) {
+      // 如果没有 definition.icon，尝试使用 defId 作为 key 查找
+      const defId = item?.defId;
+      if (defId && typeof InventorySystem !== 'undefined') {
+        const def = InventorySystem.getDefinition(defId);
+        if (def?.icon) {
+          console.log('[GameMapRenderer] using InventorySystem fallback icon:', def.icon);
+          item.definition = item.definition || {};
+          item.definition.icon = def.icon;
+          return this._loadWorldItemImage(item);
+        }
+      }
+      console.warn('[GameMapRenderer] No icon path for worldItem:', item?.instanceId, item?.defId);
+      return;
+    }
     
     // 使用 AssetManager 解析路径，获取完整的可访问 URL
     const url = this.assetManager.getAssetUrl(iconPath);
+    console.log('[GameMapRenderer] loading image url:', url);
     if (!url || this.worldItemImages[url]) return;
     
     const image = new Image();
     image.onload = () => {
+      console.log('[GameMapRenderer] image loaded:', url, 'size:', image.naturalWidth, 'x', image.naturalHeight);
       // 强制重绘，确保道具显示
       if (this.canvas && this.mapBackgroundLoaded) {
         this._needsRedraw = true;
       }
     };
     image.onerror = () => {
+      console.warn('[GameMapRenderer] image load failed:', url);
       // 加载失败时尝试直接使用路径
       if (url !== iconPath) {
         const fallbackImage = new Image();
@@ -1662,8 +1892,8 @@ export class GameMapRenderer {
     let frames = {};
     let charType = 'main';
 
-    if (JINGYUAN_CHARACTERS.some(c => c.id === charId) || HANMEN_CHARACTERS.some(c => c.id === charId)) {
-      const category = JINGYUAN_CHARACTERS.some(c => c.id === charId) ? 'xiejian' : 'hanmen';
+    if (JINGYUAN_CHARACTERS.some(c => c.id === charId) || HANMEN_CHARACTERS.some(c => c.id === charId) || POXIAO_CHARACTERS.some(c => c.id === charId)) {
+      const category = JINGYUAN_CHARACTERS.some(c => c.id === charId) ? 'xiejian' : (POXIAO_CHARACTERS.some(c => c.id === charId) ? 'poxiao' : 'hanmen');
       frames = await this.loadSpritesheetFrames(char.dir, category);
       charType = 'jingyuan';
     } else {
@@ -1743,7 +1973,7 @@ export class GameMapRenderer {
     let frameSpeed = 180;
     if (player.characterType === 'jingyuan') {
       const configured = player.characterModel?.getAction(player.action)?.frameInterval;
-      const isXiejianCharacter = JINGYUAN_CHARACTERS.some(character => character.id === player.characterId);
+      const isXiejianCharacter = JINGYUAN_CHARACTERS.some(character => character.id === player.characterId) || POXIAO_CHARACTERS.some(character => character.id === player.characterId);
       const actionSpeeds = {
         personality: isXiejianCharacter ? 3000 : 240,
         run: 105,
@@ -1840,7 +2070,7 @@ export class GameMapRenderer {
     const currentUser = this._getCurrentUser();
     if (currentUser) {
       const selectedCharacter = this.getCharacterInfo(this.selectedCharacter);
-      const localName = this.selectedCategory === 'xiejian' && selectedCharacter
+      const localName = (this.selectedCategory === 'xiejian' || this.selectedCategory === 'poxiao') && selectedCharacter
         ? selectedCharacter.name
         : (currentUser.displayName || currentUser.username);
       drawNameTag(this.player.x, this.player.y, localName, true, 1, MultiplayerSync.combatProfile || null);
@@ -2254,4 +2484,4 @@ export class GameMapRenderer {
   }
 }
 
-export { JINGYUAN_CHARACTERS, MAIN_CHARACTERS, CHARACTER_CATEGORIES };
+export { JINGYUAN_CHARACTERS, HANMEN_CHARACTERS, POXIAO_CHARACTERS, MAIN_CHARACTERS, CHARACTER_CATEGORIES };

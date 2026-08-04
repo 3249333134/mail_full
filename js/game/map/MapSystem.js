@@ -3,8 +3,9 @@ import { deepMerge, RemoteResourceLoader } from '../remote/RemoteResourceLoader.
 import { XIEJIAN_MAP_DEFS, XIEJIAN_MAP_ORDER } from '../data/maps.xiejian.js';
 import { BASIC_MAP_DEFS } from '../data/maps.basic.js';
 import { HANMEN_MAP_DEFS } from '../data/maps.hanmen.js';
+import { POXIAO_MAP_DEFS, POXIAO_MAP_ORDER } from '../data/maps.poxiao.js';
 
-const LOCAL_DEFS = { ...BASIC_MAP_DEFS, ...XIEJIAN_MAP_DEFS, ...HANMEN_MAP_DEFS };
+const LOCAL_DEFS = { ...BASIC_MAP_DEFS, ...XIEJIAN_MAP_DEFS, ...HANMEN_MAP_DEFS, ...POXIAO_MAP_DEFS };
 
 export const MapSystem = {
   _cache: new Map(), _defs: new Map(), _bootstrapped: false, _itemDefs: null,
@@ -36,11 +37,17 @@ export const MapSystem = {
   },
   getMapDef(key) { this.ensureLocal(); return this._defs.get(key) || null; },
   getXiejianMapOrder() { return [...XIEJIAN_MAP_ORDER]; },
+  getPoxiaoMapOrder() { return [...POXIAO_MAP_ORDER]; },
   getMapListForUI(category = null) { this.ensureLocal(); return Array.from(this._defs.values()).filter(d => !category || d.category === category).map(d => ({ key: d.key, name: d.name, category: d.category, bgThumbnailPath: d.bgThumbnailPath || d.bgPath || '' })); },
   getLegacyXiejianMaps() {
     const xjMapMap = {}, xjMapNames = {};
     XIEJIAN_MAP_ORDER.forEach(key => { const def = this.getMapDef(key); if (def) { xjMapMap[key] = def.bgFileName || def.bgPath.split('/').pop(); xjMapNames[key] = def.name; } });
     return { xjMapMap, xjMapNames };
+  },
+  getLegacyPoxiaoMaps() {
+    const pxMapMap = {}, pxMapNames = {};
+    POXIAO_MAP_ORDER.forEach(key => { const def = this.getMapDef(key); if (def) { pxMapMap[key] = def.bgFileName || def.bgPath.split('/').pop(); pxMapNames[key] = def.name; } });
+    return { pxMapMap, pxMapNames };
   },
 };
 

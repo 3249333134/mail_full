@@ -10,6 +10,10 @@ const CHARACTER_NAME_MAP = {
   'tang-wanchu': '唐挽初',
   // 寒门 (Hanmen)
   'xuan-xuan': '萱宣', 'xiu-jing': '修璟',
+  // 破晓七人 (Poxiao)
+  'px-tangqi': '唐岐', 'px-lipingchuan': '李平川', 'px-jiangyan': '江宴',
+  'px-xinghe': '沈星何', 'px-heyinsheng': '贺引生', 'px-chenzhou': '陈昼',
+  'px-zhouran': '周然',
   // Main characters
   'mask-dude': 'Mask Dude', 'ninja-frog': '忍者蛙', 'pink-man': '粉衣人',
   'virtual-guy': '虚拟人'
@@ -41,6 +45,10 @@ const App = {
   _xiejianMapKey: '',
   _xiejianPendingMapKey: '',
   _xiejianMapPositions: {},
+  _poxiaoCharacterId: '',
+  _poxiaoMapKey: '',
+  _poxiaoPendingMapKey: '',
+  _poxiaoMapPositions: {},
   _xiejianEntryBound: false,
   _mailFolder: 'timeline',
   _mailPollTimer: null,
@@ -438,18 +446,24 @@ const App = {
       } catch (_) { mbox = null; }
     }
     if (mbox) {
-      if (mbox.category === 'xiejian' || mbox.category === 'hanmen') return mbox.category;
+      if (mbox.category === 'xiejian' || mbox.category === 'hanmen' || mbox.category === 'poxiao') return mbox.category;
       const name = (mbox.name || '').toString();
       if (name.includes('挟剑')) return 'xiejian';
+      if (name.includes('破晓')) return 'poxiao';
       if (name.includes('寒门')) return 'hanmen';
     }
     if (id === 'mailbox-xiejian') return 'xiejian';
+    if (id === 'mailbox-poxiao') return 'poxiao';
     if (id === 'mailbox-hanmen-duet' || id === 'mailbox-hanmen') return 'hanmen';
     return null;
   },
 
   _isXiejianMailbox(mailboxId) {
     return this._resolveMailboxGameCategory(mailboxId) === 'xiejian';
+  },
+
+  _isPoxiaoMailbox(mailboxId) {
+    return this._resolveMailboxGameCategory(mailboxId) === 'poxiao';
   },
 
   _isHanmenMailbox(mailboxId) {
@@ -644,6 +658,22 @@ const App = {
             try { self._renderHeroGrid(); } catch (_) {}
           }
         }
+        // ===== 终极兜底：无论 MailboxManager 是否可用，都用 STORAGE 强制拉一次远端 =====
+        // 确保本账号在其它设备/端口加入的信箱也能出现在本机列表
+        try {
+          const u = AuthManager.getCurrentUser();
+          const ak = (typeof MailService.getAccountKey === 'function')
+            ? MailService.getAccountKey(u)
+            : String(u?.username || u?.id || '').toLowerCase();
+          if (ak) {
+            if (typeof STORAGE.flushRemoteMailboxes === 'function') {
+              try { await STORAGE.flushRemoteMailboxes(ak); } catch (_) {}
+            }
+            if (typeof STORAGE.forceReloadMailboxesFromRemote === 'function') {
+              try { await STORAGE.forceReloadMailboxesFromRemote(ak); } catch (_) {}
+            }
+          }
+        } catch (_) {}
       } catch (e) {
         console.warn('[sync] 登录后远端全量同步异常（已降级本地）:', e?.message || e);
       }
@@ -1263,6 +1293,172 @@ const App = {
     this._renderDiaryGrid();
     this._renderMailboxGrid();
     this._initMapView();
+
+    // 渲染首页账号装备小卡片
+    this.renderAccountEquipment();
+  },
+
+  /**
+   * 渲染首页侧边栏账号装备：账号名旁的按钮 + 弹窗显示所有物品。
+   */
+  async renderAccountEquipment() {
+    const toggleBtn = document.getElementById('user-equip-toggle');
+    const badge = document.getElementById('user-equip-count-badge');
+    if (!toggleBtn) return;
+    const user = AuthManager.getCurrentUser();
+    if (!user) {
+      toggleBtn.hidden = true;
+      return;
+    }
+
+    let inventory = null;
+    try {
+      if (window.MailService && typeof MailService.getInventory === 'function') {
+        inventory = await MailService.getInventory();
+      }
+    } catch (_) { inventory = null; }
+
+    if (!inventory) {
+      toggleBtn.hidden = true;
+      return;
+    }
+    const items = Array.isArray(inventory.items) ? inventory.items : [];
+
+    // 更新按钮徽章（物品总数）
+    if (badge) {
+      if (items.length > 0) {
+        badge.textContent = items.length > 99 ? '99+' : String(items.length);
+        badge.style.display = items.length > 0 ? 'inline-flex' : 'none';
+      } else {
+        badge.style.display = 'none';
+      }
+    }
+
+    // 更新侧边栏物品数
+    const countEl = document.getElementById('user-equip-count');
+    if (countEl) {
+      countEl.textContent = `行囊 ${items.length} 件`;
+      countEl.hidden = items.length === 0;
+    }
+
+    toggleBtn.hidden = false;
+    this._initEquipToggle();
+  },
+
+  _initEquipToggle() {
+    const toggleBtn = document.getElementById('user-equip-toggle');
+    const modal = document.getElementById('equipment-modal');
+    const overlay = document.getElementById('equipment-modal-overlay');
+    const closeBtn = document.getElementById('equipment-modal-close');
+    if (!toggleBtn || !modal || toggleBtn._initialized) return;
+    toggleBtn._initialized = true;
+
+    const openModal = async () => {
+      const user = AuthManager.getCurrentUser();
+      if (!user) return;
+
+      let inventory = null;
+      try {
+        if (window.MailService && typeof MailService.getInventory === 'function') {
+          inventory = await MailService.getInventory();
+        }
+      } catch (_) { inventory = null; }
+
+      this._populateEquipmentModal(inventory);
+      modal.hidden = false;
+      document.body.style.overflow = 'hidden';
+    };
+
+    const closeModal = () => {
+      modal.hidden = true;
+      document.body.style.overflow = '';
+    };
+
+    toggleBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (modal.hidden) openModal();
+      else closeModal();
+    });
+
+    overlay?.addEventListener('click', closeModal);
+    closeBtn?.addEventListener('click', closeModal);
+
+    // ESC关闭
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && !modal.hidden) closeModal();
+    });
+  },
+
+  _populateEquipmentModal(inventory) {
+    const modal = document.getElementById('equipment-modal');
+    const grid = document.getElementById('equipment-modal-grid');
+    const equippedSection = document.getElementById('equipment-modal-equipped');
+    const countEl = document.getElementById('equipment-modal-count');
+    if (!modal || !grid) return;
+
+    const items = inventory && Array.isArray(inventory.items) ? inventory.items : [];
+    const equipment = inventory?.equipment || {};
+    const combatEquipment = (inventory?.combat && inventory.combat.equipment) || {};
+
+    // 填充已装备区域
+    if (equippedSection) {
+      const slots = [
+        { key: 'weapon', label: '武器' },
+        { key: 'clothing', label: '服饰' },
+        { key: 'accessory', label: '配饰' }
+      ];
+      const itemsById = Object.fromEntries(items.map(it => [it.instanceId, it]));
+      equippedSection.innerHTML = slots.map(s => {
+        const equippedId = equipment[s.key];
+        const equipped = combatEquipment[s.key]
+          || (equippedId ? (itemsById[equippedId]?.definition || itemsById[equippedId]) : null);
+        if (equipped) {
+          const icon = equipped.icon
+            ? `<div class="equipped-slot-icon"><img src="${equipped.icon}" alt=""></div>`
+            : '';
+          return `<div class="equipped-slot">
+            <div class="equipped-slot-label">${s.label}</div>
+            ${icon}
+            <div class="equipped-slot-name">${this._escapeHtml(equipped.name || '已装备')}</div>
+          </div>`;
+        } else {
+          return `<div class="equipped-slot">
+            <div class="equipped-slot-label">${s.label}</div>
+            <div class="equipped-slot-icon" style="font-size:1.1rem;color:#b8a88a;">—</div>
+            <div class="equipped-slot-name empty">未装备</div>
+          </div>`;
+        }
+      }).join('');
+    }
+
+    // 填充全部物品网格
+    if (grid) {
+      if (items.length === 0) {
+        grid.innerHTML = '<div class="equipment-item-empty">行囊空空如也～</div>';
+      } else {
+        const equippedIds = new Set([
+          equipment.weapon, equipment.clothing, equipment.accessory
+        ].filter(Boolean));
+
+        grid.innerHTML = items.map(item => {
+          const def = item.definition || {};
+          const isEquipped = equippedIds.has(item.instanceId);
+          const iconHtml = def.icon
+            ? `<div class="equipment-item-icon"><img src="${def.icon}" alt=""></div>`
+            : `<div class="equipment-item-icon" style="font-size:1.2rem;color:#b8a88a;">📦</div>`;
+          const typeLabel = def.categoryName || def.category || '';
+          return `<div class="equipment-item${isEquipped ? ' equipped' : ''}" title="${this._escapeHtml(def.description || def.name || '')}">
+            ${iconHtml}
+            <div class="equipment-item-name">${this._escapeHtml(def.name || '未知物品')}</div>
+            ${typeLabel ? `<div class="equipment-item-type">${this._escapeHtml(typeLabel)}</div>` : ''}
+          </div>`;
+        }).join('');
+      }
+    }
+
+    if (countEl) {
+      countEl.textContent = `共 ${items.length} 件`;
+    }
   },
 
   _renderHeroGrid() {
@@ -2420,6 +2616,17 @@ const App = {
     ];
   },
 
+  _getPoxiaoMaps() {
+    return [
+      { key: 'px-d-city', name: 'D市总览' },
+      { key: 'px-stella', name: 'STELLA画廊' },
+      { key: 'px-seafood', name: '海鲜市场-冷库-生石灰厂' },
+      { key: 'px-police', name: '公安大学' },
+      { key: 'px-village', name: '西南边陲小村' },
+      { key: 'px-docks', name: '郊区厂房-码头' },
+    ];
+  },
+
   _syncMapSelect() {
     const select = document.getElementById('map-select');
     if (!select || !window.gameMapRenderer) return;
@@ -2430,6 +2637,9 @@ const App = {
     if (category === 'xiejian') {
       options = this._getXiejianMaps().map(map => ({ value: map.key, label: map.name }));
       value = this._xiejianMapKey || window.gameMapRenderer.currentMapBgKey || 'xj-jingyuan';
+    } else if (category === 'poxiao') {
+      options = this._getPoxiaoMaps().map(map => ({ value: map.key, label: map.name }));
+      value = this._poxiaoMapKey || window.gameMapRenderer.currentMapBgKey || 'px-d-city';
     } else if (category === 'hanmen') {
       options = [{ value: 'hanmen', label: document.getElementById('map-name')?.textContent || '寒门' }];
       value = 'hanmen';
@@ -2444,19 +2654,73 @@ const App = {
     const signature = options.map(option => `${option.value}:${option.label}`).join('|');
     if (select.dataset.signature !== signature) {
       select.innerHTML = options.map(option =>
-        `<option value="${this._escapeHtml(option.value)}">${this._escapeHtml(option.label)}</option>`
+        `<option value="${this._escapeHtml(option.value)}" data-base-label="${this._escapeHtml(option.label)}">${this._escapeHtml(option.label)}</option>`
       ).join('');
       select.dataset.signature = signature;
     }
     select.value = options.some(option => option.value === value) ? value : (options[0]?.value || '');
     select.disabled = options.length < 2;
+    // 应用各地图在线人数到 option 文案（不重建下拉，避免关闭已展开的列表）
+    this._applyMapOnlineCounts(select);
+  },
+
+  /** 把各地图在线人数追加到 #map-select 的 option 文案，并刷新总在线徽章 */
+  _applyMapOnlineCounts(select) {
+    const badge = document.getElementById('xiejian-online-count');
+    const panelCount = document.getElementById('online-players-count');
+    const counts = (typeof MultiplayerSync !== 'undefined' && typeof MultiplayerSync.getOnlineCountByMap === 'function')
+      ? MultiplayerSync.getOnlineCountByMap() : {};
+    // 本地玩家也算在线：若已连入房间，把自己计入当前所在地图
+    let selfMapKey = '';
+    try {
+      selfMapKey = window.gameMapRenderer?.currentMapBgKey
+        || (typeof MultiplayerSync !== 'undefined' ? MultiplayerSync.currentMapKey : '')
+        || '';
+    } catch (_) {}
+    const selfInRoom = typeof MultiplayerSync !== 'undefined' && MultiplayerSync.isConnected && MultiplayerSync.isConnected();
+    if (selfInRoom && selfMapKey) {
+      counts[selfMapKey] = (counts[selfMapKey] || 0) + 1;
+    }
+    // 总在线人数（所有地图之和）- 用于徽章和面板
+    const total = Object.values(counts).reduce((a, b) => a + b, 0);
+    if (badge) {
+      badge.textContent = String(total);
+    }
+    if (panelCount) {
+      panelCount.textContent = `${total} 人`;
+    }
+    // 追加到每个 option（保留 base-label，仅改 text）
+    if (select) {
+      const opts = select.querySelectorAll('option');
+      opts.forEach(opt => {
+        const base = opt.dataset.baseLabel || opt.textContent.replace(/（\d+）$/, '') || '';
+        const key = opt.value;
+        const c = counts[key] || 0;
+        const next = `${base}（${c}）`;
+        if (opt.textContent !== next) opt.textContent = next;
+      });
+    }
+  },
+
+  /** 节流刷新地图在线人数（徽章 + 下拉文案） */
+  _refreshMapOnline() {
+    if (this._refreshMapOnlineTimer) return;
+    this._refreshMapOnlineTimer = setTimeout(() => {
+      this._refreshMapOnlineTimer = null;
+      const select = document.getElementById('map-select');
+      this._applyMapOnlineCounts(select);
+    }, 50);
   },
 
   _switchMapFromSelect(value) {
     if (!value || !window.gameMapRenderer) return;
     const category = this._resolveMailboxGameCategory();
-    if (category === 'xiejian') {
-      this._enterXiejianMap(value);
+    if (category === 'xiejian' || category === 'poxiao') {
+      if (this._isPoxiaoMailbox()) {
+        this._enterPoxiaoMap(value);
+      } else {
+        this._enterXiejianMap(value);
+      }
       return;
     }
     if (!value.startsWith('legacy:')) return;
@@ -2466,6 +2730,8 @@ const App = {
     window.gameMapRenderer.switchMap(index);
     const mapName = document.getElementById('map-name');
     if (mapName) mapName.textContent = maps[index].name;
+    // 本地切换地图后刷新在线人数徽章与下拉
+    this._refreshMapOnline();
   },
 
   _bindRecipientPicker() {
@@ -3011,7 +3277,9 @@ const App = {
     const occupied = new Set(
       typeof MultiplayerSync !== 'undefined' ? MultiplayerSync.getOccupiedCharacters() : []
     );
-    const characters = window.gameMapRenderer.getCharactersForCategory('xiejian');
+    const category = this._isPoxiaoMailbox() ? 'poxiao' : 'xiejian';
+    const characters = window.gameMapRenderer.getCharactersForCategory(category);
+    const currentCharId = this._isPoxiaoMailbox() ? this._poxiaoCharacterId : this._xiejianCharacterId;
     grid.innerHTML = '';
 
     const systemsStatus = window.GameSystems?.getStatus?.();
@@ -3020,7 +3288,7 @@ const App = {
     }
 
     for (const character of characters) {
-      const isSelf = character.id === this._xiejianCharacterId;
+      const isSelf = character.id === currentCharId;
       const isOccupied = occupied.has(character.id) && !isSelf;
       const button = document.createElement('button');
       button.type = 'button';
@@ -3054,17 +3322,32 @@ const App = {
           MultiplayerSync.requestCharacter(character.id);
         } else {
           // 单人模式：直接本地选择角色
-          this._xiejianCharacterId = character.id;
+          const isPoxiao = this._isPoxiaoMailbox();
+          if (isPoxiao) {
+            this._poxiaoCharacterId = character.id;
+          } else {
+            this._xiejianCharacterId = character.id;
+          }
           STORAGE.saveCharacterBinding(this.currentMailboxId, character.id);
           window.gameMapRenderer.loadCharacter(character.id).then(() => {
             this._updateCurrentCharacterInfo();
             this._syncInventoryPortrait(character.id);
+            if (isPoxiao) {
+              this._buildPoxiaoActionPanel(character.id);
+            } else {
+              const poxiaoPanel = document.getElementById('poxiao-action-panel');
+              if (poxiaoPanel) poxiaoPanel.style.display = 'none';
+            }
             const currentSection = document.getElementById('current-character-section');
             const guestSection = document.getElementById('guest-character-section');
             if (currentSection) currentSection.style.display = 'block';
             if (guestSection) guestSection.style.display = 'none';
             this._closeXiejianEntry();
-            this._enterXiejianMap(this._xiejianMapKey || 'xj-jingyuan');
+            if (isPoxiao) {
+              this._enterPoxiaoMap(this._poxiaoMapKey || 'px-d-city');
+            } else {
+              this._enterXiejianMap(this._xiejianMapKey || 'xj-jingyuan');
+            }
           });
         }
       });
@@ -3078,15 +3361,23 @@ const App = {
     if (!grid) return;
     grid.innerHTML = '';
 
-    for (const map of this._getXiejianMaps()) {
-      const selected = map.key === this._xiejianPendingMapKey;
+    const isPoxiao = this._isPoxiaoMailbox();
+    const maps = isPoxiao ? this._getPoxiaoMaps() : this._getXiejianMaps();
+    const pendingKey = isPoxiao ? this._poxiaoPendingMapKey : this._xiejianPendingMapKey;
+
+    for (const map of maps) {
+      const selected = map.key === pendingKey;
       const button = document.createElement('button');
       button.type = 'button';
       button.className = `xiejian-entry-choice${selected ? ' selected' : ''}`;
       button.dataset.mapKey = map.key;
       button.innerHTML = `<strong>${map.name}</strong>`;
       button.addEventListener('click', () => {
-        this._xiejianPendingMapKey = map.key;
+        if (isPoxiao) {
+          this._poxiaoPendingMapKey = map.key;
+        } else {
+          this._xiejianPendingMapKey = map.key;
+        }
         this._enterXiejianMap(map.key);
       });
       grid.appendChild(button);
@@ -3194,7 +3485,11 @@ const App = {
 
   _showXiejianMapStep() {
     this._openXiejianEntry();
-    this._xiejianPendingMapKey = this._xiejianMapKey || 'xj-jingyuan';
+    if (this._isPoxiaoMailbox()) {
+      this._poxiaoPendingMapKey = this._poxiaoMapKey || 'px-d-city';
+    } else {
+      this._xiejianPendingMapKey = this._xiejianMapKey || 'xj-jingyuan';
+    }
     document.getElementById('xiejian-character-step')?.classList.remove('active');
     document.getElementById('xiejian-map-step')?.classList.add('active');
     const title = document.getElementById('xiejian-entry-title');
@@ -3212,6 +3507,9 @@ const App = {
   },
 
   async _enterXiejianMap(mapKey) {
+    if (this._isPoxiaoMailbox()) {
+      return this._enterPoxiaoMap(mapKey);
+    }
     if (!mapKey || !window.gameMapRenderer) return;
 
     try {
@@ -3270,19 +3568,82 @@ const App = {
     }
   },
 
+  async _enterPoxiaoMap(mapKey) {
+    if (!mapKey || !window.gameMapRenderer) return;
+
+    try {
+      if (!this._poxiaoCharacterId) {
+        const boundCharacterId = MultiplayerSync.accountProfile?.poxiaoCharacterId
+          || MultiplayerSync.accountProfile?.xiejianCharacterId
+          || MailService.profile?.poxiaoCharacterId
+          || MailService.profile?.xiejianCharacterId
+          || STORAGE.loadCharacterBinding(this.currentMailboxId)
+          || '';
+        if (boundCharacterId) {
+          this._poxiaoCharacterId = boundCharacterId;
+          await window.gameMapRenderer.loadCharacter(boundCharacterId);
+        } else {
+          return;
+        }
+      }
+
+      if (this._poxiaoMapKey) {
+        this._poxiaoMapPositions[this._poxiaoMapKey] = {
+          x: window.gameMapRenderer.player.x,
+          y: window.gameMapRenderer.player.y
+        };
+      }
+
+      this._poxiaoMapKey = mapKey;
+      this._poxiaoPendingMapKey = mapKey;
+      
+      // Add timeout for map loading
+      const mapLoadPromise = window.gameMapRenderer.setMapBackground(mapKey);
+      const timeoutPromise = new Promise((resolve) => setTimeout(resolve, 5000));
+      await Promise.race([mapLoadPromise, timeoutPromise]);
+      
+      this._syncMapSelect();
+      const position = this._poxiaoMapPositions[mapKey]
+        || window.gameMapRenderer.getDefaultSpawnPoint();
+      window.gameMapRenderer.player.x = position.x;
+      window.gameMapRenderer.player.y = position.y;
+      window.gameMapRenderer.player.moving = false;
+      window.gameMapRenderer.player.action = 'personality';
+      window.gameMapRenderer.player.frame = 0;
+      window.gameMapRenderer.centerCamera();
+      MultiplayerSync.changeMap(mapKey, position);
+      if (AuthManager.getCurrentUser() && typeof MailService.getWorldItems === 'function') {
+        MailService.getWorldItems(mapKey).then(items => {
+          if (this._poxiaoMapKey !== mapKey) return;
+          MultiplayerSync.worldItems = items;
+          window.gameMapRenderer?.setWorldItems(items);
+          this._updateXiejianWorldItemStatus(items);
+        }).catch(error => console.warn('[WorldItems] 无法刷新地图物品:', error));
+      }
+      this._refreshXiejianRemotePlayers();
+    } catch (error) {
+      console.error('[Poxiao] Enter map error:', error);
+      this._setXiejianEntryStatus('地图加载失败，请重试', true);
+    } finally {
+      // Always close the entry overlay, even if loading failed
+      this._closeXiejianEntry();
+    }
+  },
+
   _refreshXiejianRemotePlayers() {
     if (!window.gameMapRenderer || typeof MultiplayerSync === 'undefined') return;
     const players = MultiplayerSync.getOnlinePlayers();
+    const currentMapKey = this._isPoxiaoMailbox() ? this._poxiaoMapKey : this._xiejianMapKey;
 
     for (const userId of Object.keys(window.gameMapRenderer.remotePlayers || {})) {
       const player = players[userId];
-      if (!player || !player.characterId || player.mapKey !== this._xiejianMapKey) {
+      if (!player || !player.characterId || player.mapKey !== currentMapKey) {
         window.gameMapRenderer.removeRemotePlayer(userId);
       }
     }
 
     for (const [userId, player] of Object.entries(players)) {
-      if (!player.characterId || player.mapKey !== this._xiejianMapKey) continue;
+      if (!player.characterId || player.mapKey !== currentMapKey) continue;
       window.gameMapRenderer.addRemotePlayer(userId, player.characterId, player.x, player.y);
       window.gameMapRenderer.updateRemotePlayer(userId, player);
     }
@@ -3296,7 +3657,7 @@ const App = {
     const portableCount = visibleItems.filter(item => item.definition?.portable !== false).length;
     const fixedCount = visibleItems.length - portableCount;
     status.textContent = `${portableCount} 件可拾取${fixedCount ? ` · ${fixedCount} 处可互动` : ''}`;
-    status.hidden = !this._isXiejianMailbox() || visibleItems.length === 0;
+    status.hidden = !(this._isXiejianMailbox() || this._isPoxiaoMailbox()) || visibleItems.length === 0;
   },
 
   _initMultiplayer(mailboxId) {
@@ -3306,10 +3667,11 @@ const App = {
     if (!currentUser) return;
 
     const isXiejian = this._isXiejianMailbox(mailboxId);
+    const isPoxiao = this._isPoxiaoMailbox(mailboxId);
     const sharedMailbox = STORAGE.loadSharedMailbox(mailboxId);
     const isShared = sharedMailbox && sharedMailbox.members && sharedMailbox.members.length > 1;
 
-    if (!isXiejian && !isShared) return;
+    if (!isXiejian && !isPoxiao && !isShared) return;
     if (typeof MultiplayerSync === 'undefined') return;
 
     window.gameMapRenderer.setMultiplayerMode(true);
@@ -3320,13 +3682,14 @@ const App = {
 
       MultiplayerSync.on('join', (player) => {
         if (!window.gameMapRenderer) return;
-        if (isXiejian) {
+        if (isXiejian || isPoxiao) {
           this._refreshXiejianRemotePlayers();
         } else if (player.characterId) {
           window.gameMapRenderer.addRemotePlayer(player.userId, player.characterId, player.x, player.y);
         }
         this._updateOnlinePlayersList();
         this._updateXiejianCapacity();
+        this._refreshMapOnline();
       });
 
       MultiplayerSync.on('leave', (data) => {
@@ -3334,12 +3697,14 @@ const App = {
         window.gameMapRenderer.removeRemotePlayer(data.userId);
         this._updateOnlinePlayersList();
         this._updateXiejianCapacity();
+        this._refreshMapOnline();
       });
 
       MultiplayerSync.on('update', (player) => {
         if (!window.gameMapRenderer) return;
-        if (isXiejian) {
-          if (player.characterId && player.mapKey === this._xiejianMapKey) {
+        if (isXiejian || isPoxiao) {
+          const currentMapKey = isPoxiao ? this._poxiaoMapKey : this._xiejianMapKey;
+          if (player.characterId && player.mapKey === currentMapKey) {
             window.gameMapRenderer.addRemotePlayer(player.userId, player.characterId, player.x, player.y);
             window.gameMapRenderer.updateRemotePlayer(player.userId, player);
           } else {
@@ -3348,11 +3713,13 @@ const App = {
         } else {
           window.gameMapRenderer.updateRemotePlayer(player.userId, player);
         }
+        // 玩家地图变更时刷新徽章与下拉每图计数
+        this._refreshMapOnline();
       });
 
       MultiplayerSync.on('action', (data) => {
         if (!window.gameMapRenderer) return;
-        if (isXiejian && data.mapKey !== this._xiejianMapKey) return;
+        if ((isXiejian || isPoxiao) && data.mapKey !== (isPoxiao ? this._poxiaoMapKey : this._xiejianMapKey)) return;
         window.gameMapRenderer.playRemoteAction(data.userId, data.action);
       });
 
@@ -3372,23 +3739,26 @@ const App = {
       });
 
       MultiplayerSync.on('mapChange', () => {
-        if (isXiejian) this._refreshXiejianRemotePlayers();
+        if (isXiejian || isPoxiao) this._refreshXiejianRemotePlayers();
+        this._refreshMapOnline();
       });
 
-      if (isXiejian) {
+      if (isXiejian || isPoxiao) {
         MultiplayerSync.on('inventory', (inventory) => {
           this._renderXiejianInventory(inventory);
           this._updateXiejianTargetHud();
         });
 
         MultiplayerSync.on('worldItems', (data) => {
-          if (data.mapKey && data.mapKey !== this._xiejianMapKey) return;
+          const currentMapKey = isPoxiao ? this._poxiaoMapKey : this._xiejianMapKey;
+          if (data.mapKey && data.mapKey !== currentMapKey) return;
           window.gameMapRenderer?.setWorldItems(data.items || []);
           this._updateXiejianWorldItemStatus(data.items || []);
         });
 
         MultiplayerSync.on('worldItemSpawned', (data) => {
-          if (data.instance?.mapKey !== this._xiejianMapKey) return;
+          const currentMapKey = isPoxiao ? this._poxiaoMapKey : this._xiejianMapKey;
+          if (data.instance?.mapKey !== currentMapKey) return;
           window.gameMapRenderer?.addWorldItem(data.instance);
           this._showXiejianFeedback(`${data.instance.definition?.name || '物品'}已重新出现`);
         });
@@ -3446,8 +3816,11 @@ const App = {
             this._refreshXiejianRemotePlayers();
             return;
           }
-          this._showXiejianFeedback('体力耗尽，已返回静远书院并获得短暂无敌。', true);
-          await this._enterXiejianMap(data.returnMapKey || 'xj-jingyuan');
+          const isPoxiaoDefeated = this._isPoxiaoMailbox();
+          const defaultReturnMap = isPoxiaoDefeated ? 'px-d-city' : 'xj-jingyuan';
+          const returnPlaceName = isPoxiaoDefeated ? 'D市总览' : '静远书院';
+          this._showXiejianFeedback(`体力耗尽，已返回${returnPlaceName}并获得短暂无敌。`, true);
+          await this._enterXiejianMap(data.returnMapKey || defaultReturnMap);
           window.gameMapRenderer.player.x = Number(data.x) || window.gameMapRenderer.player.x;
           window.gameMapRenderer.player.y = Number(data.y) || window.gameMapRenderer.player.y;
           window.gameMapRenderer.centerCamera();
@@ -3455,20 +3828,29 @@ const App = {
 
         MultiplayerSync.on('roomState', async (data) => {
           this._xiejianRoomStateReceived = true;
+          this._poxiaoRoomStateReceived = true;
           this._renderXiejianCharacterChoices();
           const profile = data.accountProfile || {};
-          if (!profile.xiejianCharacterId) {
+          const isPoxiao = this._isPoxiaoMailbox();
+          const profileCharId = isPoxiao
+            ? (profile.poxiaoCharacterId || profile.xiejianCharacterId)
+            : profile.xiejianCharacterId;
+          if (!profileCharId) {
             this._showXiejianCharacterStep();
             this._updateOnlinePlayersList();
             return;
           }
-          this._xiejianCharacterId = profile.xiejianCharacterId;
+          if (isPoxiao) {
+            this._poxiaoCharacterId = profileCharId;
+          } else {
+            this._xiejianCharacterId = profileCharId;
+          }
           MailService.profile = { ...(MailService.profile || {}), ...profile };
-          STORAGE.saveCharacterBinding(this.currentMailboxId, profile.xiejianCharacterId);
+          STORAGE.saveCharacterBinding(this.currentMailboxId, profileCharId);
           
           try {
             // Add timeout for character loading
-            const charLoadPromise = window.gameMapRenderer.loadCharacter(profile.xiejianCharacterId);
+            const charLoadPromise = window.gameMapRenderer.loadCharacter(profileCharId);
             const charTimeoutPromise = new Promise((resolve) => setTimeout(resolve, 5000));
             await Promise.race([charLoadPromise, charTimeoutPromise]);
             
@@ -3478,7 +3860,11 @@ const App = {
             if (guestSection) guestSection.style.display = 'none';
             this._updateCurrentCharacterInfo();
             this._updateOnlinePlayersList();
-            await this._enterXiejianMap(profile.lastXiejianMapKey || 'xj-jingyuan');
+            const defaultMapKey = isPoxiao
+              ? (profile.lastPoxiaoMapKey || profile.lastXiejianMapKey || 'px-d-city')
+              : (profile.lastXiejianMapKey || 'xj-jingyuan');
+            await this._enterXiejianMap(defaultMapKey);
+            console.log('[App] room_state worldItems count:', data.worldItems?.length, 'first:', data.worldItems?.[0]);
             window.gameMapRenderer.setWorldItems(data.worldItems || []);
             this._updateXiejianWorldItemStatus(data.worldItems || []);
             this._renderXiejianInventory(data.inventory);
@@ -3489,6 +3875,8 @@ const App = {
             // Still close the entry overlay
             this._closeXiejianEntry();
           }
+          // 房间状态到达后刷新地图在线人数
+          this._refreshMapOnline();
         });
 
         MultiplayerSync.on('occupancy', () => {
@@ -3496,11 +3884,19 @@ const App = {
         });
 
         MultiplayerSync.on('characterSelected', async (data) => {
-          this._xiejianCharacterId = data.characterId;
+          const isPoxiao = this._isPoxiaoMailbox();
+          if (isPoxiao) {
+            this._poxiaoCharacterId = data.characterId;
+          } else {
+            this._xiejianCharacterId = data.characterId;
+          }
+          const profileKey = isPoxiao ? 'poxiaoCharacterId' : 'xiejianCharacterId';
+          const mapKeyField = isPoxiao ? 'lastPoxiaoMapKey' : 'lastXiejianMapKey';
+          const defaultMapKey = isPoxiao ? 'px-d-city' : 'xj-jingyuan';
           MailService.profile = {
             ...(MailService.profile || {}),
-            xiejianCharacterId: data.characterId,
-            lastXiejianMapKey: data.mapKey || 'xj-jingyuan'
+            [profileKey]: data.characterId,
+            [mapKeyField]: data.mapKey || defaultMapKey
           };
           STORAGE.saveCharacterBinding(this.currentMailboxId, data.characterId);
           const currentUser = AuthManager.getCurrentUser();
@@ -3519,13 +3915,16 @@ const App = {
           this._updateCurrentCharacterInfo();
           this._updateOnlinePlayersList();
           this._renderXiejianCharacterChoices();
-          await this._enterXiejianMap(data.mapKey || 'xj-jingyuan');
+          await this._enterXiejianMap(data.mapKey || defaultMapKey);
           this._startXiejianPromptLoop();
         });
 
         MultiplayerSync.on('characterRejected', (data) => {
+          const isPoxiaoReject = this._isPoxiaoMailbox();
+          const currentCharId = isPoxiaoReject ? this._poxiaoCharacterId : this._xiejianCharacterId;
+          const prevCharId = isPoxiaoReject ? this._previousPoxiaoCharacterId : this._previousXiejianCharacterId;
           if (data.reason === 'binding_locked' && data.boundCharacterId) {
-            if (data.boundCharacterId === this._xiejianCharacterId) {
+            if (data.boundCharacterId === currentCharId) {
               this._setXiejianEntryStatus('当前角色已绑定，可继续使用');
               return;
             }
@@ -3533,9 +3932,12 @@ const App = {
             return;
           }
           // Revert to previous character if switching from in-game
-          if (this._previousXiejianCharacterId && this._previousXiejianCharacterId !== this._xiejianCharacterId) {
-            const prevCharId = this._previousXiejianCharacterId;
-            this._xiejianCharacterId = prevCharId;
+          if (prevCharId && prevCharId !== currentCharId) {
+            if (isPoxiaoReject) {
+              this._poxiaoCharacterId = prevCharId;
+            } else {
+              this._xiejianCharacterId = prevCharId;
+            }
             window.gameMapRenderer.loadCharacter(prevCharId);
             this._updateCurrentCharacterInfo();
           }
@@ -3552,7 +3954,7 @@ const App = {
             this._showXiejianFeedback(errorMsg, true);
             // Re-render the character grid to show occupied status
             if (this._renderMapCharacterGrid) {
-              this._renderMapCharacterGrid('xiejian');
+              this._renderMapCharacterGrid(isPoxiaoReject ? 'poxiao' : 'xiejian');
             }
           } else {
             // Entry flow: show the character step
@@ -3590,12 +3992,13 @@ const App = {
       }
 
       MultiplayerSync.init(mailboxId, currentUser, {
-        mode: isXiejian ? 'xiejian' : 'default',
-        characterId: isXiejian ? '' : (currentUser.role || 'xiu-jing'),
-        mapKey: isXiejian ? '' : (window.gameMapRenderer.currentMapBgKey || '')
+        mode: isPoxiao ? 'poxiao' : (isXiejian ? 'xiejian' : 'default'),
+        characterId: (isXiejian || isPoxiao) ? '' : (currentUser.role || 'xiu-jing'),
+        mapKey: (isXiejian || isPoxiao) ? '' : (window.gameMapRenderer.currentMapBgKey || '')
       });
+      MultiplayerSync.setCategory(isPoxiao ? 'poxiao' : (isXiejian ? 'xiejian' : ''));
 
-      if (!isXiejian) {
+      if (!isXiejian && !isPoxiao) {
         const player = window.gameMapRenderer.player;
         MultiplayerSync.broadcastState({
           x: player.x,
@@ -3623,24 +4026,31 @@ const App = {
       if (!isXiejian) this._startDuetActionPanel();
     };
 
-    if (isXiejian) {
-      this._xiejianMapKey = '';
-      this._xiejianPendingMapKey = '';
-      this._xiejianRoomStateReceived = false;
+    if (isXiejian || isPoxiao) {
+      if (isPoxiao) {
+        this._poxiaoMapKey = '';
+        this._poxiaoPendingMapKey = '';
+        this._poxiaoRoomStateReceived = false;
+      } else {
+        this._xiejianMapKey = '';
+        this._xiejianPendingMapKey = '';
+        this._xiejianRoomStateReceived = false;
+      }
       this._openXiejianEntry();
       document.getElementById('xiejian-character-step')?.classList.remove('active');
       document.getElementById('xiejian-map-step')?.classList.remove('active');
       const title = document.getElementById('xiejian-entry-title');
       const subtitle = document.getElementById('xiejian-entry-subtitle');
-      if (title) title.textContent = '正在进入挟剑';
+      if (title) title.textContent = isPoxiao ? '正在进入破晓' : '正在进入挟剑';
       if (subtitle) subtitle.textContent = '正在读取账号绑定的角色与最后地图…';
       this._setXiejianEntryStatus('');
       setupMultiplayer();
-      
+
       // Add timeout for room_state - if not received in 10 seconds, show character selection
       setTimeout(() => {
-        if (!this._xiejianRoomStateReceived) {
-          console.warn('[Xiejian] Room state not received within timeout, showing character selection');
+        const received = isPoxiao ? this._poxiaoRoomStateReceived : this._xiejianRoomStateReceived;
+        if (!received) {
+          console.warn(`[${isPoxiao ? 'Poxiao' : 'Xiejian'}] Room state not received within timeout, showing character selection`);
           this._showXiejianCharacterStep();
           this._updateOnlinePlayersList();
         }
@@ -3669,6 +4079,9 @@ const App = {
     this._xiejianPendingMapKey = 'xj-jingyuan';
 
     window.gameMapRenderer.loadCharacter(this._xiejianCharacterId).then(() => {
+      const poxiaoPanel = document.getElementById('poxiao-action-panel');
+      if (poxiaoPanel) poxiaoPanel.style.display = 'none';
+
       const backpackButton = document.getElementById('xiejian-backpack-btn');
       if (backpackButton) {
         backpackButton.hidden = false;
@@ -3698,6 +4111,54 @@ const App = {
 
       const mapNameEl = document.getElementById('map-name');
       if (mapNameEl) mapNameEl.textContent = '静远书院';
+
+      this._bindXiejianGameUI();
+      this._updateCurrentCharacterInfo();
+    });
+  },
+
+  _initGuestPoxiaoSystems() {
+    if (!window.gameMapRenderer) return;
+
+    const boundCharacterId = STORAGE.loadCharacterBinding(this.currentMailboxId);
+
+    if (!boundCharacterId) {
+      this._poxiaoCharacterId = '';
+      this._poxiaoMapKey = 'px-d-city';
+      this._poxiaoPendingMapKey = 'px-d-city';
+      this._showXiejianCharacterStep();
+      return;
+    }
+
+    this._poxiaoCharacterId = boundCharacterId;
+    this._poxiaoMapKey = 'px-d-city';
+    this._poxiaoPendingMapKey = 'px-d-city';
+
+    window.gameMapRenderer.loadCharacter(this._poxiaoCharacterId).then(() => {
+      this._buildPoxiaoActionPanel(this._poxiaoCharacterId);
+
+      const backpackButton = document.getElementById('xiejian-backpack-btn');
+      if (backpackButton) {
+        backpackButton.hidden = false;
+        backpackButton.classList.add('xiejian-active');
+      }
+
+      const accountKey = this._getCurrentAccountKey();
+      const savedInventory = STORAGE.loadInventory(accountKey);
+      const guestInventory = savedInventory || {
+        combat: { hp: 100, maxHp: 100, martial: 0, attack: 4, defense: 4, poisonedUntil: 0 },
+        items: [],
+        quickSlots: []
+      };
+
+      if (typeof MultiplayerSync !== 'undefined') {
+        MultiplayerSync.inventory = guestInventory;
+      }
+
+      this._renderXiejianInventory(guestInventory);
+
+      const mapNameEl = document.getElementById('map-name');
+      if (mapNameEl) mapNameEl.textContent = 'D市总览';
 
       this._bindXiejianGameUI();
       this._updateCurrentCharacterInfo();
@@ -3737,7 +4198,7 @@ const App = {
     });
 
     window.addEventListener('keydown', event => {
-      if (!this._isXiejianMailbox() || this.currentView !== 'mailbox') return;
+      if (!(this._isXiejianMailbox() || this._isPoxiaoMailbox()) || this.currentView !== 'mailbox') return;
       const target = event.target;
       if (target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement || target?.isContentEditable) return;
       if (event.key === 'b' || event.key === 'B') {
@@ -3757,6 +4218,50 @@ const App = {
     };
     window.xiejianAttackCallback = targetId => this._attackXiejianTarget(targetId);
     this._bindMobileMapChrome();
+  },
+
+  _buildPoxiaoActionPanel(charId) {
+    const panel = document.getElementById('poxiao-action-panel');
+    const buttonsContainer = document.getElementById('poxiao-action-buttons');
+    if (!panel || !buttonsContainer) return;
+
+    // 非破晓模式隐藏面板
+    if (!this._isPoxiaoMailbox()) {
+      panel.style.display = 'none';
+      return;
+    }
+
+    const char = window.gameMapRenderer?.getCharacterInfo?.(charId);
+    if (!char || !char.actions) {
+      panel.style.display = 'none';
+      return;
+    }
+
+    // 提取 act_01 ~ act_20 动作（排除标准动作）
+    const actionKeys = Object.keys(char.actions)
+      .filter(key => key.startsWith('act_'))
+      .sort();
+
+    if (actionKeys.length === 0) {
+      panel.style.display = 'none';
+      return;
+    }
+
+    buttonsContainer.innerHTML = '';
+    for (const key of actionKeys) {
+      const action = char.actions[key];
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'poxiao-action-btn';
+      btn.textContent = action.label || key;
+      btn.title = action.label || key;
+      btn.addEventListener('click', () => {
+        window.gameMapRenderer?.playAction?.(key);
+      });
+      buttonsContainer.appendChild(btn);
+    }
+
+    panel.style.display = 'block';
   },
 
   _bindMobileMapChrome() {
@@ -3942,6 +4447,9 @@ const App = {
     // 新增：更新背包标题和角色头像
     this._syncInventoryPortrait();
     
+    // 过滤掉初始发放物品，只显示玩家主动获得的物品
+    const items = (inventory.items || []).filter(item => !item.origin || item.origin.type !== 'starter');
+
     const combat = {
       ...(inventory.combat || {}),
       ...(MultiplayerSync.combatProfile || {})
@@ -3964,8 +4472,9 @@ const App = {
     if (combat.pendingCoating) statuses.push(combat.pendingCoating === 'poison' ? '武器淬毒' : '迷香已备');
     setText('xiejian-status-line', statuses.length ? statuses.join(' · ') : '状态安定');
 
-    const char = window.gameMapRenderer?.getCharacterInfo?.(this._xiejianCharacterId);
-    setText('xiejian-inventory-owner', char ? `${char.name}的随身行囊` : '挟剑角色背包');
+    const charId = this._isPoxiaoMailbox() ? this._poxiaoCharacterId : this._xiejianCharacterId;
+    const char = window.gameMapRenderer?.getCharacterInfo?.(charId);
+    setText('xiejian-inventory-owner', char ? `${char.name}的随身行囊` : '角色背包');
     const portrait = document.getElementById('xiejian-inventory-portrait');
     if (portrait && char) {
       portrait.src = `sendbox/fill/jingyuan-chibi20-delivery-20260719/${char.dir}/frames/personality/00.png`;
@@ -3990,7 +4499,7 @@ const App = {
     });
 
     const groups = new Map();
-    for (const item of inventory.items || []) {
+    for (const item of items) {
       const key = item.definitionId;
       if (!groups.has(key)) groups.set(key, []);
       groups.get(key).push(item);
@@ -4062,7 +4571,7 @@ const App = {
     const definition = item.definition;
     const equipped = Boolean(item.equippedSlot);
     const nearbyPlayers = Object.values(MultiplayerSync.getOnlinePlayers())
-      .filter(player => player.mapKey === this._xiejianMapKey)
+      .filter(player => player.mapKey === (this._isPoxiaoMailbox() ? this._poxiaoMapKey : this._xiejianMapKey))
       .filter(player => Math.hypot(
         player.x - window.gameMapRenderer.player.x,
         player.y - window.gameMapRenderer.player.y
@@ -4153,7 +4662,7 @@ const App = {
   _startXiejianPromptLoop() {
     if (this._xiejianPromptTimer) clearInterval(this._xiejianPromptTimer);
     this._xiejianPromptTimer = setInterval(() => {
-      if (!this._isXiejianMailbox()) return;
+      if (!this._isXiejianMailbox() && !this._isPoxiaoMailbox()) return;
       const item = window.gameMapRenderer?.getNearbyWorldItem(80);
       const prompt = document.getElementById('xiejian-interact-prompt');
       const interactButton = document.getElementById('mobile-interact-btn');
@@ -4404,6 +4913,8 @@ const App = {
 
     let allPlayers = [];
     const isXiejian = this._isXiejianMailbox();
+    const isPoxiao = this._isPoxiaoMailbox();
+    const isGameMode = isXiejian || isPoxiao;
     const getCharacterName = (characterId) => {
       if (!characterId || !window.gameMapRenderer?.getCharacterInfo) return '';
       return window.gameMapRenderer.getCharacterInfo(characterId)?.name || '';
@@ -4412,32 +4923,38 @@ const App = {
     const accountKey = typeof MailService !== 'undefined'
       ? MailService.getAccountKey(currentUser)
       : String(currentUser.username || '').trim().toLocaleLowerCase('en-US');
-    const selfCharacterId = this._xiejianCharacterId
-      || (typeof MultiplayerSync !== 'undefined' ? MultiplayerSync.accountProfile?.xiejianCharacterId : '')
-      || (typeof MailService !== 'undefined' ? MailService.profile?.xiejianCharacterId : '')
-      || STORAGE.loadCharacterBinding(this.currentMailboxId)
-      || '';
+    const selfCharacterId = isPoxiao
+      ? (this._poxiaoCharacterId
+        || (typeof MultiplayerSync !== 'undefined' ? MultiplayerSync.accountProfile?.poxiaoCharacterId : '')
+        || (typeof MailService !== 'undefined' ? MailService.profile?.poxiaoCharacterId : '')
+        || STORAGE.loadCharacterBinding(this.currentMailboxId)
+        || '')
+      : (this._xiejianCharacterId
+        || (typeof MultiplayerSync !== 'undefined' ? MultiplayerSync.accountProfile?.xiejianCharacterId : '')
+        || (typeof MailService !== 'undefined' ? MailService.profile?.xiejianCharacterId : '')
+        || STORAGE.loadCharacterBinding(this.currentMailboxId)
+        || '');
 
-    if (!isXiejian || selfCharacterId) {
+    if (!isGameMode || selfCharacterId) {
       allPlayers.push({
         userId: accountKey,
         username: currentUser.username || currentUser.displayName || currentUser.name || accountKey,
-        characterName: isXiejian ? getCharacterName(selfCharacterId) : '',
+        characterName: isGameMode ? getCharacterName(selfCharacterId) : '',
         name: currentUser.displayName || currentUser.username || currentUser.name || '我',
         isSelf: true,
         isOnline: true,
-        role: isXiejian ? selfCharacterId : currentUser.role
+        role: isGameMode ? selfCharacterId : currentUser.role
       });
     }
 
     if (typeof MultiplayerSync !== 'undefined') {
       const onlinePlayers = MultiplayerSync.getOnlinePlayers();
       for (const [userId, player] of Object.entries(onlinePlayers)) {
-        if (userId === accountKey || (isXiejian && (!player.characterId || player.ready === false))) continue;
+        if (userId === accountKey || (isGameMode && (!player.characterId || player.ready === false))) continue;
         allPlayers.push({
           userId: userId,
           username: player.username || player.displayName || player.name || userId,
-          characterName: isXiejian ? getCharacterName(player.characterId) : '',
+          characterName: isGameMode ? getCharacterName(player.characterId) : '',
           name: player.displayName || player.username || player.name || userId,
           isSelf: false,
           isOnline: true,
@@ -4448,9 +4965,9 @@ const App = {
 
     const count = allPlayers.length;
     const countLabel = document.getElementById('online-players-count');
-    const countBadge = document.getElementById('xiejian-online-count');
     if (countLabel) countLabel.textContent = `${count} 人`;
-    if (countBadge) countBadge.textContent = String(count);
+    // #xiejian-online-count 徽章改为显示「当前地图在线数」，由 _refreshMapOnline 维护
+    this._refreshMapOnline();
 
     listEl.innerHTML = allPlayers.map(player => {
       const username = this._escapeHtml(player.username || player.name || player.userId || '?');
@@ -5231,9 +5748,10 @@ const App = {
       this._chatConversationUsers.add(convTargetUserId);
     }
 
-    const canShowBubble = !this._isXiejianMailbox()
+    const currentMapKey = this._isPoxiaoMailbox() ? this._poxiaoMapKey : this._xiejianMapKey;
+    const canShowBubble = !(this._isXiejianMailbox() || this._isPoxiaoMailbox())
       || !data.mapKey
-      || data.mapKey === this._xiejianMapKey;
+      || data.mapKey === currentMapKey;
     if (canShowBubble && window.gameMapRenderer && window.gameMapRenderer.showChatBubble) {
       window.gameMapRenderer.showChatBubble(data.userId, data.content);
     }
@@ -5271,10 +5789,19 @@ const App = {
     const charAvatarEl = document.getElementById('current-char-avatar');
 
     const isXiejian = this._isXiejianMailbox();
+    const isPoxiao = this._isPoxiaoMailbox();
 
     let charId = '';
     if (window.gameMapRenderer?.selectedCharacter) {
       charId = window.gameMapRenderer.selectedCharacter;
+    } else if (isPoxiao) {
+      charId = this._poxiaoCharacterId
+        || MultiplayerSync.accountProfile?.poxiaoCharacterId
+        || MultiplayerSync.accountProfile?.xiejianCharacterId
+        || MailService.profile?.poxiaoCharacterId
+        || MailService.profile?.xiejianCharacterId
+        || boundCharId
+        || 'px-tangqi';
     } else if (isXiejian) {
       charId = this._xiejianCharacterId
         || MultiplayerSync.accountProfile?.xiejianCharacterId
@@ -5285,6 +5812,9 @@ const App = {
       charId = (currentUser && currentUser.role) || boundCharId || 'xiu-jing';
     }
 
+    if (isPoxiao && charId && !this._poxiaoCharacterId) {
+      this._poxiaoCharacterId = charId;
+    }
     if (isXiejian && charId && !this._xiejianCharacterId) {
       this._xiejianCharacterId = charId;
     }
@@ -5306,7 +5836,14 @@ const App = {
         'shen-chiyi': { name: '沈池懿', sect: '静远书院' },
         'qi-pingchuan': { name: '戚凭川', sect: '桃止门' },
         'jiang-huaian': { name: '江淮安', sect: '丹溪谷' },
-        'tang-wanchu': { name: '唐挽初', sect: '不还门' }
+        'tang-wanchu': { name: '唐挽初', sect: '不还门' },
+        'px-tangqi': { name: '唐岐', sect: '缉毒警' },
+        'px-lipingchuan': { name: '李平川', sect: '奶茶店老板' },
+        'px-jiangyan': { name: '江宴', sect: '法医' },
+        'px-xinghe': { name: '沈星何', sect: '情报科' },
+        'px-heyinsheng': { name: '贺引生', sect: '缉毒警' },
+        'px-chenzhou': { name: '陈昼', sect: '卧底' },
+        'px-zhouran': { name: '周然', sect: '画家' }
       };
       if (charNames[charId]) {
         charSect = charNames[charId].sect;
@@ -5434,14 +5971,17 @@ const App = {
     const mailboxes = MailboxManager.getMailboxes();
     const currentMailbox = mailboxes.find(m => m.id === this.currentMailboxId);
     const isXiejianMailbox = this._isXiejianMailbox();
+    const isPoxiaoMailbox = this._isPoxiaoMailbox();
     const isHanmenMailbox = this._isHanmenMailbox();
-    const mailboxCategory = isXiejianMailbox ? 'xiejian' : (isHanmenMailbox ? 'hanmen' : null);
+    const mailboxCategory = isXiejianMailbox ? 'xiejian' : (isHanmenMailbox ? 'hanmen' : (isPoxiaoMailbox ? 'poxiao' : null));
     let mapBg = currentMailbox ? currentMailbox.mapBackground : null;
 
     if (isHanmenMailbox) {
       mapBg = 'hanmen';
     } else if (isXiejianMailbox && (!mapBg || !mapBg.startsWith('xj-'))) {
       mapBg = 'xj-jingyuan';
+    } else if (isPoxiaoMailbox && (!mapBg || !mapBg.startsWith('px-'))) {
+      mapBg = 'px-d-city';
     }
 
     const applyMailboxGameScope = () => {
@@ -5453,6 +5993,7 @@ const App = {
         activeCategory = 'hanmen';
       }
       mapContainer.classList.toggle('xiejian-mode', isXiejianMailbox);
+      mapContainer.classList.toggle('poxiao-mode', isPoxiaoMailbox);
       window.gameMapRenderer.setCategory(activeCategory);
       // 所有有地图背景的信箱都显示背包
       const backpackButton = document.getElementById('xiejian-backpack-btn');
@@ -5469,6 +6010,8 @@ const App = {
           isAllowed = true;
         } else if (mailboxCategory === 'xiejian') {
           isAllowed = cat === 'xiejian';
+        } else if (mailboxCategory === 'poxiao') {
+          isAllowed = cat === 'poxiao';
         } else if (mailboxCategory === 'hanmen') {
           isAllowed = (cat === 'hanmen');
         }
@@ -5495,7 +6038,7 @@ const App = {
 
       const xiejianSingleActions = new Set(['personality', 'etiquette', 'martial', 'signature', 'run']);
       document.querySelectorAll('.action-btn').forEach(button => {
-        const isAllowed = !isXiejianMailbox || xiejianSingleActions.has(button.dataset.action);
+        const isAllowed = (!isXiejianMailbox && !isPoxiaoMailbox) || xiejianSingleActions.has(button.dataset.action);
         button.hidden = !isAllowed;
         if (isAllowed) {
           button.style.removeProperty('display');
@@ -5520,16 +6063,19 @@ const App = {
     const isLoggedIn = !!currentUser;
 
     if (!window.gameMapRenderer) {
-      import('./gameMapRenderer.js?v=20260803f').then(module => {
+      import('./gameMapRenderer.js?v=20260804p').then(module => {
         window.gameMapRenderer = new module.GameMapRenderer(mapContainer);
         window.gameMapRenderer.init();
 
         // 单人模式：不再设置搭档，始终单人
         const boundCharacterId = STORAGE.loadCharacterBinding(this.currentMailboxId);
         const serverCharacterId = MultiplayerSync.accountProfile?.xiejianCharacterId || MailService.profile?.xiejianCharacterId;
+        const serverPoxiaoCharacterId = MultiplayerSync.accountProfile?.poxiaoCharacterId || MailService.profile?.poxiaoCharacterId;
         const defaultCharacterId = isXiejianMailbox && isLoggedIn
           ? (serverCharacterId || 'zhou-ran')
-          : (boundCharacterId || 'xiu-jing');
+          : (isPoxiaoMailbox && isLoggedIn
+            ? (serverPoxiaoCharacterId || serverCharacterId || boundCharacterId || 'px-tangqi')
+            : (boundCharacterId || 'xiu-jing'));
         window.gameMapRenderer.loadCharacter(defaultCharacterId);
         window.gameMapRenderer.setPartner(null);
         
@@ -5547,6 +6093,9 @@ const App = {
         if (isXiejianMailbox && defaultCharacterId) {
             this._xiejianCharacterId = defaultCharacterId;
         }
+        if (isPoxiaoMailbox && defaultCharacterId) {
+            this._poxiaoCharacterId = defaultCharacterId;
+        }
 
         // 进入地图时加载本地背包数据
         const savedInventory = !AuthManager.getCurrentUser() ? STORAGE.loadInventory(this._getCurrentAccountKey()) : null;
@@ -5557,7 +6106,9 @@ const App = {
         // 单人模式：不再初始化多人游戏
         if (isXiejianMailbox && !isLoggedIn) {
           this._initGuestXiejianSystems();
-        } else if (!isXiejianMailbox && currentUser && (currentUser.role === 'xiu-jing' || currentUser.role === 'xuan-xuan')) {
+        } else if (isPoxiaoMailbox && !isLoggedIn) {
+          this._initGuestPoxiaoSystems();
+        } else if (!isXiejianMailbox && !isPoxiaoMailbox && currentUser && (currentUser.role === 'xiu-jing' || currentUser.role === 'xuan-xuan')) {
           setTimeout(() => {
             this._syncMapCharacter(currentUser.role);
           }, 200);
@@ -5575,8 +6126,10 @@ const App = {
               btn.classList.add('active');
             }
             let subtitle = char.sect || '';
-            const avatarContent = category === 'xiejian'
-              ? `<img src="sendbox/fill/jingyuan-chibi20-delivery-20260719/${char.dir}/frames/personality/00.png" alt="${char.name}" draggable="false">`
+            const avatarContent = (category === 'xiejian' || category === 'poxiao')
+              ? (category === 'poxiao' && char.portraitPath
+                ? `<img src="${char.portraitPath}" alt="${char.name}" draggable="false">`
+                : `<img src="sendbox/fill/jingyuan-chibi20-delivery-20260719/${char.dir}/frames/personality/00.png" alt="${char.name}" draggable="false">`)
               : char.name.charAt(0);
             btn.innerHTML = `
               <div class="char-avatar" data-char-id="${char.id}">${avatarContent}</div>
@@ -5614,6 +6167,15 @@ const App = {
               }
               if (this._isXiejianMailbox()) {
                 this._xiejianCharacterId = char.id;
+                if (typeof MultiplayerSync !== 'undefined') {
+                  MultiplayerSync.requestCharacter?.(char.id);
+                }
+                const currentCharSection = document.getElementById('current-character-section');
+                const guestCharSection = document.getElementById('guest-character-section');
+                if (currentCharSection) currentCharSection.style.display = 'block';
+                if (guestCharSection) guestCharSection.style.display = 'none';
+              } else if (this._isPoxiaoMailbox()) {
+                this._poxiaoCharacterId = char.id;
                 if (typeof MultiplayerSync !== 'undefined') {
                   MultiplayerSync.requestCharacter?.(char.id);
                 }
@@ -5728,7 +6290,7 @@ const App = {
           });
         }
 
-        if (!isXiejianMailbox && (!isSharedMailbox || !isLoggedIn)) {
+        if (!isXiejianMailbox && !isPoxiaoMailbox && (!isSharedMailbox || !isLoggedIn)) {
           setTimeout(() => {
             if (duetSection) {
               duetSection.style.display = 'block';
@@ -5749,6 +6311,8 @@ const App = {
         const hasBoundCharacter = !!STORAGE.loadCharacterBinding(this.currentMailboxId);
         const showCurrentCharInfo = isXiejianMailbox
           ? Boolean(hasBoundCharacter || this._xiejianCharacterId)
+          : isPoxiaoMailbox
+          ? Boolean(hasBoundCharacter || this._poxiaoCharacterId)
           : Boolean(isLoggedIn || hasBoundCharacter);
 
         if (currentCharSection) {
@@ -5780,6 +6344,8 @@ const App = {
             if (guestCharSection) guestCharSection.style.display = 'block';
             if (isXiejianMailbox && this._renderMapCharacterGrid) {
               this._renderMapCharacterGrid('xiejian');
+            } else if (isPoxiaoMailbox && this._renderMapCharacterGrid) {
+              this._renderMapCharacterGrid('poxiao');
             }
           });
         }
@@ -5918,10 +6484,11 @@ const App = {
         }
 
         // 首次创建渲染器也必须立即连接账号房间并加载服务器地图物品。
-        if (isXiejianMailbox && currentUser) {
+        if ((isXiejianMailbox || isPoxiaoMailbox) && currentUser) {
           this._initMultiplayer(this.currentMailboxId);
           if (typeof MailService.getWorldItems === 'function') {
-            const currentMapKey = window.gameMapRenderer.currentMapBgKey || mapBg || 'xj-jingyuan';
+            const defaultMapKey = isPoxiaoMailbox ? 'px-d-city' : 'xj-jingyuan';
+            const currentMapKey = window.gameMapRenderer.currentMapBgKey || mapBg || defaultMapKey;
             MailService.getWorldItems(currentMapKey).then(items => {
               if (window.gameMapRenderer.currentMapBgKey !== currentMapKey) return;
               MultiplayerSync.worldItems = items;
@@ -5954,13 +6521,15 @@ const App = {
       // === 关键修复：每次进入地图模式都重新加载 tile map，确保和当前信箱类型一致 ===
       // 挟剑信箱：加载 index 5（寒门 tile map 作为占位，实际显示的是 setMapBackground 的背景图）
       // 这样即使背景图加载失败，tile map 也不会是错误的「村庄」
-      const targetTileIdx = isXiejianMailbox ? 5 : (isHanmenMailbox ? 5 : 0);
+      const targetTileIdx = (isXiejianMailbox || isPoxiaoMailbox) ? 5 : (isHanmenMailbox ? 5 : 0);
       window.gameMapRenderer.loadMap(targetTileIdx);
       
       window.gameMapRenderer.setMapBackground(mapBg);
       // 同步更新选中分类，确保渲染走挟剑背景图路径
       if (isXiejianMailbox) {
         window.gameMapRenderer.setCategory('xiejian');
+      } else if (isPoxiaoMailbox) {
+        window.gameMapRenderer.setCategory('poxiao');
       } else if (isHanmenMailbox) {
         window.gameMapRenderer.setCategory('hanmen');
       }
@@ -5973,6 +6542,9 @@ const App = {
             _mapNameEl.textContent = mapBg === 'xj-sanshi' ? '挟剑·三世' : mapBg === 'xj-huajian' ? '挟剑·花间' : mapBg === 'xj-jiangcheng' ? '挟剑·江城' : '挟剑·静远书院';
           } else if (isHanmenMailbox) {
             _mapNameEl.textContent = '寒门';
+          } else if (isPoxiaoMailbox) {
+            const poxiaoMap = this._getPoxiaoMaps().find(m => m.key === mapBg);
+            _mapNameEl.textContent = poxiaoMap ? `破晓·${poxiaoMap.name}` : '破晓·D市总览';
           }
         }
       }
@@ -6003,6 +6575,35 @@ const App = {
               window.gameMapRenderer.setWorldItems(items);
               this._updateXiejianWorldItemStatus(items);
             }).catch(error => console.warn('[WorldItems] 初始化地图物品失败:', error));
+          }
+        } else if (isPoxiaoMailbox) {
+          window.gameMapRenderer.setPartner(null);
+          document.querySelectorAll('.char-tab').forEach(t => {
+            t.classList.remove('active');
+            if (t.dataset.category === 'poxiao') t.classList.add('active');
+          });
+          const poxiaoBoundCharId = STORAGE.loadCharacterBinding(this.currentMailboxId)
+            || MultiplayerSync.accountProfile?.poxiaoCharacterId
+            || MailService.profile?.poxiaoCharacterId
+            || 'px-tangqi';
+          this._poxiaoCharacterId = poxiaoBoundCharId;
+          window.gameMapRenderer.loadCharacter(poxiaoBoundCharId);
+          if (currentUser) {
+            this._initMultiplayer(this.currentMailboxId);
+          }
+          this._bindChatInput();
+          if (currentUser) {
+            this._loadChatHistory();
+            this._updateMultiplayerUI(true);
+          }
+          if (currentUser && typeof MailService.getWorldItems === 'function') {
+            const pxMapKey = window.gameMapRenderer.currentMapBgKey || mapBg || 'px-d-city';
+            MailService.getWorldItems(pxMapKey).then(items => {
+              if (window.gameMapRenderer.currentMapBgKey !== pxMapKey) return;
+              MultiplayerSync.worldItems = items;
+              window.gameMapRenderer.setWorldItems(items);
+              this._updateXiejianWorldItemStatus(items);
+            }).catch(error => console.warn('[WorldItems] 破晓地图物品加载失败:', error));
           }
         } else if (isSharedMailbox && isLoggedIn) {
           const characterId = currentUser.role || 'xiu-jing';

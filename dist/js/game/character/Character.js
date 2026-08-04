@@ -38,7 +38,9 @@ export class Character {
       ? ActionSet.DEFAULT_HANMEN
       : this.category === 'main'
         ? ActionSet.DEFAULT_MAIN
-        : ActionSet.DEFAULT_JINGYUAN;
+        : this.category === 'poxiao'
+          ? ActionSet.DEFAULT_POXIAO
+          : ActionSet.DEFAULT_JINGYUAN;
 
     this.actionSet = new ActionSet(def.actions || {}, {
       frameRoot: this.frameRoot,

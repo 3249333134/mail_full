@@ -1,0 +1,266 @@
+{
+  "source": "D:\\prj\\sendbox\\taoyuan-main\\public\\assets\\characters\\poxiao\\action-sheets\\shen_xinghe-20-actions-transparent.png",
+  "padding": 10,
+  "actions": {
+    "01_沉着站立": {
+      "speed": 160,
+      "frames": [
+        {
+          "left": 0,
+          "top": 0,
+          "width": 346,
+          "height": 213,
+          "keepAll": true,
+          "padding": 10
+        }
+      ]
+    },
+    "02_阅读情报": {
+      "speed": 160,
+      "frames": [
+        {
+          "left": 364,
+          "top": 0,
+          "width": 337,
+          "height": 213,
+          "keepAll": true,
+          "padding": 10
+        }
+      ]
+    },
+    "03_笔记本电脑办公": {
+      "speed": 160,
+      "frames": [
+        {
+          "left": 719,
+          "top": 0,
+          "width": 336,
+          "height": 213,
+          "keepAll": true,
+          "padding": 10
+        }
+      ]
+    },
+    "04_电脑入侵": {
+      "speed": 160,
+      "frames": [
+        {
+          "left": 1073,
+          "top": 0,
+          "width": 337,
+          "height": 213,
+          "keepAll": true,
+          "padding": 10
+        }
+      ]
+    },
+    "05_查看定位地图": {
+      "speed": 160,
+      "frames": [
+        {
+          "left": 1428,
+          "top": 0,
+          "width": 346,
+          "height": 213,
+          "keepAll": true,
+          "padding": 10
+        }
+      ]
+    },
+    "06_相机摄影": {
+      "speed": 160,
+      "frames": [
+        {
+          "left": 0,
+          "top": 231,
+          "width": 346,
+          "height": 204,
+          "keepAll": true,
+          "padding": 10
+        }
+      ]
+    },
+    "07_无线电通话": {
+      "speed": 160,
+      "frames": [
+        {
+          "left": 364,
+          "top": 231,
+          "width": 337,
+          "height": 204,
+          "keepAll": true,
+          "padding": 10
+        }
+      ]
+    },
+    "08_警察敬礼": {
+      "speed": 160,
+      "frames": [
+        {
+          "left": 719,
+          "top": 231,
+          "width": 336,
+          "height": 204,
+          "keepAll": true,
+          "padding": 10
+        }
+      ]
+    },
+    "09_拔枪": {
+      "speed": 160,
+      "frames": [
+        {
+          "left": 1073,
+          "top": 231,
+          "width": 337,
+          "height": 204,
+          "keepAll": true,
+          "padding": 10
+        }
+      ]
+    },
+    "10_蹲姿瞄准": {
+      "speed": 160,
+      "frames": [
+        {
+          "left": 1428,
+          "top": 231,
+          "width": 346,
+          "height": 204,
+          "keepAll": true,
+          "padding": 10
+        }
+      ]
+    },
+    "11_快速奔跑": {
+      "speed": 160,
+      "frames": [
+        {
+          "left": 0,
+          "top": 453,
+          "width": 346,
+          "height": 203,
+          "keepAll": true,
+          "padding": 10
+        }
+      ]
+    },
+    "12_守门员扑救": {
+      "speed": 160,
+      "frames": [
+        {
+          "left": 364,
+          "top": 453,
+          "width": 337,
+          "height": 203,
+          "keepAll": true,
+          "padding": 10
+        }
+      ]
+    },
+    "13_查看半块玉佩": {
+      "speed": 160,
+      "frames": [
+        {
+          "left": 719,
+          "top": 453,
+          "width": 336,
+          "height": 203,
+          "keepAll": true,
+          "padding": 10
+        }
+      ]
+    },
+    "14_照料金鱼": {
+      "speed": 160,
+      "frames": [
+        {
+          "left": 1073,
+          "top": 453,
+          "width": 337,
+          "height": 203,
+          "keepAll": true,
+          "padding": 10
+        }
+      ]
+    },
+    "15_肃穆黑西装": {
+      "speed": 160,
+      "frames": [
+        {
+          "left": 1428,
+          "top": 453,
+          "width": 346,
+          "height": 203,
+          "keepAll": true,
+          "padding": 10
+        }
+      ]
+    },
+    "16_中毒踉跄": {
+      "speed": 160,
+      "frames": [
+        {
+          "left": 0,
+          "top": 674,
+          "width": 346,
+          "height": 213,
+          "keepAll": true,
+          "padding": 10
+        }
+      ]
+    },
+    "17_胸口包扎": {
+      "speed": 160,
+      "frames": [
+        {
+          "left": 364,
+          "top": 674,
+          "width": 337,
+          "height": 213,
+          "keepAll": true,
+          "padding": 10
+        }
+      ]
+    },
+    "18_蹲查证物": {
+      "speed": 160,
+      "frames": [
+        {
+          "left": 719,
+          "top": 674,
+          "width": 336,
+          "height": 213,
+          "keepAll": true,
+          "padding": 10
+        }
+      ]
+    },
+    "19_指认嫌疑人": {
+      "speed": 160,
+      "frames": [
+        {
+          "left": 1073,
+          "top": 674,
+          "width": 337,
+          "height": 213,
+          "keepAll": true,
+          "padding": 10
+        }
+      ]
+    },
+    "20_坐姿回忆": {
+      "speed": 160,
+      "frames": [
+        {
+          "left": 1428,
+          "top": 674,
+          "width": 346,
+          "height": 213,
+          "keepAll": true,
+          "padding": 10
+        }
+      ]
+    }
+  }
+}

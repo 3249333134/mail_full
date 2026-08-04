@@ -446,6 +446,23 @@ Object.assign(App, {
           try { STORAGE.clearRemoteMailboxCache(); } catch (_) {}
         }
 
+        // 补同步：若刚才云端失败（超时等），这里再尝试把未同步/脏信箱推上去；
+        // 同时把本账号在远端的信箱列表强制拉回，确保跨设备新建/加入立即可见
+        (async () => {
+          try {
+            const u = AuthManager.getCurrentUser();
+            const ak = (typeof MailService.getAccountKey === 'function')
+              ? MailService.getAccountKey(u)
+              : String(u?.username || u?.id || '').toLowerCase();
+            if (ak && typeof STORAGE.flushRemoteMailboxes === 'function') {
+              await STORAGE.flushRemoteMailboxes(ak);
+            }
+            if (ak && typeof STORAGE.forceReloadMailboxesFromRemote === 'function') {
+              await STORAGE.forceReloadMailboxesFromRemote(ak);
+            }
+          } catch (_) {}
+        })();
+
         // 创建/编辑成功：先显示信箱号提示，让用户复制后再关闭
         // 若云端没同步成功，展示一个提示
         if (remoteAvailable && !remoteOk) {
@@ -545,6 +562,7 @@ Object.assign(App, {
     if (imported.mailboxCode) {
       if (codeInput) codeInput.value = imported.mailboxCode;
       this._joinPendingMailboxId = imported.mailboxId;
+      this._joinPendingMailboxCode = imported.mailboxCode;
       this._showJoinMsg('✅ ' + (imported.message || '导入成功') + '。点击「确认加入」即可开始使用', 'success');
       if (preview && parsed.mailbox) {
         preview.style.display = 'flex';
@@ -720,6 +738,16 @@ Object.assign(App, {
         // 使用 accountKey (username) 而非自动生成的 id
         joinResult = await joinFn(finalCodeKey, accountKey);
       } catch (_) { joinResult = null; }
+    } else if (mailboxId) {
+      // 没有 code 但有 mailboxId：先尝试从服务端取 mailboxCode，再走远端 join
+      try {
+        const remoteMb = typeof MailService !== 'undefined' && typeof MailService.getRemoteMailbox === 'function'
+          ? await MailService.getRemoteMailbox(mailboxId)
+          : null;
+        if (remoteMb && (remoteMb.mailboxCode || remoteMb.code)) {
+          joinResult = await joinFn(remoteMb.mailboxCode || remoteMb.code, accountKey);
+        }
+      } catch (_) { joinResult = null; }
     }
     if (!joinResult || !joinResult.success) {
       // 降级为直接更新本地 sharedMailbox（兼容“查得到但是 code 对不上”的边界情况）
@@ -781,12 +809,19 @@ Object.assign(App, {
           await MailService.refreshMailboxCache(finalMailboxId);
         }
       } catch (_) {}
+      // 关键：强制从远端重新拉取信箱列表，确保刚加入的信箱在当前端口立即可见
+      try {
+        if (typeof STORAGE !== 'undefined' && typeof STORAGE.forceReloadMailboxesFromRemote === 'function') {
+          await STORAGE.forceReloadMailboxesFromRemote(accountKey);
+        }
+      } catch (_) {}
       try {
         window.dispatchEvent(new CustomEvent('mailboxes:synced', { detail: { source: 'joinConfirm' } }));
       } catch (_) {}
     })();
 
-    setTimeout(() => {
+    // 等待所有远端数据同步完成后再关闭弹窗和跳转
+    Promise.resolve(lettersPullPromise).finally(() => {
       document.getElementById('mailbox-modal')?.classList.remove('active');
       const codeInput = document.getElementById('join-mailbox-code-input');
       if (codeInput) codeInput.value = '';
@@ -798,17 +833,15 @@ Object.assign(App, {
       if (msgBox2) msgBox2.style.display = 'none';
       if (confirmBtn) confirmBtn.disabled = true;
       this._joinPendingMailboxId = null;
+      this._joinPendingMailboxCode = null;
 
-      // 等待信件拉取完成后再跳转，保证进入信箱页立刻能看到历史信件
-      Promise.resolve(lettersPullPromise).finally(() => {
-        const sidebarNav = document.getElementById('mailbox-sidebar-nav') || document.getElementById('sidebar-nav');
-        if (sidebarNav) MailboxManager.renderSidebarNav(sidebarNav, finalMailboxId);
-        if (typeof App === 'object' && App && typeof App.renderMailboxList === 'function') {
-          try { App.renderMailboxList(); } catch (_) {}
-        }
-        this.navigate('mailbox', { mailboxId: finalMailboxId });
-      });
-    }, 1000);
+      const sidebarNav = document.getElementById('mailbox-sidebar-nav') || document.getElementById('sidebar-nav');
+      if (sidebarNav) MailboxManager.renderSidebarNav(sidebarNav, finalMailboxId);
+      if (typeof App === 'object' && App && typeof App.renderMailboxList === 'function') {
+        try { App.renderMailboxList(); } catch (_) {}
+      }
+      this.navigate('mailbox', { mailboxId: finalMailboxId });
+    });
   },
 
   _showJoinMsg(text, type = 'info') {

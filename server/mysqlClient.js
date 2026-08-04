@@ -324,6 +324,10 @@ async function ensureSchema() {
   try {
     await pool.execute(`ALTER TABLE \`mailboxes\` ADD COLUMN \`memberCharacters\` JSON NULL AFTER \`memberNames\``);
   } catch (_) { /* column may already exist */ }
+  // Migration: add starterCharacterId column to inventories table if not exists
+  try {
+    await pool.execute(`ALTER TABLE \`inventories\` ADD COLUMN \`starterCharacterId\` VARCHAR(80) NOT NULL DEFAULT '' AFTER \`starterGrantVersion\``);
+  } catch (_) { /* column may already exist */ }
 
   console.log('[mysql] 所有表已就绪');
 }

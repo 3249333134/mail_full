@@ -3,11 +3,13 @@ import { deepMerge, RemoteResourceLoader } from '../remote/RemoteResourceLoader.
 import { JINGYUAN_CHARACTER_DEFS, JINGYUAN_CHARACTER_IDS, LEGACY_CHARACTER_ID_ALIASES } from '../data/characters.jingyuan.js';
 import { HANMEN_CHARACTER_DEFS, HANMEN_CHARACTER_IDS } from '../data/characters.hanmen.js';
 import { MAIN_CHARACTER_DEFS, MAIN_CHARACTER_IDS } from '../data/characters.main.js';
+import { POXIAO_CHARACTER_DEFS, POXIAO_CHARACTER_IDS } from '../data/characters.poxiao.js';
 
-const LOCAL_DEFS = { ...JINGYUAN_CHARACTER_DEFS, ...HANMEN_CHARACTER_DEFS, ...MAIN_CHARACTER_DEFS };
+const LOCAL_DEFS = { ...JINGYUAN_CHARACTER_DEFS, ...HANMEN_CHARACTER_DEFS, ...MAIN_CHARACTER_DEFS, ...POXIAO_CHARACTER_DEFS };
 const CATEGORY_FILTER = {
   jingyuan: d => d.category === 'jingyuan', xiejian: d => d.category === 'jingyuan',
   hanmen: d => d.category === 'hanmen', main: d => d.category === 'main',
+  poxiao: d => d.category === 'poxiao',
 };
 
 export const CharacterSystem = {
@@ -57,11 +59,11 @@ export const CharacterSystem = {
       defaultItems: [...(d.defaultItems || [])], actions: Object.keys(d.actions || {}),
     }));
   },
-  getLegacyCharacterArrays() { return { JINGYUAN: this.getCharacterListForCategory('jingyuan'), HANMEN: this.getCharacterListForCategory('hanmen'), MAIN: this.getCharacterListForCategory('main') }; },
+  getLegacyCharacterArrays() { return { JINGYUAN: this.getCharacterListForCategory('jingyuan'), HANMEN: this.getCharacterListForCategory('hanmen'), MAIN: this.getCharacterListForCategory('main'), POXIAO: this.getCharacterListForCategory('poxiao') }; },
   createInitialInventory(id) { const ch = this.getCharacter(id); return { items: ch ? [...ch.defaultItemDefs] : [], quickSlots: [null, null, null, null] }; },
   createInitialCombatStats(id) { return this.getCharacter(id)?.computeCombatStats() || null; },
   isCategory(id, cat) { const d = this.getCharacterDef(id); return !!d && (cat === 'xiejian' ? d.category === 'jingyuan' : d.category === cat); },
-  getAllIds() { return { jingyuan: [...JINGYUAN_CHARACTER_IDS], hanmen: [...HANMEN_CHARACTER_IDS], main: [...MAIN_CHARACTER_IDS] }; },
+  getAllIds() { return { jingyuan: [...JINGYUAN_CHARACTER_IDS], hanmen: [...HANMEN_CHARACTER_IDS], main: [...MAIN_CHARACTER_IDS], poxiao: [...POXIAO_CHARACTER_IDS] }; },
 };
 
 CharacterSystem.ensureLocal();

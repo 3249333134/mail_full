@@ -76,4 +76,13 @@ ActionSet.DEFAULT_MAIN = new ActionSet({
   run:         { frameDir: 'Run',  frameCount: 1, frameInterval: 100, loop: true },
 });
 
+// 破晓角色兜底：单帧动作，标准 5 动作兼容
+ActionSet.DEFAULT_POXIAO = new ActionSet({
+  personality: { frameCount: 1, frameInterval: 3000, loop: true },
+  run:         { frameCount: 1, frameInterval: 105,  loop: true },
+  etiquette:   { frameCount: 1, frameInterval: 220,  loop: false },
+  martial:     { frameCount: 1, frameInterval: 110,  loop: false },
+  signature:   { frameCount: 1, frameInterval: 180,  loop: false },
+});
+
 export default ActionSet;

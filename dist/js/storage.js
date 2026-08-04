@@ -329,6 +329,163 @@ const STORAGE = {
     this._remoteMailboxCacheAt = 0;
   },
 
+  /**
+   * 主动把本地未同步 / 脏的信箱推送到远端。
+   * 用于「新建信箱」「编辑信箱」「成员变更」后确保远端落地。
+   * 成功后清脏标记、合并远端返回的 id/code/成员字段。
+   */
+  async flushRemoteMailboxes(accountKey) {
+    if (!window.MailService ||
+        typeof MailService.isRemoteAvailable !== 'function' ||
+        typeof MailService.createRemoteMailbox !== 'function') return false;
+    let ok = false;
+    try {
+      const available = await MailService.isRemoteAvailable({ force: true });
+      if (!available) return false;
+    } catch (_) { return false; }
+
+    const ak = String(accountKey || MailService.getAccountKey() || '').trim().toLowerCase();
+    if (!ak) return false;
+
+    const mailboxes = this.loadMailboxes() || [];
+    let dirty = false;
+    for (const mb of mailboxes) {
+      if (!mb || !mb.name) continue;
+      const isDirty = mb._memberDataDirty === true || mb._remoteUpsertNeeded === true || mb._remoteSynced !== true;
+      const owner = String(mb.ownerAccountKey || mb.owner || mb.createdBy || '').toLowerCase();
+      const isOwner = owner && owner === ak;
+      const isMember = (Array.isArray(mb.members) && (mb.members.includes(ak) || mb.members.map(String).map(s=>s.toLowerCase()).includes(ak)))
+        || (Array.isArray(mb.memberAccountKeys) && (mb.memberAccountKeys.includes(ak) || mb.memberAccountKeys.map(String).map(s=>s.toLowerCase()).includes(ak)));
+      // 已同步且不脏，跳过
+      if (mb._remoteSynced && !isDirty) continue;
+      // 既不是 owner 也不是成员，跳过（无权写）
+      if (!isOwner && !isMember) continue;
+
+      const payload = {
+        name: mb.name,
+        desc: mb.desc || mb.description || '',
+        icon: mb.icon || '',
+        themeColor: mb.themeColor || '',
+        mapBackground: mb.mapBackground || mb.background || '',
+        isCustom: mb.isCustom !== false,
+        ownerAccountKey: ak,
+        preferCode: mb.mailboxCode || mb.code || null,
+        createdAt: mb.createdAt || Date.now(),
+        updatedAt: mb.updatedAt || Date.now(),
+        description: mb.description || mb.desc || '',
+        background: mb.background || mb.mapBackground || '',
+        owner: ak,
+        ...(mb.id ? { id: mb.id } : {}),
+        ...((mb.mailboxCode || mb.code) ? { mailboxCode: mb.mailboxCode || mb.code } : {}),
+        memberAccountKeys: Array.isArray(mb.memberAccountKeys)
+          ? mb.memberAccountKeys
+          : (Array.isArray(mb.members) ? mb.members : (ak ? [ak] : [])),
+        members: Array.isArray(mb.members)
+          ? mb.members
+          : (Array.isArray(mb.memberAccountKeys) ? mb.memberAccountKeys : (ak ? [ak] : [])),
+        memberCharacters: mb.memberCharacters || {},
+        memberNames: mb.memberNames || {}
+      };
+
+      try {
+        const r = await MailService.createRemoteMailbox(payload);
+        if (r && r.success && r.mailbox) {
+          mb._remoteSynced = true;
+          mb._memberDataDirty = false;
+          mb.id = r.mailbox.id || mb.id;
+          if (r.mailbox.mailboxCode && !mb.mailboxCode) {
+            mb.mailboxCode = r.mailbox.mailboxCode;
+            mb.code = mb.mailboxCode;
+            this.saveMailboxCodeIndex(mb.mailboxCode, mb.id);
+          } else if (r.mailbox.code && !mb.code) {
+            mb.code = r.mailbox.code;
+            mb.mailboxCode = mb.code;
+            this.saveMailboxCodeIndex(mb.code, mb.id);
+          }
+          // 合并远端返回的成员字段（远端可能更全）
+          if (Array.isArray(r.mailbox.memberAccountKeys) && r.mailbox.memberAccountKeys.length > 0) {
+            const merged = new Set([
+              ...(Array.isArray(mb.memberAccountKeys) ? mb.memberAccountKeys : []),
+              ...(Array.isArray(mb.members) ? mb.members : []),
+              ...r.mailbox.memberAccountKeys
+            ]);
+            mb.memberAccountKeys = Array.from(merged);
+            mb.members = mb.memberAccountKeys;
+          }
+          if (r.mailbox.memberCharacters && typeof r.mailbox.memberCharacters === 'object') {
+            mb.memberCharacters = { ...(mb.memberCharacters || {}), ...r.mailbox.memberCharacters };
+          }
+          if (r.mailbox.memberNames && typeof r.mailbox.memberNames === 'object') {
+            mb.memberNames = { ...(mb.memberNames || {}), ...r.mailbox.memberNames };
+          }
+          ok = true;
+          dirty = true;
+        }
+      } catch (_) {
+        // 单条失败：保留脏标记，下次 save 重试
+        mb._remoteSynced = false;
+        mb._memberDataDirty = true;
+        dirty = true;
+      }
+    }
+    if (dirty) {
+      localStorage.setItem(this.MAILBOXES_KEY, JSON.stringify(mailboxes));
+      this.clearRemoteMailboxCache();
+    }
+    return ok;
+  },
+
+  /**
+   * 强制从远端拉取账号信箱列表，合并回本地并刷新缓存。
+   * 用于登录、新建、加入、切换账号后，确保跨设备数据一致。
+   */
+  async forceReloadMailboxesFromRemote(accountKey) {
+    this.clearRemoteMailboxCache();
+    let combined = [];
+    try {
+      combined = await this.loadMailboxesAsync({ force: true, accountKey });
+    } catch (_) { combined = []; }
+
+    // 把远端拉到的信箱合并回本地（保留本地未同步的脏数据）
+    const locals = this.loadMailboxes() || [];
+    const localById = new Map(locals.filter(l => l && l.id).map(l => [String(l.id), l]));
+    const merged = [];
+    const seen = new Set();
+    for (const r of combined) {
+      if (!r || !r.id) continue;
+      const id = String(r.id);
+      seen.add(id);
+      const local = localById.get(id);
+      if (local && (local._remoteSynced === false || local._memberDataDirty === true)) {
+        // 本地有未推送的脏数据：保留本地版本，但合并远端成员字段
+        merged.push({
+          ...r,
+          ...local,
+          memberCharacters: { ...(r.memberCharacters || {}), ...(local.memberCharacters || {}) },
+          memberNames: { ...(r.memberNames || {}), ...(local.memberNames || {}) },
+          memberAccountKeys: Array.from(new Set([
+            ...(r.memberAccountKeys || []),
+            ...(local.memberAccountKeys || [])
+          ]))
+        });
+      } else {
+        merged.push({ ...r });
+      }
+    }
+    // 本地存在但远端没有的（未同步的新建），保留
+    for (const l of locals) {
+      if (!l || !l.id) continue;
+      if (seen.has(String(l.id))) continue;
+      merged.push({ ...l });
+    }
+    localStorage.setItem(this.MAILBOXES_KEY, JSON.stringify(merged));
+    this.clearRemoteMailboxCache();
+    // 重新填充缓存，避免下次 load 又打远端
+    this._remoteMailboxCache = merged.map(m => ({ ...m }));
+    this._remoteMailboxCacheAt = Date.now();
+    return merged;
+  },
+
   // --- 上次访问记录 ---
   saveLastMailboxId(mailboxId) {
     localStorage.setItem('xinjian_last_mailbox', mailboxId);

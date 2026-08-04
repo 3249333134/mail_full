@@ -1,0 +1,266 @@
+{
+  "source": "D:\\prj\\sendbox\\taoyuan-main\\public\\assets\\characters\\poxiao\\action-sheets\\tang_qi-20-actions-transparent.png",
+  "padding": 10,
+  "actions": {
+    "01_冷峻站立": {
+      "speed": 160,
+      "frames": [
+        {
+          "left": 0,
+          "top": 0,
+          "width": 242,
+          "height": 305,
+          "keepAll": true,
+          "padding": 10
+        }
+      ]
+    },
+    "02_警察敬礼": {
+      "speed": 160,
+      "frames": [
+        {
+          "left": 260,
+          "top": 0,
+          "width": 233,
+          "height": 305,
+          "keepAll": true,
+          "padding": 10
+        }
+      ]
+    },
+    "03_拔枪": {
+      "speed": 160,
+      "frames": [
+        {
+          "left": 511,
+          "top": 0,
+          "width": 232,
+          "height": 305,
+          "keepAll": true,
+          "padding": 10
+        }
+      ]
+    },
+    "04_双手瞄准": {
+      "speed": 160,
+      "frames": [
+        {
+          "left": 761,
+          "top": 0,
+          "width": 233,
+          "height": 305,
+          "keepAll": true,
+          "padding": 10
+        }
+      ]
+    },
+    "05_跪姿瞄准": {
+      "speed": 160,
+      "frames": [
+        {
+          "left": 1012,
+          "top": 0,
+          "width": 242,
+          "height": 305,
+          "keepAll": true,
+          "padding": 10
+        }
+      ]
+    },
+    "06_快速冲刺": {
+      "speed": 160,
+      "frames": [
+        {
+          "left": 0,
+          "top": 323,
+          "width": 242,
+          "height": 295,
+          "keepAll": true,
+          "padding": 10
+        }
+      ]
+    },
+    "07_奔跑追捕": {
+      "speed": 160,
+      "frames": [
+        {
+          "left": 260,
+          "top": 323,
+          "width": 233,
+          "height": 295,
+          "keepAll": true,
+          "padding": 10
+        }
+      ]
+    },
+    "08_使用手铐": {
+      "speed": 160,
+      "frames": [
+        {
+          "left": 511,
+          "top": 323,
+          "width": 232,
+          "height": 295,
+          "keepAll": true,
+          "padding": 10
+        }
+      ]
+    },
+    "09_电击枪瞄准": {
+      "speed": 160,
+      "frames": [
+        {
+          "left": 761,
+          "top": 323,
+          "width": 233,
+          "height": 295,
+          "keepAll": true,
+          "padding": 10
+        }
+      ]
+    },
+    "10_蹲查针管": {
+      "speed": 160,
+      "frames": [
+        {
+          "left": 1012,
+          "top": 323,
+          "width": 242,
+          "height": 295,
+          "keepAll": true,
+          "padding": 10
+        }
+      ]
+    },
+    "11_封装证物": {
+      "speed": 160,
+      "frames": [
+        {
+          "left": 0,
+          "top": 636,
+          "width": 242,
+          "height": 295,
+          "keepAll": true,
+          "padding": 10
+        }
+      ]
+    },
+    "12_警棍防御": {
+      "speed": 160,
+      "frames": [
+        {
+          "left": 260,
+          "top": 636,
+          "width": 233,
+          "height": 295,
+          "keepAll": true,
+          "padding": 10
+        }
+      ]
+    },
+    "13_警校训练": {
+      "speed": 160,
+      "frames": [
+        {
+          "left": 511,
+          "top": 636,
+          "width": 232,
+          "height": 295,
+          "keepAll": true,
+          "padding": 10
+        }
+      ]
+    },
+    "14_黑西装正装": {
+      "speed": 160,
+      "frames": [
+        {
+          "left": 761,
+          "top": 636,
+          "width": 233,
+          "height": 295,
+          "keepAll": true,
+          "padding": 10
+        }
+      ]
+    },
+    "15_吃冰棍": {
+      "speed": 160,
+      "frames": [
+        {
+          "left": 1012,
+          "top": 636,
+          "width": 242,
+          "height": 295,
+          "keepAll": true,
+          "padding": 10
+        }
+      ]
+    },
+    "16_查看水晶项链": {
+      "speed": 160,
+      "frames": [
+        {
+          "left": 0,
+          "top": 949,
+          "width": 242,
+          "height": 305,
+          "keepAll": true,
+          "padding": 10
+        }
+      ]
+    },
+    "17_愤怒握拳": {
+      "speed": 160,
+      "frames": [
+        {
+          "left": 260,
+          "top": 949,
+          "width": 233,
+          "height": 305,
+          "keepAll": true,
+          "padding": 10
+        }
+      ]
+    },
+    "18_肩部负伤": {
+      "speed": 160,
+      "frames": [
+        {
+          "left": 511,
+          "top": 949,
+          "width": 232,
+          "height": 305,
+          "keepAll": true,
+          "padding": 10
+        }
+      ]
+    },
+    "19_跪地悔恨": {
+      "speed": 160,
+      "frames": [
+        {
+          "left": 761,
+          "top": 949,
+          "width": 233,
+          "height": 305,
+          "keepAll": true,
+          "padding": 10
+        }
+      ]
+    },
+    "20_放下武器": {
+      "speed": 160,
+      "frames": [
+        {
+          "left": 1012,
+          "top": 949,
+          "width": 242,
+          "height": 305,
+          "keepAll": true,
+          "padding": 10
+        }
+      ]
+    }
+  }
+}

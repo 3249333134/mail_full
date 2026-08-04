@@ -1,0 +1,909 @@
+{
+  "version": 1,
+  "style": "modern mystery Q-chibi pixel art",
+  "characters": [
+    {
+      "id": "zhou_ran",
+      "name": "周然",
+      "portrait": "portraits/01_zhou_ran.png",
+      "baseSprite": "base-sprites/01_zhou_ran.png",
+      "actionSheet": "action-sheets/zhou_ran-20-actions-transparent.png",
+      "actions": [
+        {
+          "index": 1,
+          "name": "放松站立",
+          "frame": "actions/zhou_ran/01_放松站立/00.png",
+          "flatFrame": "actions-flat/zhou_ran/01_放松站立.png"
+        },
+        {
+          "index": 2,
+          "name": "调制颜料",
+          "frame": "actions/zhou_ran/02_调制颜料/00.png",
+          "flatFrame": "actions-flat/zhou_ran/02_调制颜料.png"
+        },
+        {
+          "index": 3,
+          "name": "画架作画",
+          "frame": "actions/zhou_ran/03_画架作画/00.png",
+          "flatFrame": "actions-flat/zhou_ran/03_画架作画.png"
+        },
+        {
+          "index": 4,
+          "name": "速写记录",
+          "frame": "actions/zhou_ran/04_速写记录/00.png",
+          "flatFrame": "actions-flat/zhou_ran/04_速写记录.png"
+        },
+        {
+          "index": 5,
+          "name": "手持画具",
+          "frame": "actions/zhou_ran/05_手持画具/00.png",
+          "flatFrame": "actions-flat/zhou_ran/05_手持画具.png"
+        },
+        {
+          "index": 6,
+          "name": "清洗画笔",
+          "frame": "actions/zhou_ran/06_清洗画笔/00.png",
+          "flatFrame": "actions-flat/zhou_ran/06_清洗画笔.png"
+        },
+        {
+          "index": 7,
+          "name": "装饰蛋糕",
+          "frame": "actions/zhou_ran/07_装饰蛋糕/00.png",
+          "flatFrame": "actions-flat/zhou_ran/07_装饰蛋糕.png"
+        },
+        {
+          "index": 8,
+          "name": "端送蛋糕",
+          "frame": "actions/zhou_ran/08_端送蛋糕/00.png",
+          "flatFrame": "actions-flat/zhou_ran/08_端送蛋糕.png"
+        },
+        {
+          "index": 9,
+          "name": "凝视卜算坠饰",
+          "frame": "actions/zhou_ran/09_凝视卜算坠饰/00.png",
+          "flatFrame": "actions-flat/zhou_ran/09_凝视卜算坠饰.png"
+        },
+        {
+          "index": 10,
+          "name": "投掷卜算钱币",
+          "frame": "actions/zhou_ran/10_投掷卜算钱币/00.png",
+          "flatFrame": "actions-flat/zhou_ran/10_投掷卜算钱币.png"
+        },
+        {
+          "index": 11,
+          "name": "阅读密报",
+          "frame": "actions/zhou_ran/11_阅读密报/00.png",
+          "flatFrame": "actions-flat/zhou_ran/11_阅读密报.png"
+        },
+        {
+          "index": 12,
+          "name": "递交密封信",
+          "frame": "actions/zhou_ran/12_递交密封信/00.png",
+          "flatFrame": "actions-flat/zhou_ran/12_递交密封信.png"
+        },
+        {
+          "index": 13,
+          "name": "查看手机",
+          "frame": "actions/zhou_ran/13_查看手机/00.png",
+          "flatFrame": "actions-flat/zhou_ran/13_查看手机.png"
+        },
+        {
+          "index": 14,
+          "name": "蹲身搜索",
+          "frame": "actions/zhou_ran/14_蹲身搜索/00.png",
+          "flatFrame": "actions-flat/zhou_ran/14_蹲身搜索.png"
+        },
+        {
+          "index": 15,
+          "name": "携速写本奔跑",
+          "frame": "actions/zhou_ran/15_携速写本奔跑/00.png",
+          "flatFrame": "actions-flat/zhou_ran/15_携速写本奔跑.png"
+        },
+        {
+          "index": 16,
+          "name": "贴墙隐蔽",
+          "frame": "actions/zhou_ran/16_贴墙隐蔽/00.png",
+          "flatFrame": "actions-flat/zhou_ran/16_贴墙隐蔽.png"
+        },
+        {
+          "index": 17,
+          "name": "挺身保护同伴",
+          "frame": "actions/zhou_ran/17_挺身保护同伴/00.png",
+          "flatFrame": "actions-flat/zhou_ran/17_挺身保护同伴.png"
+        },
+        {
+          "index": 18,
+          "name": "挥手致意",
+          "frame": "actions/zhou_ran/18_挥手致意/00.png",
+          "flatFrame": "actions-flat/zhou_ran/18_挥手致意.png"
+        },
+        {
+          "index": 19,
+          "name": "盘腿休息",
+          "frame": "actions/zhou_ran/19_盘腿休息/00.png",
+          "flatFrame": "actions-flat/zhou_ran/19_盘腿休息.png"
+        },
+        {
+          "index": 20,
+          "name": "卧底警戒",
+          "frame": "actions/zhou_ran/20_卧底警戒/00.png",
+          "flatFrame": "actions-flat/zhou_ran/20_卧底警戒.png"
+        }
+      ]
+    },
+    {
+      "id": "he_yinsheng",
+      "name": "贺引生",
+      "portrait": "portraits/02_he_yinsheng.png",
+      "baseSprite": "base-sprites/02_he_yinsheng.png",
+      "actionSheet": "action-sheets/he_yinsheng-20-actions-transparent.png",
+      "actions": [
+        {
+          "index": 1,
+          "name": "自信站立",
+          "frame": "actions/he_yinsheng/01_自信站立/00.png",
+          "flatFrame": "actions-flat/he_yinsheng/01_自信站立.png"
+        },
+        {
+          "index": 2,
+          "name": "警察敬礼",
+          "frame": "actions/he_yinsheng/02_警察敬礼/00.png",
+          "flatFrame": "actions-flat/he_yinsheng/02_警察敬礼.png"
+        },
+        {
+          "index": 3,
+          "name": "拔出手枪",
+          "frame": "actions/he_yinsheng/03_拔出手枪/00.png",
+          "flatFrame": "actions-flat/he_yinsheng/03_拔出手枪.png"
+        },
+        {
+          "index": 4,
+          "name": "双手瞄准",
+          "frame": "actions/he_yinsheng/04_双手瞄准/00.png",
+          "flatFrame": "actions-flat/he_yinsheng/04_双手瞄准.png"
+        },
+        {
+          "index": 5,
+          "name": "蹲姿瞄准",
+          "frame": "actions/he_yinsheng/05_蹲姿瞄准/00.png",
+          "flatFrame": "actions-flat/he_yinsheng/05_蹲姿瞄准.png"
+        },
+        {
+          "index": 6,
+          "name": "快速冲刺",
+          "frame": "actions/he_yinsheng/06_快速冲刺/00.png",
+          "flatFrame": "actions-flat/he_yinsheng/06_快速冲刺.png"
+        },
+        {
+          "index": 7,
+          "name": "战术翻滚",
+          "frame": "actions/he_yinsheng/07_战术翻滚/00.png",
+          "flatFrame": "actions-flat/he_yinsheng/07_战术翻滚.png"
+        },
+        {
+          "index": 8,
+          "name": "使用手铐",
+          "frame": "actions/he_yinsheng/08_使用手铐/00.png",
+          "flatFrame": "actions-flat/he_yinsheng/08_使用手铐.png"
+        },
+        {
+          "index": 9,
+          "name": "跪地查证",
+          "frame": "actions/he_yinsheng/09_跪地查证/00.png",
+          "flatFrame": "actions-flat/he_yinsheng/09_跪地查证.png"
+        },
+        {
+          "index": 10,
+          "name": "肩麦通话",
+          "frame": "actions/he_yinsheng/10_肩麦通话/00.png",
+          "flatFrame": "actions-flat/he_yinsheng/10_肩麦通话.png"
+        },
+        {
+          "index": 11,
+          "name": "吸烟",
+          "frame": "actions/he_yinsheng/11_吸烟/00.png",
+          "flatFrame": "actions-flat/he_yinsheng/11_吸烟.png"
+        },
+        {
+          "index": 12,
+          "name": "踩灭香烟",
+          "frame": "actions/he_yinsheng/12_踩灭香烟/00.png",
+          "flatFrame": "actions-flat/he_yinsheng/12_踩灭香烟.png"
+        },
+        {
+          "index": 13,
+          "name": "握红色护符",
+          "frame": "actions/he_yinsheng/13_握红色护符/00.png",
+          "flatFrame": "actions-flat/he_yinsheng/13_握红色护符.png"
+        },
+        {
+          "index": 14,
+          "name": "查看S项链",
+          "frame": "actions/he_yinsheng/14_查看S项链/00.png",
+          "flatFrame": "actions-flat/he_yinsheng/14_查看S项链.png"
+        },
+        {
+          "index": 15,
+          "name": "黑裙伪装",
+          "frame": "actions/he_yinsheng/15_黑裙伪装/00.png",
+          "flatFrame": "actions-flat/he_yinsheng/15_黑裙伪装.png"
+        },
+        {
+          "index": 16,
+          "name": "举掌喝止",
+          "frame": "actions/he_yinsheng/16_举掌喝止/00.png",
+          "flatFrame": "actions-flat/he_yinsheng/16_举掌喝止.png"
+        },
+        {
+          "index": 17,
+          "name": "侧踢破门",
+          "frame": "actions/he_yinsheng/17_侧踢破门/00.png",
+          "flatFrame": "actions-flat/he_yinsheng/17_侧踢破门.png"
+        },
+        {
+          "index": 18,
+          "name": "护住同伴",
+          "frame": "actions/he_yinsheng/18_护住同伴/00.png",
+          "flatFrame": "actions-flat/he_yinsheng/18_护住同伴.png"
+        },
+        {
+          "index": 19,
+          "name": "坐姿沉思",
+          "frame": "actions/he_yinsheng/19_坐姿沉思/00.png",
+          "flatFrame": "actions-flat/he_yinsheng/19_坐姿沉思.png"
+        },
+        {
+          "index": 20,
+          "name": "负伤跪地",
+          "frame": "actions/he_yinsheng/20_负伤跪地/00.png",
+          "flatFrame": "actions-flat/he_yinsheng/20_负伤跪地.png"
+        }
+      ]
+    },
+    {
+      "id": "jiang_yan",
+      "name": "江宴",
+      "portrait": "portraits/03_jiang_yan.png",
+      "baseSprite": "base-sprites/03_jiang_yan.png",
+      "actionSheet": "action-sheets/jiang_yan-20-actions-transparent.png",
+      "actions": [
+        {
+          "index": 1,
+          "name": "沉静站立",
+          "frame": "actions/jiang_yan/01_沉静站立/00.png",
+          "flatFrame": "actions-flat/jiang_yan/01_沉静站立.png"
+        },
+        {
+          "index": 2,
+          "name": "戴检验手套",
+          "frame": "actions/jiang_yan/02_戴检验手套/00.png",
+          "flatFrame": "actions-flat/jiang_yan/02_戴检验手套.png"
+        },
+        {
+          "index": 3,
+          "name": "蹲查现场",
+          "frame": "actions/jiang_yan/03_蹲查现场/00.png",
+          "flatFrame": "actions-flat/jiang_yan/03_蹲查现场.png"
+        },
+        {
+          "index": 4,
+          "name": "棉签取样",
+          "frame": "actions/jiang_yan/04_棉签取样/00.png",
+          "flatFrame": "actions-flat/jiang_yan/04_棉签取样.png"
+        },
+        {
+          "index": 5,
+          "name": "显微镜检验",
+          "frame": "actions/jiang_yan/05_显微镜检验/00.png",
+          "flatFrame": "actions-flat/jiang_yan/05_显微镜检验.png"
+        },
+        {
+          "index": 6,
+          "name": "记录夹书写",
+          "frame": "actions/jiang_yan/06_记录夹书写/00.png",
+          "flatFrame": "actions-flat/jiang_yan/06_记录夹书写.png"
+        },
+        {
+          "index": 7,
+          "name": "封装证物袋",
+          "frame": "actions/jiang_yan/07_封装证物袋/00.png",
+          "flatFrame": "actions-flat/jiang_yan/07_封装证物袋.png"
+        },
+        {
+          "index": 8,
+          "name": "相机取证",
+          "frame": "actions/jiang_yan/08_相机取证/00.png",
+          "flatFrame": "actions-flat/jiang_yan/08_相机取证.png"
+        },
+        {
+          "index": 9,
+          "name": "持法医刀",
+          "frame": "actions/jiang_yan/09_持法医刀/00.png",
+          "flatFrame": "actions-flat/jiang_yan/09_持法医刀.png"
+        },
+        {
+          "index": 10,
+          "name": "打开医药箱",
+          "frame": "actions/jiang_yan/10_打开医药箱/00.png",
+          "flatFrame": "actions-flat/jiang_yan/10_打开医药箱.png"
+        },
+        {
+          "index": 11,
+          "name": "举瓶分析",
+          "frame": "actions/jiang_yan/11_举瓶分析/00.png",
+          "flatFrame": "actions-flat/jiang_yan/11_举瓶分析.png"
+        },
+        {
+          "index": 12,
+          "name": "书写案情",
+          "frame": "actions/jiang_yan/12_书写案情/00.png",
+          "flatFrame": "actions-flat/jiang_yan/12_书写案情.png"
+        },
+        {
+          "index": 13,
+          "name": "紧急通话",
+          "frame": "actions/jiang_yan/13_紧急通话/00.png",
+          "flatFrame": "actions-flat/jiang_yan/13_紧急通话.png"
+        },
+        {
+          "index": 14,
+          "name": "携箱奔跑",
+          "frame": "actions/jiang_yan/14_携箱奔跑/00.png",
+          "flatFrame": "actions-flat/jiang_yan/14_携箱奔跑.png"
+        },
+        {
+          "index": 15,
+          "name": "跪地急救",
+          "frame": "actions/jiang_yan/15_跪地急救/00.png",
+          "flatFrame": "actions-flat/jiang_yan/15_跪地急救.png"
+        },
+        {
+          "index": 16,
+          "name": "手握红围巾",
+          "frame": "actions/jiang_yan/16_手握红围巾/00.png",
+          "flatFrame": "actions-flat/jiang_yan/16_手握红围巾.png"
+        },
+        {
+          "index": 17,
+          "name": "栽种橄榄树",
+          "frame": "actions/jiang_yan/17_栽种橄榄树/00.png",
+          "flatFrame": "actions-flat/jiang_yan/17_栽种橄榄树.png"
+        },
+        {
+          "index": 18,
+          "name": "凝视传承坠饰",
+          "frame": "actions/jiang_yan/18_凝视传承坠饰/00.png",
+          "flatFrame": "actions-flat/jiang_yan/18_凝视传承坠饰.png"
+        },
+        {
+          "index": 19,
+          "name": "警察敬礼",
+          "frame": "actions/jiang_yan/19_警察敬礼/00.png",
+          "flatFrame": "actions-flat/jiang_yan/19_警察敬礼.png"
+        },
+        {
+          "index": 20,
+          "name": "坐读报告",
+          "frame": "actions/jiang_yan/20_坐读报告/00.png",
+          "flatFrame": "actions-flat/jiang_yan/20_坐读报告.png"
+        }
+      ]
+    },
+    {
+      "id": "chen_zhou",
+      "name": "陈昼（任远）",
+      "portrait": "portraits/04_chen_zhou.png",
+      "baseSprite": "base-sprites/04_chen_zhou.png",
+      "actionSheet": "action-sheets/chen_zhou-20-actions-transparent.png",
+      "actions": [
+        {
+          "index": 1,
+          "name": "威严站立",
+          "frame": "actions/chen_zhou/01_威严站立/00.png",
+          "flatFrame": "actions-flat/chen_zhou/01_威严站立.png"
+        },
+        {
+          "index": 2,
+          "name": "扶正眼镜",
+          "frame": "actions/chen_zhou/02_扶正眼镜/00.png",
+          "flatFrame": "actions-flat/chen_zhou/02_扶正眼镜.png"
+        },
+        {
+          "index": 3,
+          "name": "监听耳麦",
+          "frame": "actions/chen_zhou/03_监听耳麦/00.png",
+          "flatFrame": "actions-flat/chen_zhou/03_监听耳麦.png"
+        },
+        {
+          "index": 4,
+          "name": "递交情报",
+          "frame": "actions/chen_zhou/04_递交情报/00.png",
+          "flatFrame": "actions-flat/chen_zhou/04_递交情报.png"
+        },
+        {
+          "index": 5,
+          "name": "双手持枪",
+          "frame": "actions/chen_zhou/05_双手持枪/00.png",
+          "flatFrame": "actions-flat/chen_zhou/05_双手持枪.png"
+        },
+        {
+          "index": 6,
+          "name": "战术蹲伏",
+          "frame": "actions/chen_zhou/06_战术蹲伏/00.png",
+          "flatFrame": "actions-flat/chen_zhou/06_战术蹲伏.png"
+        },
+        {
+          "index": 7,
+          "name": "大步冲刺",
+          "frame": "actions/chen_zhou/07_大步冲刺/00.png",
+          "flatFrame": "actions-flat/chen_zhou/07_大步冲刺.png"
+        },
+        {
+          "index": 8,
+          "name": "翻越矮墙",
+          "frame": "actions/chen_zhou/08_翻越矮墙/00.png",
+          "flatFrame": "actions-flat/chen_zhou/08_翻越矮墙.png"
+        },
+        {
+          "index": 9,
+          "name": "墙后隐蔽",
+          "frame": "actions/chen_zhou/09_墙后隐蔽/00.png",
+          "flatFrame": "actions-flat/chen_zhou/09_墙后隐蔽.png"
+        },
+        {
+          "index": 10,
+          "name": "收紧风衣伪装",
+          "frame": "actions/chen_zhou/10_收紧风衣伪装/00.png",
+          "flatFrame": "actions-flat/chen_zhou/10_收紧风衣伪装.png"
+        },
+        {
+          "index": 11,
+          "name": "查看城市地图",
+          "frame": "actions/chen_zhou/11_查看城市地图/00.png",
+          "flatFrame": "actions-flat/chen_zhou/11_查看城市地图.png"
+        },
+        {
+          "index": 12,
+          "name": "望远镜观星",
+          "frame": "actions/chen_zhou/12_望远镜观星/00.png",
+          "flatFrame": "actions-flat/chen_zhou/12_望远镜观星.png"
+        },
+        {
+          "index": 13,
+          "name": "查看雨花石",
+          "frame": "actions/chen_zhou/13_查看雨花石/00.png",
+          "flatFrame": "actions-flat/chen_zhou/13_查看雨花石.png"
+        },
+        {
+          "index": 14,
+          "name": "端金鱼缸",
+          "frame": "actions/chen_zhou/14_端金鱼缸/00.png",
+          "flatFrame": "actions-flat/chen_zhou/14_端金鱼缸.png"
+        },
+        {
+          "index": 15,
+          "name": "伸臂保护",
+          "frame": "actions/chen_zhou/15_伸臂保护/00.png",
+          "flatFrame": "actions-flat/chen_zhou/15_伸臂保护.png"
+        },
+        {
+          "index": 16,
+          "name": "手臂负伤",
+          "frame": "actions/chen_zhou/16_手臂负伤/00.png",
+          "flatFrame": "actions-flat/chen_zhou/16_手臂负伤.png"
+        },
+        {
+          "index": 17,
+          "name": "跛行前进",
+          "frame": "actions/chen_zhou/17_跛行前进/00.png",
+          "flatFrame": "actions-flat/chen_zhou/17_跛行前进.png"
+        },
+        {
+          "index": 18,
+          "name": "使用手铐",
+          "frame": "actions/chen_zhou/18_使用手铐/00.png",
+          "flatFrame": "actions-flat/chen_zhou/18_使用手铐.png"
+        },
+        {
+          "index": 19,
+          "name": "噤声手势",
+          "frame": "actions/chen_zhou/19_噤声手势/00.png",
+          "flatFrame": "actions-flat/chen_zhou/19_噤声手势.png"
+        },
+        {
+          "index": 20,
+          "name": "回首离开",
+          "frame": "actions/chen_zhou/20_回首离开/00.png",
+          "flatFrame": "actions-flat/chen_zhou/20_回首离开.png"
+        }
+      ]
+    },
+    {
+      "id": "li_pingchuan",
+      "name": "李平川",
+      "portrait": "portraits/05_li_pingchuan.png",
+      "baseSprite": "base-sprites/05_li_pingchuan.png",
+      "actionSheet": "action-sheets/li_pingchuan-20-actions-transparent.png",
+      "actions": [
+        {
+          "index": 1,
+          "name": "戒备站立",
+          "frame": "actions/li_pingchuan/01_戒备站立/00.png",
+          "flatFrame": "actions-flat/li_pingchuan/01_戒备站立.png"
+        },
+        {
+          "index": 2,
+          "name": "手持奶茶",
+          "frame": "actions/li_pingchuan/02_手持奶茶/00.png",
+          "flatFrame": "actions-flat/li_pingchuan/02_手持奶茶.png"
+        },
+        {
+          "index": 3,
+          "name": "制作奶茶",
+          "frame": "actions/li_pingchuan/03_制作奶茶/00.png",
+          "flatFrame": "actions-flat/li_pingchuan/03_制作奶茶.png"
+        },
+        {
+          "index": 4,
+          "name": "摇制饮品",
+          "frame": "actions/li_pingchuan/04_摇制饮品/00.png",
+          "flatFrame": "actions-flat/li_pingchuan/04_摇制饮品.png"
+        },
+        {
+          "index": 5,
+          "name": "递送奶茶",
+          "frame": "actions/li_pingchuan/05_递送奶茶/00.png",
+          "flatFrame": "actions-flat/li_pingchuan/05_递送奶茶.png"
+        },
+        {
+          "index": 6,
+          "name": "整理红围巾",
+          "frame": "actions/li_pingchuan/06_整理红围巾/00.png",
+          "flatFrame": "actions-flat/li_pingchuan/06_整理红围巾.png"
+        },
+        {
+          "index": 7,
+          "name": "旧日敬礼",
+          "frame": "actions/li_pingchuan/07_旧日敬礼/00.png",
+          "flatFrame": "actions-flat/li_pingchuan/07_旧日敬礼.png"
+        },
+        {
+          "index": 8,
+          "name": "持枪瞄准",
+          "frame": "actions/li_pingchuan/08_持枪瞄准/00.png",
+          "flatFrame": "actions-flat/li_pingchuan/08_持枪瞄准.png"
+        },
+        {
+          "index": 9,
+          "name": "快速奔跑",
+          "frame": "actions/li_pingchuan/09_快速奔跑/00.png",
+          "flatFrame": "actions-flat/li_pingchuan/09_快速奔跑.png"
+        },
+        {
+          "index": 10,
+          "name": "战术蹲伏",
+          "frame": "actions/li_pingchuan/10_战术蹲伏/00.png",
+          "flatFrame": "actions-flat/li_pingchuan/10_战术蹲伏.png"
+        },
+        {
+          "index": 11,
+          "name": "栽种橄榄树",
+          "frame": "actions/li_pingchuan/11_栽种橄榄树/00.png",
+          "flatFrame": "actions-flat/li_pingchuan/11_栽种橄榄树.png"
+        },
+        {
+          "index": 12,
+          "name": "三击暗号",
+          "frame": "actions/li_pingchuan/12_三击暗号/00.png",
+          "flatFrame": "actions-flat/li_pingchuan/12_三击暗号.png"
+        },
+        {
+          "index": 13,
+          "name": "赠送白百合",
+          "frame": "actions/li_pingchuan/13_赠送白百合/00.png",
+          "flatFrame": "actions-flat/li_pingchuan/13_赠送白百合.png"
+        },
+        {
+          "index": 14,
+          "name": "查看白星石",
+          "frame": "actions/li_pingchuan/14_查看白星石/00.png",
+          "flatFrame": "actions-flat/li_pingchuan/14_查看白星石.png"
+        },
+        {
+          "index": 15,
+          "name": "观察星形花",
+          "frame": "actions/li_pingchuan/15_观察星形花/00.png",
+          "flatFrame": "actions-flat/li_pingchuan/15_观察星形花.png"
+        },
+        {
+          "index": 16,
+          "name": "凝视毒药瓶",
+          "frame": "actions/li_pingchuan/16_凝视毒药瓶/00.png",
+          "flatFrame": "actions-flat/li_pingchuan/16_凝视毒药瓶.png"
+        },
+        {
+          "index": 17,
+          "name": "查看照片钱包",
+          "frame": "actions/li_pingchuan/17_查看照片钱包/00.png",
+          "flatFrame": "actions-flat/li_pingchuan/17_查看照片钱包.png"
+        },
+        {
+          "index": 18,
+          "name": "黑西装葬礼",
+          "frame": "actions/li_pingchuan/18_黑西装葬礼/00.png",
+          "flatFrame": "actions-flat/li_pingchuan/18_黑西装葬礼.png"
+        },
+        {
+          "index": 19,
+          "name": "低头独坐",
+          "frame": "actions/li_pingchuan/19_低头独坐/00.png",
+          "flatFrame": "actions-flat/li_pingchuan/19_低头独坐.png"
+        },
+        {
+          "index": 20,
+          "name": "剪断橄榄枝",
+          "frame": "actions/li_pingchuan/20_剪断橄榄枝/00.png",
+          "flatFrame": "actions-flat/li_pingchuan/20_剪断橄榄枝.png"
+        }
+      ]
+    },
+    {
+      "id": "shen_xinghe",
+      "name": "沈星何",
+      "portrait": "portraits/06_shen_xinghe.png",
+      "baseSprite": "base-sprites/06_shen_xinghe.png",
+      "actionSheet": "action-sheets/shen_xinghe-20-actions-transparent.png",
+      "actions": [
+        {
+          "index": 1,
+          "name": "沉着站立",
+          "frame": "actions/shen_xinghe/01_沉着站立/00.png",
+          "flatFrame": "actions-flat/shen_xinghe/01_沉着站立.png"
+        },
+        {
+          "index": 2,
+          "name": "阅读情报",
+          "frame": "actions/shen_xinghe/02_阅读情报/00.png",
+          "flatFrame": "actions-flat/shen_xinghe/02_阅读情报.png"
+        },
+        {
+          "index": 3,
+          "name": "笔记本电脑办公",
+          "frame": "actions/shen_xinghe/03_笔记本电脑办公/00.png",
+          "flatFrame": "actions-flat/shen_xinghe/03_笔记本电脑办公.png"
+        },
+        {
+          "index": 4,
+          "name": "电脑入侵",
+          "frame": "actions/shen_xinghe/04_电脑入侵/00.png",
+          "flatFrame": "actions-flat/shen_xinghe/04_电脑入侵.png"
+        },
+        {
+          "index": 5,
+          "name": "查看定位地图",
+          "frame": "actions/shen_xinghe/05_查看定位地图/00.png",
+          "flatFrame": "actions-flat/shen_xinghe/05_查看定位地图.png"
+        },
+        {
+          "index": 6,
+          "name": "相机摄影",
+          "frame": "actions/shen_xinghe/06_相机摄影/00.png",
+          "flatFrame": "actions-flat/shen_xinghe/06_相机摄影.png"
+        },
+        {
+          "index": 7,
+          "name": "无线电通话",
+          "frame": "actions/shen_xinghe/07_无线电通话/00.png",
+          "flatFrame": "actions-flat/shen_xinghe/07_无线电通话.png"
+        },
+        {
+          "index": 8,
+          "name": "警察敬礼",
+          "frame": "actions/shen_xinghe/08_警察敬礼/00.png",
+          "flatFrame": "actions-flat/shen_xinghe/08_警察敬礼.png"
+        },
+        {
+          "index": 9,
+          "name": "拔枪",
+          "frame": "actions/shen_xinghe/09_拔枪/00.png",
+          "flatFrame": "actions-flat/shen_xinghe/09_拔枪.png"
+        },
+        {
+          "index": 10,
+          "name": "蹲姿瞄准",
+          "frame": "actions/shen_xinghe/10_蹲姿瞄准/00.png",
+          "flatFrame": "actions-flat/shen_xinghe/10_蹲姿瞄准.png"
+        },
+        {
+          "index": 11,
+          "name": "快速奔跑",
+          "frame": "actions/shen_xinghe/11_快速奔跑/00.png",
+          "flatFrame": "actions-flat/shen_xinghe/11_快速奔跑.png"
+        },
+        {
+          "index": 12,
+          "name": "守门员扑救",
+          "frame": "actions/shen_xinghe/12_守门员扑救/00.png",
+          "flatFrame": "actions-flat/shen_xinghe/12_守门员扑救.png"
+        },
+        {
+          "index": 13,
+          "name": "查看半块玉佩",
+          "frame": "actions/shen_xinghe/13_查看半块玉佩/00.png",
+          "flatFrame": "actions-flat/shen_xinghe/13_查看半块玉佩.png"
+        },
+        {
+          "index": 14,
+          "name": "照料金鱼",
+          "frame": "actions/shen_xinghe/14_照料金鱼/00.png",
+          "flatFrame": "actions-flat/shen_xinghe/14_照料金鱼.png"
+        },
+        {
+          "index": 15,
+          "name": "肃穆黑西装",
+          "frame": "actions/shen_xinghe/15_肃穆黑西装/00.png",
+          "flatFrame": "actions-flat/shen_xinghe/15_肃穆黑西装.png"
+        },
+        {
+          "index": 16,
+          "name": "中毒踉跄",
+          "frame": "actions/shen_xinghe/16_中毒踉跄/00.png",
+          "flatFrame": "actions-flat/shen_xinghe/16_中毒踉跄.png"
+        },
+        {
+          "index": 17,
+          "name": "胸口包扎",
+          "frame": "actions/shen_xinghe/17_胸口包扎/00.png",
+          "flatFrame": "actions-flat/shen_xinghe/17_胸口包扎.png"
+        },
+        {
+          "index": 18,
+          "name": "蹲查证物",
+          "frame": "actions/shen_xinghe/18_蹲查证物/00.png",
+          "flatFrame": "actions-flat/shen_xinghe/18_蹲查证物.png"
+        },
+        {
+          "index": 19,
+          "name": "指认嫌疑人",
+          "frame": "actions/shen_xinghe/19_指认嫌疑人/00.png",
+          "flatFrame": "actions-flat/shen_xinghe/19_指认嫌疑人.png"
+        },
+        {
+          "index": 20,
+          "name": "坐姿回忆",
+          "frame": "actions/shen_xinghe/20_坐姿回忆/00.png",
+          "flatFrame": "actions-flat/shen_xinghe/20_坐姿回忆.png"
+        }
+      ]
+    },
+    {
+      "id": "tang_qi",
+      "name": "唐岐",
+      "portrait": "portraits/07_tang_qi.png",
+      "baseSprite": "base-sprites/07_tang_qi.png",
+      "actionSheet": "action-sheets/tang_qi-20-actions-transparent.png",
+      "actions": [
+        {
+          "index": 1,
+          "name": "冷峻站立",
+          "frame": "actions/tang_qi/01_冷峻站立/00.png",
+          "flatFrame": "actions-flat/tang_qi/01_冷峻站立.png"
+        },
+        {
+          "index": 2,
+          "name": "警察敬礼",
+          "frame": "actions/tang_qi/02_警察敬礼/00.png",
+          "flatFrame": "actions-flat/tang_qi/02_警察敬礼.png"
+        },
+        {
+          "index": 3,
+          "name": "拔枪",
+          "frame": "actions/tang_qi/03_拔枪/00.png",
+          "flatFrame": "actions-flat/tang_qi/03_拔枪.png"
+        },
+        {
+          "index": 4,
+          "name": "双手瞄准",
+          "frame": "actions/tang_qi/04_双手瞄准/00.png",
+          "flatFrame": "actions-flat/tang_qi/04_双手瞄准.png"
+        },
+        {
+          "index": 5,
+          "name": "跪姿瞄准",
+          "frame": "actions/tang_qi/05_跪姿瞄准/00.png",
+          "flatFrame": "actions-flat/tang_qi/05_跪姿瞄准.png"
+        },
+        {
+          "index": 6,
+          "name": "快速冲刺",
+          "frame": "actions/tang_qi/06_快速冲刺/00.png",
+          "flatFrame": "actions-flat/tang_qi/06_快速冲刺.png"
+        },
+        {
+          "index": 7,
+          "name": "奔跑追捕",
+          "frame": "actions/tang_qi/07_奔跑追捕/00.png",
+          "flatFrame": "actions-flat/tang_qi/07_奔跑追捕.png"
+        },
+        {
+          "index": 8,
+          "name": "使用手铐",
+          "frame": "actions/tang_qi/08_使用手铐/00.png",
+          "flatFrame": "actions-flat/tang_qi/08_使用手铐.png"
+        },
+        {
+          "index": 9,
+          "name": "电击枪瞄准",
+          "frame": "actions/tang_qi/09_电击枪瞄准/00.png",
+          "flatFrame": "actions-flat/tang_qi/09_电击枪瞄准.png"
+        },
+        {
+          "index": 10,
+          "name": "蹲查针管",
+          "frame": "actions/tang_qi/10_蹲查针管/00.png",
+          "flatFrame": "actions-flat/tang_qi/10_蹲查针管.png"
+        },
+        {
+          "index": 11,
+          "name": "封装证物",
+          "frame": "actions/tang_qi/11_封装证物/00.png",
+          "flatFrame": "actions-flat/tang_qi/11_封装证物.png"
+        },
+        {
+          "index": 12,
+          "name": "警棍防御",
+          "frame": "actions/tang_qi/12_警棍防御/00.png",
+          "flatFrame": "actions-flat/tang_qi/12_警棍防御.png"
+        },
+        {
+          "index": 13,
+          "name": "警校训练",
+          "frame": "actions/tang_qi/13_警校训练/00.png",
+          "flatFrame": "actions-flat/tang_qi/13_警校训练.png"
+        },
+        {
+          "index": 14,
+          "name": "黑西装正装",
+          "frame": "actions/tang_qi/14_黑西装正装/00.png",
+          "flatFrame": "actions-flat/tang_qi/14_黑西装正装.png"
+        },
+        {
+          "index": 15,
+          "name": "吃冰棍",
+          "frame": "actions/tang_qi/15_吃冰棍/00.png",
+          "flatFrame": "actions-flat/tang_qi/15_吃冰棍.png"
+        },
+        {
+          "index": 16,
+          "name": "查看水晶项链",
+          "frame": "actions/tang_qi/16_查看水晶项链/00.png",
+          "flatFrame": "actions-flat/tang_qi/16_查看水晶项链.png"
+        },
+        {
+          "index": 17,
+          "name": "愤怒握拳",
+          "frame": "actions/tang_qi/17_愤怒握拳/00.png",
+          "flatFrame": "actions-flat/tang_qi/17_愤怒握拳.png"
+        },
+        {
+          "index": 18,
+          "name": "肩部负伤",
+          "frame": "actions/tang_qi/18_肩部负伤/00.png",
+          "flatFrame": "actions-flat/tang_qi/18_肩部负伤.png"
+        },
+        {
+          "index": 19,
+          "name": "跪地悔恨",
+          "frame": "actions/tang_qi/19_跪地悔恨/00.png",
+          "flatFrame": "actions-flat/tang_qi/19_跪地悔恨.png"
+        },
+        {
+          "index": 20,
+          "name": "放下武器",
+          "frame": "actions/tang_qi/20_放下武器/00.png",
+          "flatFrame": "actions-flat/tang_qi/20_放下武器.png"
+        }
+      ]
+    }
+  ]
+}

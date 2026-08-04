@@ -1,0 +1,43 @@
+{
+  "portraits": 7,
+  "baseSprites": 7,
+  "characters": {
+    "zhou_ran": {
+      "count": 20,
+      "uniqueFiles": 20,
+      "transparent": true
+    },
+    "he_yinsheng": {
+      "count": 20,
+      "uniqueFiles": 20,
+      "transparent": true
+    },
+    "jiang_yan": {
+      "count": 20,
+      "uniqueFiles": 20,
+      "transparent": true
+    },
+    "chen_zhou": {
+      "count": 20,
+      "uniqueFiles": 20,
+      "transparent": true
+    },
+    "li_pingchuan": {
+      "count": 20,
+      "uniqueFiles": 20,
+      "transparent": true
+    },
+    "shen_xinghe": {
+      "count": 20,
+      "uniqueFiles": 20,
+      "transparent": true
+    },
+    "tang_qi": {
+      "count": 20,
+      "uniqueFiles": 20,
+      "transparent": true
+    }
+  },
+  "totalActions": 140,
+  "passed": true
+}

@@ -51,6 +51,7 @@ const MultiplayerSync = {
   _lastBroadcastTime: 0,
   _broadcastInterval: 50,
   _destroyed: false,
+  currentCategory: '',
 
   init(mailboxId, currentUser, options = {}) {
     if (!mailboxId || !currentUser) return;
@@ -58,8 +59,9 @@ const MultiplayerSync = {
     this.currentUser = currentUser;
     this.accountKey = String(currentUser.username || currentUser.id || '').trim().toLocaleLowerCase('en-US');
     this.players = {};
-    this.mode = options.mode === 'xiejian' ? 'xiejian' : 'default';
-    this.selectedCharacterId = options.characterId || (this.mode === 'xiejian' ? '' : currentUser.role || '');
+    this.mode = (options.mode === 'xiejian' || options.mode === 'poxiao') ? options.mode : 'default';
+    this.currentCategory = (options.mode === 'poxiao') ? 'poxiao' : (options.mode === 'xiejian' ? 'xiejian' : '');
+    this.selectedCharacterId = options.characterId || (this.mode === 'xiejian' || this.mode === 'poxiao' ? '' : currentUser.role || '');
     this.currentMapKey = options.mapKey || '';
     this.occupiedCharacters = [];
     this.itemDefinitions = {};
@@ -83,6 +85,10 @@ const MultiplayerSync = {
     } else {
       localStorage.removeItem('xinjian_ws_server_url');
     }
+  },
+
+  setCategory(category) {
+    this.currentCategory = (category === 'poxiao') ? 'poxiao' : (category === 'xiejian' ? 'xiejian' : '');
   },
 
   setRoomId(roomId) {
@@ -347,6 +353,26 @@ const MultiplayerSync = {
     return online;
   },
 
+  /** 返回指定地图上的在线玩家（含自己若已加入房间） */
+  getOnlinePlayersByMap(mapKey) {
+    const result = {};
+    if (!mapKey) return result;
+    for (const [userId, player] of Object.entries(this.players)) {
+      if (player.isOnline && player.mapKey === mapKey) result[userId] = player;
+    }
+    return result;
+  },
+
+  /** 统计本房间各地图在线人数分布，供下拉显示 */
+  getOnlineCountByMap() {
+    const m = {};
+    for (const player of Object.values(this.players)) {
+      if (!player || !player.isOnline || !player.mapKey) continue;
+      m[player.mapKey] = (m[player.mapKey] || 0) + 1;
+    }
+    return m;
+  },
+
   _emit(event, data) {
     for (const callback of this.listeners[event] || []) {
       try {
@@ -361,6 +387,14 @@ const MultiplayerSync = {
     if (!message || !message.type) return;
 
     if (message.type === 'room_state') {
+      console.log('[MultiplayerSync] received room_state:', {
+        accountKey: this.accountKey,
+        hasAccountProfile: !!message.accountProfile,
+        xiejianCharacterId: message.accountProfile?.xiejianCharacterId,
+        lastXiejianMapKey: message.accountProfile?.lastXiejianMapKey,
+        worldItemsCount: message.worldItems?.length || 0,
+        inventoryItemsCount: message.inventory?.items?.length || 0
+      });
       this.maxConnections = message.maxConnections || 11;
       this._setOccupancy(message.occupiedCharacters || []);
       this.accountProfile = message.accountProfile || null;
@@ -369,11 +403,18 @@ const MultiplayerSync = {
       this.inventory = message.inventory || null;
       this.combatProfile = message.combatProfile || message.inventory?.combat || null;
       this.worldItems = message.worldItems || [];
-      if (this.accountProfile?.xiejianCharacterId) {
-        this.selectedCharacterId = this.accountProfile.xiejianCharacterId;
+      const isPoxiao = this.currentCategory === 'poxiao';
+      const charId = isPoxiao
+        ? (this.accountProfile?.poxiaoCharacterId || this.accountProfile?.xiejianCharacterId)
+        : (this.accountProfile?.xiejianCharacterId || this.accountProfile?.poxiaoCharacterId);
+      const mapKey = isPoxiao
+        ? (this.accountProfile?.lastPoxiaoMapKey || this.accountProfile?.lastXiejianMapKey)
+        : (this.accountProfile?.lastXiejianMapKey || this.accountProfile?.lastPoxiaoMapKey);
+      if (charId) {
+        this.selectedCharacterId = charId;
       }
-      if (this.accountProfile?.lastXiejianMapKey) {
-        this.currentMapKey = this.accountProfile.lastXiejianMapKey;
+      if (mapKey) {
+        this.currentMapKey = mapKey;
       }
       this.players = {};
       for (const [userId, player] of Object.entries(message.players || {})) {
@@ -409,11 +450,15 @@ const MultiplayerSync = {
 
     if (message.type === 'character_selected') {
       this.selectedCharacterId = message.characterId;
-      this.currentMapKey = message.mapKey || this.currentMapKey || 'xj-jingyuan';
+      const isPoxiao = this.currentCategory === 'poxiao';
+      const defaultMap = isPoxiao ? 'px-d-city' : 'xj-jingyuan';
+      this.currentMapKey = message.mapKey || this.currentMapKey || defaultMap;
+      const charKey = isPoxiao ? 'poxiaoCharacterId' : 'xiejianCharacterId';
+      const mapKey = isPoxiao ? 'lastPoxiaoMapKey' : 'lastXiejianMapKey';
       this.accountProfile = {
         ...(this.accountProfile || {}),
-        xiejianCharacterId: message.characterId,
-        lastXiejianMapKey: this.currentMapKey
+        [charKey]: message.characterId,
+        [mapKey]: this.currentMapKey
       };
       this._setOccupancy(message.occupiedCharacters || []);
       this._emit('characterSelected', message);

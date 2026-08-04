@@ -1,0 +1,293 @@
+{
+  "version": 1,
+  "style": "high-detail noir pixel art",
+  "maps": [
+    {
+      "id": "d_city_overview",
+      "name": "D市总览",
+      "file": "01-d-city-overview.png",
+      "locations": [
+        "STELLA画廊",
+        "D市警局/禁毒支队",
+        "公安大学/警校",
+        "医院",
+        "民政局",
+        "戒毒所",
+        "摘星人奶茶店",
+        "天桥",
+        "天文台",
+        "画材市场",
+        "海鲜市场",
+        "码头"
+      ],
+      "source": "maps/sources/01-d-city-overview.png",
+      "hd2x": "maps/hd/01-d-city-overview-2x.png",
+      "hd4x": "maps/hd/01-d-city-overview-4x.png",
+      "nativeSize": [
+        945,
+        1665
+      ],
+      "hd4xSize": [
+        3780,
+        6660
+      ]
+    },
+    {
+      "id": "stella_gallery",
+      "name": "STELLA画廊",
+      "file": "02-stella-gallery.png",
+      "locations": [
+        "入口庭院",
+        "主展厅",
+        "画室",
+        "下午茶区",
+        "私人办公室",
+        "情报暗格",
+        "储藏室",
+        "厨房",
+        "后巷交接点"
+      ],
+      "source": "maps/sources/02-stella-gallery.png",
+      "hd2x": "maps/hd/02-stella-gallery-2x.png",
+      "hd4x": "maps/hd/02-stella-gallery-4x.png",
+      "nativeSize": [
+        1085,
+        1450
+      ],
+      "hd4xSize": [
+        4340,
+        5800
+      ]
+    },
+    {
+      "id": "seafood_lime_compound",
+      "name": "海鲜市场—冷库—生石灰厂",
+      "file": "03-seafood-lime-compound.png",
+      "locations": [
+        "海鲜市场",
+        "装卸区",
+        "冷冻仓库",
+        "冰库",
+        "铁链偏门",
+        "废弃生石灰工厂",
+        "蓄水池",
+        "控制室",
+        "猫道"
+      ],
+      "source": "maps/sources/03-seafood-lime-compound.png",
+      "hd2x": "maps/hd/03-seafood-lime-compound-2x.png",
+      "hd4x": "maps/hd/03-seafood-lime-compound-4x.png",
+      "nativeSize": [
+        1022,
+        1539
+      ],
+      "hd4xSize": [
+        4088,
+        6156
+      ]
+    },
+    {
+      "id": "police_university",
+      "name": "公安大学/警校",
+      "file": "04-police-university.png",
+      "locations": [
+        "教学楼",
+        "军姿广场",
+        "足球场",
+        "训练场",
+        "图书馆",
+        "宿舍",
+        "食堂",
+        "毕业广场",
+        "医务室"
+      ],
+      "source": "maps/sources/04-police-university.png",
+      "hd2x": "maps/hd/04-police-university-2x.png",
+      "hd4x": "maps/hd/04-police-university-4x.png",
+      "nativeSize": [
+        1023,
+        1537
+      ],
+      "hd4xSize": [
+        4092,
+        6148
+      ]
+    },
+    {
+      "id": "southwest_village",
+      "name": "西南边陲小村",
+      "file": "05-southwest-village.png",
+      "locations": [
+        "村屋",
+        "床底藏身处",
+        "芒果树",
+        "逃生山路",
+        "星花田",
+        "提取棚",
+        "贺家据点",
+        "溪流桥"
+      ],
+      "source": "maps/sources/05-southwest-village.png",
+      "hd2x": "maps/hd/05-southwest-village-2x.png",
+      "hd4x": "maps/hd/05-southwest-village-4x.png",
+      "nativeSize": [
+        941,
+        1672
+      ],
+      "hd4xSize": [
+        3764,
+        6688
+      ]
+    },
+    {
+      "id": "industrial_docks_region",
+      "name": "郊区厂房—颜料市场—码头",
+      "file": "06-industrial-docks-region.png",
+      "locations": [
+        "嘉卫国厂房据点",
+        "实验室",
+        "颜料厂",
+        "画材市场",
+        "戒毒所",
+        "摘星人奶茶店",
+        "雪天天桥",
+        "码头",
+        "集装箱区",
+        "海关检查点"
+      ],
+      "source": "maps/sources/06-industrial-docks-region.png",
+      "hd2x": "maps/hd/06-industrial-docks-region-2x.png",
+      "hd4x": "maps/hd/06-industrial-docks-region-4x.png",
+      "nativeSize": [
+        1024,
+        1536
+      ],
+      "hd4xSize": [
+        4096,
+        6144
+      ]
+    }
+  ],
+  "items": [
+    {
+      "index": 1,
+      "id": "red_scarf",
+      "name": "红围巾",
+      "file": "items/icons/01_red_scarf.png"
+    },
+    {
+      "index": 2,
+      "id": "olive_sapling",
+      "name": "橄榄树苗",
+      "file": "items/icons/02_olive_sapling.png"
+    },
+    {
+      "index": 3,
+      "id": "casablanca_lilies",
+      "name": "六朵卡萨布兰卡",
+      "file": "items/icons/03_casablanca_lilies.png"
+    },
+    {
+      "index": 4,
+      "id": "white_star_stone",
+      "name": "白色星星石头",
+      "file": "items/icons/04_white_star_stone.png"
+    },
+    {
+      "index": 5,
+      "id": "protection_talisman",
+      "name": "护身符",
+      "file": "items/icons/05_protection_talisman.png"
+    },
+    {
+      "index": 6,
+      "id": "painter_apron",
+      "name": "围裙",
+      "file": "items/icons/06_painter_apron.png"
+    },
+    {
+      "index": 7,
+      "id": "divorce_agreement",
+      "name": "离婚协议书",
+      "file": "items/icons/07_divorce_agreement.png"
+    },
+    {
+      "index": 8,
+      "id": "divination_pendant",
+      "name": "观卦吊坠",
+      "file": "items/icons/08_divination_pendant.png"
+    },
+    {
+      "index": 9,
+      "id": "super_s_necklace",
+      "name": "超人S项链",
+      "file": "items/icons/09_super_s_necklace.png"
+    },
+    {
+      "index": 10,
+      "id": "half_jade_pendant",
+      "name": "半块玉佩",
+      "file": "items/icons/10_half_jade_pendant.png"
+    },
+    {
+      "index": 11,
+      "id": "goldfish_bowl",
+      "name": "金鱼缸",
+      "file": "items/icons/11_goldfish_bowl.png"
+    },
+    {
+      "index": 12,
+      "id": "police_portrait",
+      "name": "周然的画作",
+      "file": "items/icons/12_police_portrait.png"
+    },
+    {
+      "index": 13,
+      "id": "rainflower_stone",
+      "name": "雨花石",
+      "file": "items/icons/13_rainflower_stone.png"
+    },
+    {
+      "index": 14,
+      "id": "star_flower",
+      "name": "星花",
+      "file": "items/icons/14_star_flower.png"
+    },
+    {
+      "index": 15,
+      "id": "qiming_vial",
+      "name": "启明",
+      "file": "items/icons/15_qiming_vial.png"
+    },
+    {
+      "index": 16,
+      "id": "legless_bird_board",
+      "name": "无脚鸟图案木板",
+      "file": "items/icons/16_legless_bird_board.png"
+    },
+    {
+      "index": 17,
+      "id": "crystal_pendant",
+      "name": "水晶吊坠",
+      "file": "items/icons/17_crystal_pendant.png"
+    },
+    {
+      "index": 18,
+      "id": "pear_soup",
+      "name": "冰糖雪梨",
+      "file": "items/icons/18_pear_soup.png"
+    },
+    {
+      "index": 19,
+      "id": "evidence_syringe",
+      "name": "针管证物",
+      "file": "items/icons/19_evidence_syringe.png"
+    },
+    {
+      "index": 20,
+      "id": "handcuffs",
+      "name": "手铐",
+      "file": "items/icons/20_handcuffs.png"
+    }
+  ]
+}
