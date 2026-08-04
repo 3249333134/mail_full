@@ -114,6 +114,11 @@ Object.assign(App, {
         this._mailboxBgmAudio.load();
       } catch (e) {}
     }
+    // 释放上一个 blob URL
+    if (this._mailboxBgmBlobUrl) {
+      try { ResourceManager?.revokeBlobUrl(this._mailboxBgmBlobUrl); } catch (_) {}
+      this._mailboxBgmBlobUrl = null;
+    }
     this._mailboxBgmPlaying = false;
   },
 
@@ -135,7 +140,7 @@ Object.assign(App, {
       this._mailboxBgmAudio.volume = 0.4;
     }
 
-    if (this._mailboxBgmCurrentSrc === bgm.src) {
+    if (this._mailboxBgmCurrentSrc === bgm.src && this._mailboxBgmAudio.src) {
       const playPromise = this._mailboxBgmAudio.play();
       if (playPromise) {
         playPromise.then(() => {
@@ -157,43 +162,61 @@ Object.assign(App, {
     this._mailboxBgmPlaying = false;
     this._mailboxBgmCurrentSrc = currentSrc;
 
-    try {
-      audio.src = currentSrc;
-      audio.load();
-    } catch (e) {
-      return;
-    }
-
-    const playPromise = audio.play();
-    if (playPromise) {
-      playPromise.then(() => {
-        if (this._mailboxBgmCurrentSrc === currentSrc) {
-          this._mailboxBgmPlaying = true;
-          this._updateBgmButtons(context, true);
-          this._updateBgmDropdown(context);
-          console.log(`[BGM] 正在播放: ${bgmName}`);
-        }
-      }).catch(() => {
-        if (this._mailboxBgmCurrentSrc === currentSrc) {
-          this._mailboxBgmPlaying = false;
-          this._updateBgmButtons(context, false);
-        }
-        const playOnInteract = () => {
-          if (this._mailboxBgmCurrentSrc === currentSrc && this._mailboxBgmAudio === audio) {
-            audio.play().then(() => {
-              if (this._mailboxBgmCurrentSrc === currentSrc) {
-                this._mailboxBgmPlaying = true;
-                this._updateBgmButtons(context, true);
-                this._updateBgmDropdown(context);
-              }
-            }).catch(() => {});
+    // 新逻辑：优先使用 ResourceManager（多源回退 + IndexedDB 持久化缓存）
+    const startPlay = (finalSrc, fromCache = false) => {
+      try {
+        audio.src = finalSrc;
+        audio.load();
+      } catch (e) {
+        console.warn('[BGM] 设置 audio.src 失败:', e);
+        return;
+      }
+      const playPromise = audio.play();
+      if (playPromise) {
+        playPromise.then(() => {
+          if (this._mailboxBgmCurrentSrc === currentSrc) {
+            this._mailboxBgmPlaying = true;
+            this._updateBgmButtons(context, true);
+            this._updateBgmDropdown(context);
+            console.log(`[BGM] 正在播放: ${bgmName}${fromCache ? ' (本地缓存)' : ''}`);
           }
-          document.removeEventListener('click', playOnInteract);
-          document.removeEventListener('touchstart', playOnInteract);
-        };
-        document.addEventListener('click', playOnInteract, { once: true });
-        document.addEventListener('touchstart', playOnInteract, { once: true });
-      });
+        }).catch(() => {
+          if (this._mailboxBgmCurrentSrc === currentSrc) {
+            this._mailboxBgmPlaying = false;
+            this._updateBgmButtons(context, false);
+          }
+          const playOnInteract = () => {
+            if (this._mailboxBgmCurrentSrc === currentSrc && this._mailboxBgmAudio === audio) {
+              audio.play().then(() => {
+                if (this._mailboxBgmCurrentSrc === currentSrc) {
+                  this._mailboxBgmPlaying = true;
+                  this._updateBgmButtons(context, true);
+                  this._updateBgmDropdown(context);
+                }
+              }).catch(() => {});
+            }
+            document.removeEventListener('click', playOnInteract);
+            document.removeEventListener('touchstart', playOnInteract);
+          };
+          document.addEventListener('click', playOnInteract, { once: true });
+          document.addEventListener('touchstart', playOnInteract, { once: true });
+        });
+      }
+    };
+
+    if (typeof ResourceManager !== 'undefined') {
+      (async () => {
+        try {
+          const blobUrl = await ResourceManager.loadBlobUrl(currentSrc);
+          this._mailboxBgmBlobUrl = blobUrl;
+          startPlay(blobUrl, true);
+        } catch (e) {
+          console.warn('[BGM] ResourceManager 加载失败，回退直连:', e?.message || e);
+          startPlay(currentSrc, false);
+        }
+      })();
+    } else {
+      startPlay(currentSrc, false);
     }
   },
 

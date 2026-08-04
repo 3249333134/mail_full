@@ -5,6 +5,7 @@
 const Editor = {
   letter: null,
   mailboxId: null,
+  pendingRecipient: null,
   paperStyle: 'vintage-literary',
   pages: [],
   currentPageIndex: 0,
@@ -21,6 +22,7 @@ const Editor = {
 
   init(letterId) {
     if (letterId) {
+      this.letter = null;
       this.letter = STORAGE.loadLetters().find(l => l.id === letterId);
       if (!this.letter) {
         const allMailboxes = MailboxManager.getMailboxes();
@@ -36,6 +38,10 @@ const Editor = {
           }
         }
       }
+      if (!this.letter && typeof MailService !== 'undefined') {
+        const cached = MailService.getCachedMailbox(this.mailboxId).letters || [];
+        this.letter = cached.find(letter => letter.id === letterId) || null;
+      }
     }
     if (!this.letter) {
       const now = new Date();
@@ -43,11 +49,14 @@ const Editor = {
       const hours = String(now.getHours()).padStart(2, '0');
       const minutes = String(now.getMinutes()).padStart(2, '0');
       const currentUser = AuthManager.getCurrentUser();
-      const isShared = MailboxManager.isSharedMailbox(this.mailboxId);
+      const isShared = this.mailboxId ? MailboxManager.isSharedMailbox(this.mailboxId) : false;
+      
+      // 使用当前 mailboxId，如果没有则保持为空，让 getIdentityName 搜索所有信箱
+      const effectiveMailboxId = this.mailboxId || '';
       
       this.letter = {
         id: 'letter-' + Date.now() + '-' + Math.random().toString(36).slice(2, 8),
-        mailboxId: this.mailboxId || 'mailbox-may',
+        mailboxId: effectiveMailboxId,
         paperStyle: this.paperStyle,
         envelopeStyle: 'kraft-brown',
         recipient: '',
@@ -70,9 +79,37 @@ const Editor = {
           username: currentUser.username,
           displayName: currentUser.displayName || currentUser.username
         };
-        this.letter.sender = currentUser.displayName || currentUser.username;
+      }
+
+      if (currentUser) {
+        this.letter.senderAccountKey = MailService.getAccountKey(currentUser);
+        // 传入空字符串让 getIdentityName 搜索所有信箱的角色绑定
+        this.letter.sender = MailService.getIdentityName(effectiveMailboxId || null, currentUser);
+      }
+      if (this.pendingRecipient) {
+        this.letter.recipientAccountKey = this.pendingRecipient.accountKey;
+        // 优先使用 identityName（角色名），否则通过 getIdentityName 获取
+        if (this.pendingRecipient.identityName) {
+          this.letter.recipient = this.pendingRecipient.identityName;
+        } else if (typeof MailService !== 'undefined' && this.pendingRecipient.accountKey) {
+          // 创建临时用户对象来获取角色名（getAccountKey 使用 username 或 id）
+          const tempUser = {
+            username: this.pendingRecipient.accountKey,
+            id: this.pendingRecipient.accountKey,
+            displayName: this.pendingRecipient.displayName,
+            role: this.pendingRecipient.characterId || ''
+          };
+          this.letter.recipient = MailService.getIdentityName(effectiveMailboxId || null, tempUser);
+        } else {
+          this.letter.recipient = this.pendingRecipient.displayName ||
+            this.pendingRecipient.username ||
+            this.pendingRecipient.fullName;
+        }
       }
     }
+    this.letter.itemAttachmentIds = Array.isArray(this.letter.itemAttachmentIds)
+      ? [...new Set(this.letter.itemAttachmentIds)].slice(0, 8)
+      : [];
 
     if (this.letter.pages && Array.isArray(this.letter.pages) && this.letter.pages.length > 0) {
       this.pages = JSON.parse(JSON.stringify(this.letter.pages));
@@ -92,6 +129,7 @@ const Editor = {
     this.renderMetaForm();
     this.setupEventListeners();
     this.renderPaperElements();
+    this._updateItemAttachmentButton();
     this.switchMode(this.currentMode);
   },
 
@@ -596,12 +634,28 @@ const Editor = {
     `;
     paperArea.appendChild(container);
 
-    document.getElementById('meta-recipient').addEventListener('input', (e) => {
-      this.letter.recipient = e.target.value;
-      this.updateAllWidgets();
-      this._renderEnvelopePreview(this.letter.envelopeStyle || 'vintage-stamp');
+    const recipientInput = document.getElementById('meta-recipient');
+    const senderInput = document.getElementById('meta-sender');
+    
+    recipientInput.readOnly = true;
+    recipientInput.title = '点击选择收信人';
+    recipientInput.addEventListener('click', () => {
+      App._openRecipientPicker(this.letter.mailboxId, recipient => {
+        this.letter.recipientAccountKey = recipient.accountKey;
+        this.letter.recipient = recipient.identityName || recipient.displayName || recipient.username || recipient.fullName;
+        recipientInput.value = this.letter.recipient;
+        this.updateTitle();
+        this.updateAllWidgets();
+        this._renderEnvelopePreview(this.letter.envelopeStyle || 'vintage-stamp');
+      });
     });
-    document.getElementById('meta-sender').addEventListener('input', (e) => {
+
+    if (this.letter.senderAccountKey) {
+      senderInput.readOnly = true;
+      senderInput.title = '写信身份由当前账号决定';
+    }
+
+    senderInput.addEventListener('input', (e) => {
       this.letter.sender = e.target.value;
       this.updateAllWidgets();
       this._renderEnvelopePreview(this.letter.envelopeStyle || 'vintage-stamp');
@@ -2145,7 +2199,7 @@ const Editor = {
       case 'image':
         div.classList.add('element-image');
         div.style.width = (elem.width || 200) + 'px';
-        inner = `<img src="${elem.src}" alt="attachment"><div class="resize-handle"></div><div class="rotate-handle">↻</div>`;
+        inner = `<div class="${ImageFrames.className(elem.frameStyle)}"><img src="${elem.src}" alt="信件图片"></div><div class="resize-handle"></div><div class="rotate-handle">↻</div>`;
         div.innerHTML = inner;
         break;
       case 'voice':
@@ -2427,12 +2481,33 @@ Object.assign(Editor, {
           </div>
         `;
         break;
-      case 'image':
-      case 'video':
+      case 'image': {
+        const currentFrame = ImageFrames.normalize(elem.frameStyle);
         html = `
           <div class="prop-group">
             <label class="prop-label">宽度 (px)</label>
             <input type="number" class="prop-input" value="${elem.width || 200}" data-prop="width">
+          </div>
+          <div class="prop-group">
+            <label class="prop-label">图片边框</label>
+            <div class="image-frame-picker">
+              ${ImageFrames.styles.map(frame => `
+                <button type="button" class="image-frame-choice${frame.id === currentFrame ? ' active' : ''}"
+                  data-frame-style="${frame.id}" aria-pressed="${frame.id === currentFrame}">
+                  <span class="${ImageFrames.className(frame.id)}"><span class="image-frame-swatch"></span></span>
+                  <em>${frame.name}</em>
+                </button>
+              `).join('')}
+            </div>
+          </div>
+        `;
+        break;
+      }
+      case 'video':
+        html = `
+          <div class="prop-group">
+            <label class="prop-label">宽度 (px)</label>
+            <input type="number" class="prop-input" value="${elem.width || 300}" data-prop="width">
           </div>
         `;
         break;
@@ -2660,6 +2735,17 @@ Object.assign(Editor, {
       };
       input.addEventListener('input', handler);
       input.addEventListener('change', handler);
+    });
+
+    panel.querySelectorAll('[data-frame-style]').forEach(button => {
+      button.addEventListener('click', () => {
+        const nextFrame = ImageFrames.normalize(button.dataset.frameStyle);
+        if (nextFrame === ImageFrames.normalize(elem.frameStyle)) return;
+        this.saveUndoState();
+        elem.frameStyle = nextFrame;
+        this.renderPaperElements();
+        this.selectElement(id);
+      });
     });
 
     // 删除按钮
@@ -3228,13 +3314,20 @@ Object.assign(Editor, {
     });
 
     // 保存按钮
-    document.getElementById('save-letter-btn').addEventListener('click', () => this.save());
+    document.getElementById('save-letter-btn').onclick = () => this.save(true);
 
     // 阅读按钮
-    document.getElementById('read-letter-btn').addEventListener('click', () => {
-      this.save();
+    document.getElementById('read-letter-btn').onclick = async () => {
+      await this.save(false);
       App.navigate('reader', { letterId: this.letter.id });
-    });
+    };
+
+    const sendButton = document.getElementById('send-letter-btn');
+    if (sendButton) sendButton.onclick = () => this.send();
+    const itemButton = document.getElementById('letter-item-attachments-btn');
+    if (itemButton) itemButton.onclick = () => this.openItemAttachmentDrawer();
+    const itemClose = document.getElementById('letter-item-drawer-close');
+    if (itemClose) itemClose.onclick = () => this.closeItemAttachmentDrawer();
 
     // 退格键删除
     document.addEventListener('keydown', (e) => {
@@ -3695,6 +3788,7 @@ Object.assign(Editor, {
             this.addElement('image', {
               src: result.src,
               width: 200,
+              frameStyle: 'thin-white',
               id: mediaId,
               _blob: blob
             });
@@ -3812,7 +3906,7 @@ Object.assign(Editor, {
     }
   },
 
-  save() {
+  _serializeLetter() {
     const bodyTextElem = this.elements.find(e => e._isBodyText);
     if (bodyTextElem) {
       this.letter.bodyText = bodyTextElem.text || '';
@@ -3833,14 +3927,178 @@ Object.assign(Editor, {
     }));
     this.letter.content = filterElements(this.elements);
     this.letter.updatedAt = Date.now();
+    this.letter.status = 'draft';
+    return this.letter;
+  },
 
-    const isShared = MailboxManager.isSharedMailbox(this.letter.mailboxId);
-    if (isShared) {
-      STORAGE.saveSharedLetterWithMedia(this.letter.mailboxId, this.letter);
-    } else {
-      STORAGE.saveLetterWithMedia(this.letter);
+  _escapeItemText(value) {
+    return String(value ?? '').replace(/[&<>"']/g, char => ({
+      '&': '&amp;',
+      '<': '&lt;',
+      '>': '&gt;',
+      '"': '&quot;',
+      "'": '&#39;'
+    })[char]);
+  },
+
+  _updateItemAttachmentButton() {
+    const button = document.getElementById('letter-item-attachments-btn');
+    if (!button || !this.letter) return;
+    const count = Array.isArray(this.letter.itemAttachmentIds) ? this.letter.itemAttachmentIds.length : 0;
+    button.textContent = `🎁 随信物品 ${count}/8`;
+  },
+
+  async openItemAttachmentDrawer() {
+    const drawer = document.getElementById('letter-item-drawer');
+    const status = document.getElementById('letter-item-drawer-status');
+    if (!drawer) return;
+    drawer.classList.add('open');
+    drawer.setAttribute('aria-hidden', 'false');
+    if (status) status.textContent = '正在读取账号背包…';
+    try {
+      this._mailInventory = await MailService.getInventory();
+      this.renderItemAttachmentDrawer();
+    } catch (error) {
+      console.error('[Editor] Load inventory failed:', error);
+      if (status) status.textContent = '背包读取失败，请确认 3000 服务已启动后重试。';
     }
-    alert('信件已保存 ✓');
+  },
+
+  closeItemAttachmentDrawer() {
+    const drawer = document.getElementById('letter-item-drawer');
+    drawer?.classList.remove('open');
+    drawer?.setAttribute('aria-hidden', 'true');
+  },
+
+  renderItemAttachmentDrawer() {
+    const grid = document.getElementById('letter-item-grid');
+    const status = document.getElementById('letter-item-drawer-status');
+    if (!grid || !this.letter) return;
+    const items = this._mailInventory?.items || [];
+    const selectedIds = this.letter.itemAttachmentIds || [];
+    const byId = Object.fromEntries(items.map(item => [item.instanceId, item]));
+    const cards = items.map(item => {
+      const selected = selectedIds.includes(item.instanceId);
+      const equipped = Boolean(item.equippedSlot);
+      const definition = item.definition || {};
+      return `
+        <button type="button" class="letter-item-card${selected ? ' selected' : ''}"
+          data-letter-item-id="${this._escapeItemText(item.instanceId)}"
+          ${equipped ? 'disabled' : ''} aria-pressed="${selected}">
+          <img src="${this._escapeItemText(definition.icon || '')}" alt="">
+          <span><strong>${this._escapeItemText(definition.name || item.definitionId)}</strong>
+            <small>${this._escapeItemText(item.originLabel || '来自 既有物品')}</small>
+            <em>${equipped ? '已装备，请先卸下' : this._escapeItemText(item.acquisitionLabel || '既有物品')}</em>
+          </span>
+        </button>
+      `;
+    });
+    for (const instanceId of selectedIds) {
+      if (byId[instanceId]) continue;
+      cards.unshift(`
+        <button type="button" class="letter-item-card unavailable selected"
+          data-letter-item-id="${this._escapeItemText(instanceId)}" aria-pressed="true">
+          <span><strong>物品已不可用</strong><small>可能已使用、丢弃或转赠</small><em>点击从草稿移除</em></span>
+        </button>
+      `);
+    }
+    grid.innerHTML = cards.join('') || '<p class="letter-item-empty">当前账号背包中还没有可随信寄出的物品。</p>';
+    grid.querySelectorAll('[data-letter-item-id]').forEach(button => {
+      button.addEventListener('click', () => {
+        const instanceId = button.dataset.letterItemId;
+        const current = this.letter.itemAttachmentIds || [];
+        if (current.includes(instanceId)) {
+          this.letter.itemAttachmentIds = current.filter(id => id !== instanceId);
+        } else {
+          if (current.length >= 8) {
+            if (status) status.textContent = '一封信最多只能附带 8 件物品。';
+            return;
+          }
+          this.letter.itemAttachmentIds = [...current, instanceId];
+        }
+        this.letter.updatedAt = Date.now();
+        this._updateItemAttachmentButton();
+        this.renderItemAttachmentDrawer();
+      });
+    });
+    if (status) {
+      status.textContent = selectedIds.length
+        ? `已选择 ${selectedIds.length}/8 件；发送前仍会由服务器统一核验。`
+        : '选择物品后，它们会在发送成功时进入托管。';
+    }
+  },
+
+  async save(showMessage = true) {
+    const saveButton = document.getElementById('save-letter-btn');
+    this._serializeLetter();
+    if (saveButton) saveButton.disabled = true;
+    try {
+      if (AuthManager.getCurrentUser() && typeof MailService !== 'undefined') {
+        await MailService.saveDraft(this.letter, this.letter.recipientAccountKey || '');
+        await MailService.getMailbox(this.letter.mailboxId);
+      } else {
+        const isShared = MailboxManager.isSharedMailbox(this.letter.mailboxId);
+        if (isShared) {
+          await STORAGE.saveSharedLetterWithMedia(this.letter.mailboxId, this.letter);
+        } else {
+          await STORAGE.saveLetterWithMedia(this.letter);
+        }
+      }
+      if (showMessage) alert('草稿已保存。');
+      return true;
+    } catch (error) {
+      console.error('[Editor] Save draft failed:', error);
+      if (showMessage) alert('草稿保存失败，请确认 3000 服务已启动后重试。');
+      return false;
+    } finally {
+      if (saveButton) saveButton.disabled = false;
+    }
+  },
+
+  async send() {
+    if (!this.letter.recipientAccountKey) {
+      alert('请先选择真实收信人。');
+      return;
+    }
+    const sendButton = document.getElementById('send-letter-btn');
+    this._serializeLetter();
+    if (sendButton) {
+      sendButton.disabled = true;
+      sendButton.textContent = '正在发送…';
+    }
+    try {
+      await MailService.sendLetter(this.letter, this.letter.recipientAccountKey);
+      await MailService.getMailbox(this.letter.mailboxId);
+      this.letter.itemAttachmentIds = [];
+      this._updateItemAttachmentButton();
+      this.closeItemAttachmentDrawer();
+      this.pendingRecipient = null;
+      alert(`信件已发送给 ${this.letter.recipient}。`);
+      App._mailFolder = 'sent';
+      document.querySelectorAll('.mail-folder-tab').forEach(tab => {
+        const active = tab.dataset.folder === 'sent';
+        tab.classList.toggle('active', active);
+        tab.setAttribute('aria-selected', active ? 'true' : 'false');
+      });
+      App.navigate('mailbox', { mailboxId: this.letter.mailboxId });
+    } catch (error) {
+      console.error('[Editor] Send failed:', error);
+      const itemErrors = {
+        item_attachment_limit: '一封信最多只能附带 8 件物品。',
+        item_attachment_duplicate: '随信物品中有重复项，请重新选择。',
+        item_attachment_invalid: '有随信物品已被使用、丢弃或转赠。请打开随信物品面板移除失效项后重试。',
+        item_attachment_equipped: '有随信物品仍处于装备状态，请先在背包中卸下。'
+      };
+      alert(error.code === 'recipient_unavailable'
+        ? '收信账号当前不可用，请重新选择收信人。'
+        : itemErrors[error.code] ||
+          '发送失败，内容仍保留在编辑器中，请确认 3000 服务已启动后重试。');
+    } finally {
+      if (sendButton) {
+        sendButton.disabled = false;
+        sendButton.textContent = '✉ 发送';
+      }
+    }
   },
 
   // === 对齐操作 ===
@@ -3869,7 +4127,7 @@ Object.assign(Editor, {
 
   // === 自动草稿保存 ===
   autoSaveDraft() {
-    if (!this.letter) return;
+    if (!this.letter || App.currentView !== 'editor') return;
     const status = document.getElementById('draft-status');
     if (status) status.textContent = '自动保存：保存中…';
 
@@ -3899,6 +4157,11 @@ Object.assign(Editor, {
         letters.push(draftData);
       }
       STORAGE.saveLetters(letters);
+    }
+
+    if (AuthManager.getCurrentUser() && typeof MailService !== 'undefined') {
+      MailService.saveDraft(draftData, draftData.recipientAccountKey || '')
+        .catch(error => console.warn('[Editor] Auto-save to server failed:', error));
     }
 
     // 保留最近5个草稿版本

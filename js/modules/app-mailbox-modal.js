@@ -695,6 +695,9 @@ Object.assign(App, {
     }
     if (!currentUser || !currentUser.id) { this._showJoinMsg('身份初始化失败，请刷新后重试', 'error'); return; }
 
+    // 使用 username 作为 accountKey（而非自动生成的 id）
+    const accountKey = String(currentUser.username || currentUser.id || '').trim().toLowerCase();
+
     // 先取信箱详情（避免 joinMailboxByCode 里重复查），这里只用来找 mailboxCode（兜底）
     let localCodeKey = null;
     try {
@@ -714,8 +717,8 @@ Object.assign(App, {
       : (function(c, u) { return Promise.resolve(MailboxManager.joinMailboxByCode(c, u)); });
     if (finalCodeKey) {
       try {
-        // 第二个参数兼容 userId/accountKey，joinMailboxByCodeAsync 内部会自动规范化
-        joinResult = await joinFn(finalCodeKey, currentUser.id);
+        // 使用 accountKey (username) 而非自动生成的 id
+        joinResult = await joinFn(finalCodeKey, accountKey);
       } catch (_) { joinResult = null; }
     }
     if (!joinResult || !joinResult.success) {
@@ -728,11 +731,11 @@ Object.assign(App, {
       if (!shared) {
         const personalAll = STORAGE.loadMailboxes() || [];
         const mb = personalAll.find(m => m.id === mailboxId);
-        if (mb) shared = { ...mb, members: mb.members || [currentUser.id] };
+        if (mb) shared = { ...mb, members: mb.members || [accountKey] };
       }
       if (shared) {
         if (!Array.isArray(shared.members)) shared.members = [];
-        if (!shared.members.includes(currentUser.id)) shared.members.push(currentUser.id);
+        if (!shared.members.includes(accountKey)) shared.members.push(accountKey);
         if (!shared.mailboxCode) {
           shared.mailboxCode = MailboxManager._generateMailboxCode(shared.name);
           if (typeof STORAGE.saveMailboxCodeIndex === 'function') {

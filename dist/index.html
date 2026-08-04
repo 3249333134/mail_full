@@ -7,8 +7,8 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Ma+Shan+Zheng&family=Noto+Serif+SC:wght@400;500;700&family=ZCOOL+KuaiLe&family=ZCOOL+QingKe+HuangYou&family=ZCOOL+XiaoWei&family=Noto+Sans+SC:wght@400;500;700&family=Long+Cang&family=Liu+Jian+Mao+Cao&family=ZCOOL+KuaiLe&family=ZCOOL+XiaoWei&family=Ma+Shan+Zheng&family=Noto+Serif+SC&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/main.css?v=20260802b">
-  <link rel="stylesheet" href="css/community-redesign.css?v=20260802s">
+  <link rel="stylesheet" href="css/main.css?v=20260803k">
+  <link rel="stylesheet" href="css/community-redesign.css?v=20260803c">
   <link rel="stylesheet" href="css/envelopes.css?v=20260801h">
   <link rel="stylesheet" href="css/paper.css?v=20260801h">
   <link rel="stylesheet" href="css/editor.css?v=20260801h">
@@ -619,10 +619,21 @@
           <!-- 聊天记录面板 -->
           <div class="chat-history-panel" id="chat-history-panel" style="display:none;">
             <div class="chat-history-header">
-              <span class="chat-history-title">聊天记录</span>
+              <span class="chat-history-title" id="chat-history-title">聊天记录</span>
               <button class="chat-history-close" id="chat-history-close">×</button>
             </div>
-            <div class="chat-history-list" id="chat-history-list">
+            <div class="chat-history-body">
+              <div class="chat-sidebar" id="chat-sidebar">
+                <div class="chat-sidebar-section-title">信箱会话</div>
+                <div class="chat-conversation-list" id="chat-conversation-list"></div>
+              </div>
+              <div class="chat-main">
+                <div class="chat-history-list" id="chat-history-list"></div>
+                <div class="chat-history-input-area">
+                  <input type="text" id="chat-history-input" placeholder="输入消息..." maxlength="50" />
+                  <button id="chat-history-send" class="chat-history-send-btn">发送</button>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -1416,21 +1427,22 @@
   </div>
 
   <script src="js/auth.js?v=20260801e"></script>
-  <script src="js/storage.js?v=20260802a"></script>
-  <script src="js/mailService.js?v=20260802h"></script>
-  <script src="js/multiplayerSync.js?v=20260802d"></script>
+  <script src="js/resourceManager.js?v=20260804b"></script>
+  <script src="js/storage.js?v=20260804a"></script>
+  <script src="js/mailService.js?v=20260804g"></script>
+  <script src="js/multiplayerSync.js?v=20260803i"></script>
   <script src="js/media.js?v=20260801e"></script>
   <script src="js/imageFrames.js?v=20260801e"></script>
-  <script src="js/mailbox.js?v=20260802d"></script>
+  <script src="js/mailbox.js?v=20260803e"></script>
   <script src="js/modules/mailbox-letters.js?v=20260801e"></script>
-  <script src="js/app.js?v=20260803g"></script>
-  <script src="js/modules/app-reader.js?v=20260802c"></script>
-  <script src="js/modules/app-bgm.js?v=20260802h"></script>
+  <script src="js/app.js?v=20260804k"></script>
+  <script src="js/modules/app-reader.js?v=20260804f"></script>
+  <script src="js/modules/app-bgm.js?v=20260804a"></script>
   <script src="js/modules/app-voice.js?v=20260802c"></script>
   <script src="js/modules/app-mailbox-modal.js?v=20260802c"></script>
   <script src="js/modules/app-diary.js?v=20260801e"></script>
   <script src="js/modules/app-features.js?v=20260801e"></script>
-  <script src="js/editor.js?v=20260801e"></script>
+  <script src="js/editor.js?v=20260804i"></script>
   <script src="js/modules/editor-widgets-year.js?v=20260801e"></script>
   <script src="js/modules/editor-widgets-month.js?v=20260801e"></script>
   <script src="js/modules/editor-widgets-week.js?v=20260801e"></script>
@@ -1438,6 +1450,6 @@
   <script src="js/journal.js?v=20260801e"></script>
   <script src="js/diary.js?v=20260801e"></script>
   <script src="js/map.js?v=20260801e"></script>
-  <script type="module" src="js/gameMapRenderer.js?v=20260803g"></script>
+  <script type="module" src="js/gameMapRenderer.js?v=20260804e"></script>
 </body>
 </html>

@@ -2,6 +2,34 @@
    信笺 — 应用主入口 / 路由
    ======================================== */
 
+// Character name lookup (independent of gameMapRenderer, available globally)
+const CHARACTER_NAME_MAP = {
+  // 静远七人 (Jingyuan / Xiejian)
+  'zhou-ran': '周然', 'he-qingfeng': '贺清风', 'ren-chaoye': '任朝野',
+  'shen-chiyi': '沈池懿', 'qi-pingchuan': '戚凭川', 'jiang-huaian': '江淮安',
+  'tang-wanchu': '唐挽初',
+  // 寒门 (Hanmen)
+  'xuan-xuan': '萱宣', 'xiu-jing': '修璟',
+  // Main characters
+  'mask-dude': 'Mask Dude', 'ninja-frog': '忍者蛙', 'pink-man': '粉衣人',
+  'virtual-guy': '虚拟人'
+};
+
+function getCharacterName(charId) {
+  if (!charId) return '';
+  // 1. Try global map (always available)
+  if (CHARACTER_NAME_MAP[charId]) return CHARACTER_NAME_MAP[charId];
+  // 2. Try gameMapRenderer (when in map view)
+  if (window.gameMapRenderer?.getCharacterInfo) {
+    const info = window.gameMapRenderer.getCharacterInfo(charId);
+    if (info?.name) return info.name;
+  }
+  return '';
+}
+
+// Expose globally for ES modules (gameMapRenderer.js)
+window.getCharacterName = getCharacterName;
+
 const App = {
   currentView: 'home',
   currentMailboxId: null,
@@ -22,6 +50,8 @@ const App = {
   _xiejianPromptTimer: null,
   _inventoryFilter: 'all',
   _selectedInventoryItemId: '',
+  _currentChatConversation: { type: 'group', targetUserId: '' },
+  _chatConversationUsers: new Set(),
 
   _bgmList: [
     { id: 'qingqing', name: '轻轻', src: 'mailfile/bgm/轻轻（Cover 张靓颖）_爱给网_aigei_com.mp3' }
@@ -38,6 +68,31 @@ const App = {
   },
 
   init() {
+    // 初始化资源管理器（优先启动，确保后续资源加载受益于持久化缓存）
+    const rmPromise = (async () => {
+      try {
+        if (typeof ResourceManager !== 'undefined') {
+          // 允许通过全局变量覆盖远端 CDN 地址（例如部署时注入）
+          const customRemotes = (typeof window.RESOURCE_REMOTE_BASE_URLS !== 'undefined'
+            && Array.isArray(window.RESOURCE_REMOTE_BASE_URLS))
+            ? window.RESOURCE_REMOTE_BASE_URLS
+            : [];
+          ResourceManager.configure({
+            remoteBaseUrls: customRemotes,
+            localBaseUrl: './',
+            maxRetries: 3,
+            enableCache: true,
+          });
+          await ResourceManager.bootstrap();
+          const stats = await ResourceManager.getCacheStats();
+          console.log('[ResourceManager] Ready. Cache:', stats.count, 'items,',
+            (stats.size / 1024 / 1024).toFixed(2), 'MB');
+        }
+      } catch (e) {
+        console.warn('[ResourceManager] Init failed, fallback to direct loading:', e?.message || e);
+      }
+    })();
+
     AuthManager.init();
 
     this.bindAuthEvents();
@@ -877,7 +932,7 @@ const App = {
     const newLetterBtn = document.getElementById('new-letter-btn');
     if (newLetterBtn) {
       newLetterBtn.addEventListener('click', () => {
-        this._openRecipientPicker(this.currentMailboxId);
+        this._openRecipientPicker(this.currentMailboxId).catch(() => {});
       });
     }
 
@@ -1011,6 +1066,7 @@ const App = {
         this.currentMailboxId = params.mailboxId;
         if (params.mailboxId) STORAGE.saveLastMailboxId(params.mailboxId);
         document.getElementById('mailbox-view').classList.add('active');
+        this._saveCurrentUserMemberInfo(params.mailboxId);
         this.renderMailboxView(this.currentMailboxId);
         this.switchViewBGM('mailbox');
         break;
@@ -1019,6 +1075,7 @@ const App = {
         document.getElementById('editor-view').classList.add('active');
         if (params.mailboxId) {
           Editor.mailboxId = params.mailboxId;
+          this._saveCurrentUserMemberInfo(params.mailboxId);
         }
         Editor.pendingRecipient = params.recipient || null;
         if (!params.letterId) Editor.letter = null;
@@ -1885,7 +1942,7 @@ const App = {
     if (!mailbox) return;
 
     this.currentMailboxId = mailboxId;
-    if (!skipServerRefresh && AuthManager.getCurrentUser()) {
+    if (!skipServerRefresh && AuthManager.getCurrentUser() && typeof this._refreshMailboxMail === 'function') {
       this._refreshMailboxMail(mailboxId);
     }
 
@@ -2069,6 +2126,11 @@ const App = {
     if (sidebarNav) {
       MailboxManager.renderSidebarNav(sidebarNav, mailboxId);
     }
+
+    // 绑定信件分类标签（时间线/收件/已发送/草稿）点击事件
+    this._bindMailFolderTabs();
+    // 根据当前 _mailFolder 同步 UI 标签的激活态，避免切到其他页面再返回时标签错位
+    this._syncMailFolderTabUI();
 
     // 渲染右侧信件画廊
     const letterTrack = document.getElementById('letter-list');
@@ -2262,6 +2324,55 @@ const App = {
     }
   },
 
+  /**
+   * 绑定「时间线/收件/已发送/草稿」标签的点击事件。
+   * 使用 _folderTabsBound 标记，避免重复绑定造成的"切换迟钝"（多次触发渲染 + 旧监听残留）。
+   */
+  _bindMailFolderTabs() {
+    if (this._folderTabsBound) return;
+    const tabs = document.querySelectorAll('.mail-folder-tab');
+    if (!tabs || tabs.length === 0) return;
+
+    const validFolders = new Set(['timeline', 'inbox', 'sent', 'draft']);
+    tabs.forEach(tab => {
+      tab.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const folder = tab.dataset.folder;
+        if (!validFolders.has(folder)) return;
+
+        if (this._mailFolder === folder) return;
+
+        this._mailFolder = folder;
+        this._syncMailFolderTabUI();
+
+        // 使用 skipServerRefresh=true，避免切换时被远端刷新打断造成迟滞
+        if (this.currentMailboxId) {
+          // 清除该信箱在新分类下的 activeIndex 记忆，避免越界
+          const activeKey = `${this.currentMailboxId}:${this._mailFolder}`;
+          this.mailboxActiveIndex[activeKey] = 0;
+          this.renderMailboxView(this.currentMailboxId, true);
+        }
+      });
+    });
+
+    this._folderTabsBound = true;
+  },
+
+  /**
+   * 根据当前 this._mailFolder 同步标签 UI 的激活态。
+   * 用于：初始化、返回信箱视图、以及发送信件后等场景，保证视觉与状态一致。
+   */
+  _syncMailFolderTabUI() {
+    const tabs = document.querySelectorAll('.mail-folder-tab');
+    if (!tabs || tabs.length === 0) return;
+    tabs.forEach(tab => {
+      const active = tab.dataset.folder === this._mailFolder;
+      tab.classList.toggle('active', active);
+      tab.setAttribute('aria-selected', active ? 'true' : 'false');
+    });
+  },
+
   renderStyleSelect() {
     const grid = document.getElementById('style-grid');
     const styles = [
@@ -2371,76 +2482,614 @@ const App = {
         overlay.setAttribute('aria-hidden', 'true');
       }
     });
-    document.querySelectorAll('.mail-folder-tab').forEach(button => {
-      button.addEventListener('click', () => {
-        this._mailFolder = button.dataset.folder || 'timeline';
-        document.querySelectorAll('.mail-folder-tab').forEach(tab => {
-          const active = tab === button;
-          tab.classList.toggle('active', active);
-          tab.setAttribute('aria-selected', active ? 'true' : 'false');
-        });
-        if (this.currentView === 'mailbox' && this.currentMailboxId) {
-          this.renderMailboxView(this.currentMailboxId, true);
+  },
+
+  _resolveMemberCharacter(accountKey, mailboxId) {
+    // 1. Check online players (most reliable, cross-browser)
+    if (typeof MultiplayerSync !== 'undefined') {
+      const onlinePlayer = MultiplayerSync.getPlayers()[accountKey];
+      if (onlinePlayer?.characterId) {
+        const charName = getCharacterName(onlinePlayer.characterId);
+        return {
+          characterId: onlinePlayer.characterId,
+          characterName: charName
+        };
+      }
+    }
+
+    // 2. Check mailbox memberCharacters (stored on mailbox, shared across browsers)
+    const mailboxes = MailboxManager.getMailboxes();
+    if (mailboxId) {
+      const mailbox = mailboxes.find(mb => mb.id === mailboxId);
+      if (mailbox?.memberCharacters && mailbox.memberCharacters[accountKey]) {
+        const raw = mailbox.memberCharacters[accountKey];
+        const charId = typeof raw === 'string' ? raw : (raw.characterId || raw.id || '');
+        if (charId) {
+          const charName = getCharacterName(charId);
+          return {
+            characterId: charId,
+            characterName: charName
+          };
         }
+      }
+    } else {
+      // No specific mailbox: search all mailboxes for this user's character
+      for (const mb of mailboxes) {
+        if (mb.memberCharacters && mb.memberCharacters[accountKey]) {
+          const raw = mb.memberCharacters[accountKey];
+          const charId = typeof raw === 'string' ? raw : (raw.characterId || raw.id || '');
+          if (charId) {
+            const charName = getCharacterName(charId);
+            if (charName) {
+              return {
+                characterId: charId,
+                characterName: charName
+              };
+            }
+          }
+        }
+      }
+    }
+
+    // 3. Check per-user character binding for this mailbox (local only)
+    if (mailboxId) {
+      const boundCharId = STORAGE.loadUserCharacterBinding(mailboxId, accountKey);
+      if (boundCharId) {
+        const charName = getCharacterName(boundCharId);
+        return {
+          characterId: boundCharId,
+          characterName: charName
+        };
+      }
+    } else {
+      // No specific mailbox: search all local character bindings
+      const allBindings = STORAGE.loadUserCharacterBindings();
+      for (const [mbId, users] of Object.entries(allBindings)) {
+        if (users[accountKey]) {
+          const charName = getCharacterName(users[accountKey]);
+          if (charName) {
+            return {
+              characterId: users[accountKey],
+              characterName: charName
+            };
+          }
+        }
+      }
+      // Also check character bindings (single binding per mailbox)
+      const charBindings = STORAGE.loadCharacterBindings();
+      for (const [mbId, charId] of Object.entries(charBindings)) {
+        if (charId) {
+          const charName = getCharacterName(charId);
+          if (charName) {
+            return {
+              characterId: charId,
+              characterName: charName
+            };
+          }
+        }
+      }
+    }
+
+    // 4. Check user's role field
+    const userInfo = this._getUserInfoById(accountKey);
+    if (userInfo?.role) {
+      const charName = getCharacterName(userInfo.role);
+      if (charName) {
+        return {
+          characterId: userInfo.role,
+          characterName: charName
+        };
+      }
+    }
+
+    return { characterId: '', characterName: '' };
+  },
+
+  _saveMemberCharacterToMailbox(mailboxId, accountKey, characterId) {
+    if (!mailboxId || !accountKey || !characterId) return;
+    try {
+      const mailboxes = MailboxManager.getMailboxes();
+      const idx = mailboxes.findIndex(mb => mb.id === mailboxId);
+      if (idx === -1) return;
+      const mb = mailboxes[idx];
+      if (!mb.memberCharacters) mb.memberCharacters = {};
+      // Save as object for richer metadata, but also keep string compatibility
+      mb.memberCharacters[accountKey] = { characterId: characterId, boundAt: Date.now() };
+
+      // Also save member display name
+      const currentUser = AuthManager.getCurrentUser();
+      if (currentUser) {
+        const displayName = currentUser.displayName || currentUser.username || accountKey;
+        if (!mb.memberNames) mb.memberNames = {};
+        mb.memberNames[accountKey] = displayName;
+      }
+
+      // Mark as dirty for re-sync
+      mb._memberDataDirty = true;
+
+      mailboxes[idx] = mb;
+      STORAGE.saveMailboxes(mailboxes);
+    } catch (e) {}
+  },
+
+  _saveCurrentUserMemberInfo(mailboxId) {
+    if (!mailboxId) return;
+    const currentUser = AuthManager.getCurrentUser();
+    if (!currentUser) return;
+
+    const accountKey = typeof MailService !== 'undefined'
+      ? MailService.getAccountKey(currentUser)
+      : String(currentUser.username || '').trim().toLocaleLowerCase('en-US');
+    if (!accountKey) return;
+
+    try {
+      const mailboxes = MailboxManager.getMailboxes();
+      const idx = mailboxes.findIndex(mb => mb.id === mailboxId);
+      if (idx === -1) return;
+      const mb = mailboxes[idx];
+
+      // Save display name
+      const displayName = currentUser.displayName || currentUser.username || accountKey;
+      if (!mb.memberNames) mb.memberNames = {};
+      mb.memberNames[accountKey] = displayName;
+
+      // Save character if currently selected
+      const selectedCharId = window.gameMapRenderer?.selectedCharacter || '';
+      if (selectedCharId) {
+        if (!mb.memberCharacters) mb.memberCharacters = {};
+        mb.memberCharacters[accountKey] = { characterId: selectedCharId, boundAt: Date.now() };
+      }
+
+      // Mark as dirty for re-sync
+      mb._memberDataDirty = true;
+
+      mailboxes[idx] = mb;
+      STORAGE.saveMailboxes(mailboxes);
+    } catch (e) {}
+  },
+
+  async _openRecipientPicker(mailboxId, onSelect) {
+    const overlay = document.getElementById('recipient-picker-overlay');
+    const listEl = document.getElementById('recipient-picker-list');
+    const statusEl = document.getElementById('recipient-picker-status');
+    if (!overlay || !listEl) return;
+
+    const currentUser = AuthManager.getCurrentUser();
+    const currentAccountKey = currentUser
+      ? (typeof MailService !== 'undefined'
+          ? MailService.getAccountKey(currentUser)
+          : String(currentUser.username || '').trim().toLocaleLowerCase('en-US'))
+      : '';
+
+    // Show loading state
+    listEl.innerHTML = '<div style="padding:40px;text-align:center;color:#8b7355;">正在加载成员列表...</div>';
+    overlay.classList.add('active');
+    overlay.setAttribute('aria-hidden', 'false');
+
+    // Sync local member data to server first
+    try {
+      const mbLocal = MailboxManager.getMailboxes().find(mb => mb.id === mailboxId);
+      if (mbLocal && (mbLocal.memberNames || mbLocal.memberCharacters)) {
+        mbLocal._memberDataDirty = true;
+        STORAGE.saveMailboxes(MailboxManager.getMailboxes());
+      }
+    } catch (_) {}
+
+    // Try to get the latest mailbox data from server (via list API)
+    let mailbox = null;
+    let mailboxes = [];
+    try {
+      if (typeof STORAGE.loadMailboxesAsync === 'function') {
+        mailboxes = await STORAGE.loadMailboxesAsync({ force: true });
+        mailbox = mailboxes.find(mb => mb.id === mailboxId);
+      }
+    } catch (_) { /* fall through to local */ }
+
+    // If not found in list or has no members, try direct fetch by ID
+    if (!mailbox || !Array.isArray(mailbox.memberAccountKeys) || mailbox.memberAccountKeys.length === 0) {
+      try {
+        if (typeof MailService !== 'undefined' && typeof MailService.getRemoteMailbox === 'function') {
+          const remoteMb = await MailService.getRemoteMailbox(mailboxId);
+          if (remoteMb) {
+            // Ensure arrays
+            if (!Array.isArray(remoteMb.memberAccountKeys)) remoteMb.memberAccountKeys = [];
+            if (!Array.isArray(remoteMb.members)) remoteMb.members = [];
+            if (!remoteMb.memberNames || typeof remoteMb.memberNames !== 'object') remoteMb.memberNames = {};
+            if (!remoteMb.memberCharacters || typeof remoteMb.memberCharacters !== 'object') remoteMb.memberCharacters = {};
+            
+            if (!mailbox) {
+              mailbox = remoteMb;
+            } else {
+              // Merge remote data into existing mailbox
+              const mergedKeys = new Set([
+                ...(Array.isArray(mailbox.memberAccountKeys) ? mailbox.memberAccountKeys : []),
+                ...(Array.isArray(mailbox.members) ? mailbox.members : []),
+                ...remoteMb.memberAccountKeys,
+                ...remoteMb.members
+              ]);
+              mailbox.memberAccountKeys = Array.from(mergedKeys);
+              mailbox.memberNames = { ...(mailbox.memberNames || {}), ...(remoteMb.memberNames || {}) };
+              mailbox.memberCharacters = { ...(mailbox.memberCharacters || {}), ...(remoteMb.memberCharacters || {}) };
+            }
+          }
+        }
+      } catch (_) {}
+    }
+
+    // Fallback: use local data
+    if (!mailbox) {
+      mailboxes = MailboxManager.getMailboxes();
+      mailbox = mailboxes.find(mb => mb.id === mailboxId);
+    }
+
+    // If we have a mailbox from local but it's missing member data, try to fill it
+    if (mailbox) {
+      if (!Array.isArray(mailbox.memberAccountKeys)) mailbox.memberAccountKeys = [];
+      if (!Array.isArray(mailbox.members)) mailbox.members = [];
+      if (!mailbox.memberNames || typeof mailbox.memberNames !== 'object') mailbox.memberNames = {};
+      if (!mailbox.memberCharacters || typeof mailbox.memberCharacters !== 'object') mailbox.memberCharacters = {};
+      
+      // Also check shared mailboxes
+      try {
+        const shared = STORAGE.loadSharedMailboxes?.() || [];
+        const sharedMb = shared.find(s => s && s.id === mailboxId);
+        if (sharedMb) {
+          const mergedKeys = new Set([
+            ...mailbox.memberAccountKeys,
+            ...(Array.isArray(sharedMb.memberAccountKeys) ? sharedMb.memberAccountKeys : []),
+            ...(Array.isArray(sharedMb.members) ? sharedMb.members : [])
+          ]);
+          mailbox.memberAccountKeys = Array.from(mergedKeys);
+          mailbox.memberNames = { ...mailbox.memberNames, ...(sharedMb.memberNames || {}) };
+          mailbox.memberCharacters = { ...mailbox.memberCharacters, ...(sharedMb.memberCharacters || {}) };
+        }
+      } catch (_) {}
+    }
+    
+    console.log('[Picker] mailbox:', mailbox ? {
+      id: mailbox.id,
+      memberAccountKeys: mailbox.memberAccountKeys,
+      memberNames: mailbox.memberNames,
+      memberCharacters: mailbox.memberCharacters
+    } : null);
+
+    // Collect all member identifiers from multiple sources
+    const memberKeys = new Set();
+    if (mailbox) {
+      // 1) memberAccountKeys (primary - stored identifiers)
+      if (Array.isArray(mailbox.memberAccountKeys)) {
+        mailbox.memberAccountKeys.forEach(k => {
+          if (k) memberKeys.add(String(k).toLowerCase().trim());
+        });
+      }
+      // 2) members array
+      if (Array.isArray(mailbox.members)) {
+        mailbox.members.forEach(m => {
+          if (typeof m === 'string') {
+            if (m) memberKeys.add(String(m).toLowerCase().trim());
+          } else if (m && (m.accountKey || m.username)) {
+            const k = (m.accountKey || m.username || '').toLowerCase().trim();
+            if (k) memberKeys.add(k);
+          }
+        });
+      }
+      // 3) memberNames keys
+      if (mailbox.memberNames && typeof mailbox.memberNames === 'object') {
+        Object.keys(mailbox.memberNames).forEach(k => {
+          if (k) memberKeys.add(String(k).toLowerCase().trim());
+        });
+      }
+      // 4) memberCharacters keys
+      if (mailbox.memberCharacters && typeof mailbox.memberCharacters === 'object') {
+        Object.keys(mailbox.memberCharacters).forEach(k => {
+          if (k) memberKeys.add(String(k).toLowerCase().trim());
+        });
+      }
+    }
+
+    // Remove current user
+    memberKeys.delete(currentAccountKey);
+    
+    // Filter out auto-generated "user-*" keys that don't correspond to real accounts
+    // Only keep keys that have a matching memberName or are in the memberNames dict
+    const filteredKeys = new Set();
+    const memberNames = mailbox?.memberNames || {};
+    const memberCharacters = mailbox?.memberCharacters || {};
+    
+    for (const key of memberKeys) {
+      // If the key exists in memberNames, it's a valid member
+      if (memberNames[key]) {
+        filteredKeys.add(key);
+        continue;
+      }
+      // If the key exists in memberCharacters, it's a valid member
+      if (memberCharacters[key]) {
+        filteredKeys.add(key);
+        continue;
+      }
+      // If the key is not auto-generated (doesn't start with "user-"), keep it
+      if (!key.startsWith('user-')) {
+        filteredKeys.add(key);
+        continue;
+      }
+      // Auto-generated "user-*" key with no matching data - skip it
+      console.log('[Picker] Skipping auto-generated key with no data:', key);
+    }
+    
+    console.log('[Picker] currentAccountKey:', currentAccountKey);
+    console.log('[Picker] memberKeys after filtering:', Array.from(filteredKeys));
+    console.log('[Picker] memberNames:', JSON.stringify(memberNames));
+    console.log('[Picker] memberCharacters:', JSON.stringify(memberCharacters));
+
+    // Resolve each member to full display info
+    const resolvedMembers = Array.from(filteredKeys)
+      .map(accountKey => {
+        // Multi-source display name lookup (priority order)
+        let displayName = '';
+
+        // Source 1: mailbox.memberNames (stored when user saves profile)
+        if (mailbox?.memberNames && mailbox.memberNames[accountKey]) {
+          displayName = mailbox.memberNames[accountKey];
+        }
+
+        // Source 2: try _getUserInfoById with the raw key
+        if (!displayName) {
+          const userInfo = this._getUserInfoById(accountKey);
+          if (userInfo) {
+            displayName = userInfo.displayName || userInfo.username || '';
+          }
+        }
+
+        // Source 3: try matching by stripping "user-" prefix
+        if (!displayName && accountKey.startsWith('user-')) {
+          const strippedId = accountKey.substring(5);
+          const userInfo2 = this._getUserInfoById(strippedId);
+          if (userInfo2) {
+            displayName = userInfo2.displayName || userInfo2.username || '';
+          }
+        }
+
+        // Source 4: try matching the key against all local users
+        if (!displayName) {
+          try {
+            const users = JSON.parse(localStorage.getItem('xinjian_users') || '[]');
+            if (Array.isArray(users)) {
+              const match = users.find(u => {
+                const uid = String(u.id || '').toLowerCase();
+                const uname = String(u.username || '').toLowerCase();
+                const dname = String(u.displayName || '').toLowerCase();
+                return uid === accountKey || uname === accountKey || dname === accountKey ||
+                  uid === accountKey.replace(/^user-/i, '') ||
+                  uname === accountKey.replace(/^user-/i, '');
+              });
+              if (match) {
+                displayName = match.displayName || match.username || '';
+              }
+            }
+          } catch (_) {}
+        }
+
+        // Final fallback: use accountKey itself
+        if (!displayName) {
+          displayName = accountKey;
+        }
+
+        // Get character info - try mailbox data first (it has the latest server data)
+        let characterId = '';
+        let characterName = '';
+        
+        // Check mailbox.memberCharacters (from server or local)
+        if (mailbox?.memberCharacters && mailbox.memberCharacters[accountKey]) {
+          const raw = mailbox.memberCharacters[accountKey];
+          characterId = typeof raw === 'string' ? raw : (raw.characterId || raw.id || '');
+          if (characterId) {
+            characterName = getCharacterName(characterId);
+          }
+        }
+        
+        // Fallback: use _resolveMemberCharacter for local storage and other sources
+        if (!characterId) {
+          const resolved = this._resolveMemberCharacter(accountKey, mailboxId);
+          characterId = resolved.characterId;
+          characterName = resolved.characterName;
+        }
+
+        // 如果有角色名，identityName 用角色名，否则用 displayName
+        const identityName = characterName || displayName;
+        // 列表显示：如果有角色名且和 displayName 不同，显示 "角色名（用户名）"，否则只显示角色名/displayName
+        const listDisplayName = characterName && characterName !== displayName
+          ? `${characterName}（${displayName}）`
+          : characterName || displayName;
+        const initial = identityName.charAt(0) || '?';
+
+        return {
+          accountKey,
+          displayName,
+          characterName,
+          identityName,
+          fullName: listDisplayName,
+          initial,
+          characterId
+        };
       });
+
+    console.log('[Picker] resolvedMembers:', JSON.stringify(resolvedMembers.map(m => ({accountKey: m.accountKey, fullName: m.fullName}))));
+
+    if (resolvedMembers.length === 0) {
+      // Show a simple input mode instead
+      listEl.innerHTML = `
+        <div style="padding: 20px; text-align: center; color: #8b7355;">
+          <p>当前信箱暂无其他成员。</p>
+          <p style="font-size: 13px; margin-top: 10px;">你也可以直接输入收件人名字：</p>
+          <input id="recipient-manual-input" type="text" placeholder="收件人姓名" 
+            style="width: 200px; padding: 6px 10px; border: 2px solid #c4a574; font-size: 14px; margin-top: 10px; font-family: inherit;" />
+          <div style="margin-top: 15px;">
+            <button id="recipient-manual-confirm" 
+              style="padding: 6px 16px; background: #b8956a; color: #fff; border: 2px solid #5c4033; font-weight: bold; cursor: pointer; font-family: inherit;">
+              开始写信
+            </button>
+          </div>
+        </div>
+      `;
+      const manualInput = document.getElementById('recipient-manual-input');
+      const manualConfirm = document.getElementById('recipient-manual-confirm');
+      if (manualConfirm) {
+        manualConfirm.addEventListener('click', () => {
+          const name = manualInput?.value?.trim();
+          if (name) {
+            const recipientObj = { accountKey: name, displayName: name, fullName: name };
+            if (onSelect) {
+              onSelect(recipientObj);
+            } else {
+              this._openRecipientAndNavigate(recipientObj, mailboxId);
+            }
+          }
+        });
+      }
+      if (manualInput) {
+        manualInput.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter') {
+            const name = manualInput.value.trim();
+            if (name) {
+              const recipientObj = { accountKey: name, displayName: name, fullName: name };
+              if (onSelect) {
+                onSelect(recipientObj);
+              } else {
+                this._openRecipientAndNavigate(recipientObj, mailboxId);
+              }
+            }
+          }
+        });
+      }
+    } else {
+      listEl.innerHTML = resolvedMembers.map(m => {
+        return `
+          <div class="recipient-picker-item" data-account-key="${this._escapeHtml(m.accountKey)}" data-full-name="${this._escapeHtml(m.fullName)}">
+            <div class="recipient-picker-avatar">${this._escapeHtml(m.initial)}</div>
+            <div class="recipient-picker-name">${this._escapeHtml(m.fullName)}</div>
+          </div>
+        `;
+      }).join('');
+
+      listEl.querySelectorAll('.recipient-picker-item').forEach(item => {
+        item.addEventListener('click', () => {
+          const ak = item.dataset.accountKey;
+          const fn = item.dataset.fullName;
+          const member = resolvedMembers.find(m => m.accountKey === ak);
+          if (onSelect) {
+            onSelect(member || { accountKey: ak, displayName: fn, fullName: fn });
+            overlay.classList.remove('active');
+            overlay.setAttribute('aria-hidden', 'true');
+          } else {
+            this._openRecipientAndNavigate(member || { accountKey: ak, displayName: fn, fullName: fn }, mailboxId);
+          }
+        });
+      });
+    }
+
+    if (statusEl) {
+      statusEl.textContent = resolvedMembers.length > 0 
+        ? `请选择收信人（共 ${resolvedMembers.length} 位成员）` 
+        : '';
+    }
+  },
+
+  _openRecipientAndNavigate(recipient, mailboxId) {
+    const overlay = document.getElementById('recipient-picker-overlay');
+    overlay?.classList.remove('active');
+    overlay?.setAttribute('aria-hidden', 'true');
+    this.navigate('editor', { 
+      mailboxId: mailboxId || this.currentMailboxId,
+      recipient: recipient 
     });
   },
 
-  async _openRecipientPicker(mailboxId, onSelect = null) {
-    const user = AuthManager.getCurrentUser();
-    if (!user) {
-      alert('请先登录账号再写信。');
-      return;
+  _renderXiejianCharacterChoices() {
+    const grid = document.getElementById('xiejian-character-grid');
+    if (!grid || !window.gameMapRenderer) return;
+
+    const occupied = new Set(
+      typeof MultiplayerSync !== 'undefined' ? MultiplayerSync.getOccupiedCharacters() : []
+    );
+    const characters = window.gameMapRenderer.getCharactersForCategory('xiejian');
+    grid.innerHTML = '';
+
+    const systemsStatus = window.GameSystems?.getStatus?.();
+    if (systemsStatus?.source === 'local' || systemsStatus?.status === 'fallback') {
+      this._setXiejianEntryStatus('远端资源不可用，已安全使用本地人物资源');
     }
-    if (!mailboxId) return;
-    this._bindRecipientPicker();
-    const overlay = document.getElementById('recipient-picker-overlay');
-    const list = document.getElementById('recipient-picker-list');
-    const status = document.getElementById('recipient-picker-status');
-    if (!overlay || !list || !status) return;
-    overlay.classList.add('active');
-    overlay.setAttribute('aria-hidden', 'false');
-    status.textContent = '正在读取可收信的账号…';
-    list.innerHTML = '';
-    try {
-      await MailService.syncAccount(user);
-      const recipients = await MailService.getRecipients(mailboxId);
-      status.textContent = recipients.length ? '' : '当前信箱还没有其他可收信的账号。';
-      for (const recipient of recipients) {
-        const button = document.createElement('button');
-        button.type = 'button';
-        button.className = 'recipient-choice';
-        const name = recipient.identityName || recipient.displayName || recipient.username;
-        const detail = mailboxId === 'mailbox-xiejian'
-          ? '挟剑角色 · 已绑定'
-          : mailboxId === 'mailbox-hanmen-duet'
-            ? '寒门角色'
-            : '账号收信人';
-        button.innerHTML = `
-          <span class="recipient-choice-avatar">${(name || '?').charAt(0)}</span>
-          <span class="recipient-choice-copy">
-            <strong class="recipient-choice-name">${name}</strong>
-            <span class="recipient-choice-detail">${detail}</span>
-          </span>
-          <span class="recipient-choice-action">写信</span>
-        `;
-        button.addEventListener('click', () => {
-          this._pendingRecipient = recipient;
-          overlay.classList.remove('active');
-          overlay.setAttribute('aria-hidden', 'true');
-          if (onSelect) {
-            onSelect(recipient);
-            return;
-          }
-          Editor.pendingRecipient = recipient;
-          Editor.letter = null;
-          this.navigate('editor', { mailboxId, recipient });
-        });
-        list.appendChild(button);
-      }
-    } catch (error) {
-      status.textContent = '无法读取收信人，请确认 3000 服务已启动后重试。';
-      console.warn('[MailService] Recipient load failed:', error);
+
+    for (const character of characters) {
+      const isSelf = character.id === this._xiejianCharacterId;
+      const isOccupied = occupied.has(character.id) && !isSelf;
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = `xiejian-entry-choice${isSelf ? ' selected' : ''}`;
+      button.disabled = isOccupied;
+      button.dataset.characterId = character.id;
+      const localPortrait = `../../fill/jingyuan-chibi20-delivery-20260719/${character.dir}/frames/personality/00.png`;
+      const portrait = window.GameSystems?.resolveAssetUrl?.(character.portraitPath || localPortrait)
+        || `sendbox/fill/jingyuan-chibi20-delivery-20260719/${character.dir}/frames/personality/00.png`;
+      button.setAttribute('aria-label', `${character.name}，${character.sect || '未知门派'}，武力 ${character.martial || 0}`);
+      const subtitle = isOccupied ? '已被选择' : (isSelf ? '当前角色（可更换）' : (character.sect || '可选择'));
+      button.innerHTML = `
+        <img class="xiejian-entry-character" src="${portrait}" alt="${character.name}角色立绘">
+        <strong>${character.name}</strong>
+        <small>${subtitle} · 武力 ${character.martial || 0}</small>
+        <span class="xiejian-entry-meta">${character.actions?.length || 0} 个动作 · ${character.defaultItems?.length || 0} 件初始物品</span>
+      `;
+      button.addEventListener('click', () => {
+        for (const choice of grid.querySelectorAll('button')) choice.disabled = true;
+        this._setXiejianEntryStatus('正在选择角色…');
+        // Save per-user character binding + to mailbox memberCharacters
+        const currentUser = AuthManager.getCurrentUser();
+        if (currentUser) {
+          const accountKey = typeof MailService !== 'undefined'
+            ? MailService.getAccountKey(currentUser)
+            : String(currentUser.username || '').trim().toLocaleLowerCase('en-US');
+          STORAGE.saveUserCharacterBinding(this.currentMailboxId, accountKey, character.id);
+          this._saveMemberCharacterToMailbox(this.currentMailboxId, accountKey, character.id);
+        }
+        if (typeof MultiplayerSync !== 'undefined' && MultiplayerSync._wsConnected) {
+          MultiplayerSync.requestCharacter(character.id);
+        } else {
+          // 单人模式：直接本地选择角色
+          this._xiejianCharacterId = character.id;
+          STORAGE.saveCharacterBinding(this.currentMailboxId, character.id);
+          window.gameMapRenderer.loadCharacter(character.id).then(() => {
+            this._updateCurrentCharacterInfo();
+            this._syncInventoryPortrait(character.id);
+            const currentSection = document.getElementById('current-character-section');
+            const guestSection = document.getElementById('guest-character-section');
+            if (currentSection) currentSection.style.display = 'block';
+            if (guestSection) guestSection.style.display = 'none';
+            this._closeXiejianEntry();
+            this._enterXiejianMap(this._xiejianMapKey || 'xj-jingyuan');
+          });
+        }
+      });
+      grid.appendChild(button);
+    }
+    this._updateXiejianCapacity();
+  },
+
+  _renderXiejianMapChoices() {
+    const grid = document.getElementById('xiejian-map-grid');
+    if (!grid) return;
+    grid.innerHTML = '';
+
+    for (const map of this._getXiejianMaps()) {
+      const selected = map.key === this._xiejianPendingMapKey;
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = `xiejian-entry-choice${selected ? ' selected' : ''}`;
+      button.dataset.mapKey = map.key;
+      button.innerHTML = `<strong>${map.name}</strong>`;
+      button.addEventListener('click', () => {
+        this._xiejianPendingMapKey = map.key;
+        this._enterXiejianMap(map.key);
+      });
+      grid.appendChild(button);
     }
   },
 
@@ -2461,16 +3110,17 @@ const App = {
     }
   },
 
-  async _refreshMailboxMail(mailboxId) {
+  _refreshMailboxMail(mailboxId) {
     if (!AuthManager.getCurrentUser() || !mailboxId) return;
     try {
-      await MailService.getMailbox(mailboxId);
-      if (this.currentView === 'mailbox' && this.currentMailboxId === mailboxId) {
-        const main = document.querySelector('#mailbox-view .gallery-main');
-        if (!main?.classList.contains('map-mode') && !main?.classList.contains('diary-mode')) {
-          this.renderMailboxView(mailboxId, true);
+      MailService.getMailbox(mailboxId).then(() => {
+        if (this.currentView === 'mailbox' && this.currentMailboxId === mailboxId) {
+          const main = document.querySelector('#mailbox-view .gallery-main');
+          if (!main?.classList.contains('map-mode') && !main?.classList.contains('diary-mode')) {
+            this.renderMailboxView(mailboxId, true);
+          }
         }
-      }
+      }).catch(error => console.warn('[MailService] Mail refresh failed:', error));
     } catch (error) {
       console.warn('[MailService] Mail refresh failed:', error);
     }
@@ -2524,81 +3174,14 @@ const App = {
     capacity.textContent = `${online} / ${MultiplayerSync.maxConnections || 11} 在线`;
   },
 
-  _renderXiejianCharacterChoices() {
-    const grid = document.getElementById('xiejian-character-grid');
-    if (!grid || !window.gameMapRenderer) return;
-
-    const occupied = new Set(
-      typeof MultiplayerSync !== 'undefined' ? MultiplayerSync.getOccupiedCharacters() : []
-    );
-    const characters = window.gameMapRenderer.getCharactersForCategory('xiejian');
-    grid.innerHTML = '';
-
-    const systemsStatus = window.GameSystems?.getStatus?.();
-    if (systemsStatus?.source === 'local' || systemsStatus?.status === 'fallback') {
-      this._setXiejianEntryStatus('远端资源不可用，已安全使用本地人物资源');
-    }
-
-    for (const character of characters) {
-      const isSelf = character.id === this._xiejianCharacterId;
-      const isOccupied = occupied.has(character.id) && !isSelf;
-      const button = document.createElement('button');
-      button.type = 'button';
-      button.className = `xiejian-entry-choice${isSelf ? ' selected' : ''}`;
-      button.disabled = isOccupied;
-      button.dataset.characterId = character.id;
-      const localPortrait = `../../fill/jingyuan-chibi20-delivery-20260719/${character.dir}/frames/personality/00.png`;
-      const portrait = window.GameSystems?.resolveAssetUrl?.(character.portraitPath || localPortrait)
-        || `sendbox/fill/jingyuan-chibi20-delivery-20260719/${character.dir}/frames/personality/00.png`;
-      button.setAttribute('aria-label', `${character.name}，${character.sect || '未知门派'}，武力 ${character.martial || 0}`);
-      button.innerHTML = `
-        <img class="xiejian-entry-character" src="${portrait}" alt="${character.name}角色立绘">
-        <strong>${character.name}</strong>
-        <small>${isOccupied ? '已被绑定' : (character.sect || '可绑定')} · 武力 ${character.martial || 0}</small>
-        <span class="xiejian-entry-meta">${character.actions?.length || 0} 个动作 · ${character.defaultItems?.length || 0} 件初始物品</span>
-      `;
-      button.addEventListener('click', () => {
-        const confirmed = window.confirm(
-          `确认绑定“${character.name}”吗？\n\n角色与账号永久绑定，确认后不能更换。`
-        );
-        if (!confirmed) return;
-        for (const choice of grid.querySelectorAll('button')) choice.disabled = true;
-        this._setXiejianEntryStatus('正在确认角色…');
-        MultiplayerSync.requestCharacter(character.id);
-      });
-      grid.appendChild(button);
-    }
-    this._updateXiejianCapacity();
-  },
-
-  _renderXiejianMapChoices() {
-    const grid = document.getElementById('xiejian-map-grid');
-    if (!grid) return;
-    grid.innerHTML = '';
-
-    for (const map of this._getXiejianMaps()) {
-      const selected = map.key === this._xiejianPendingMapKey;
-      const button = document.createElement('button');
-      button.type = 'button';
-      button.className = `xiejian-entry-choice${selected ? ' selected' : ''}`;
-      button.dataset.mapKey = map.key;
-      button.innerHTML = `<strong>${map.name}</strong>`;
-      button.addEventListener('click', () => {
-        this._xiejianPendingMapKey = map.key;
-        this._enterXiejianMap(map.key);
-      });
-      grid.appendChild(button);
-    }
-  },
-
   _showXiejianCharacterStep() {
     this._openXiejianEntry();
     document.getElementById('xiejian-character-step')?.classList.add('active');
     document.getElementById('xiejian-map-step')?.classList.remove('active');
     const title = document.getElementById('xiejian-entry-title');
     const subtitle = document.getElementById('xiejian-entry-subtitle');
-    if (title) title.textContent = '首次绑定角色';
-    if (subtitle) subtitle.textContent = '角色一经绑定不可更换，请谨慎选择';
+    if (title) title.textContent = '选择角色';
+    if (subtitle) subtitle.textContent = '选择你想扮演的角色，之后可以随时更换';
     const backButton = document.getElementById('xiejian-back-to-character');
     const settingsButton = document.getElementById('xiejian-map-settings-btn');
     const enterButton = document.getElementById('xiejian-enter-map');
@@ -2631,48 +3214,60 @@ const App = {
   async _enterXiejianMap(mapKey) {
     if (!mapKey || !window.gameMapRenderer) return;
 
-    if (!this._xiejianCharacterId) {
-      const boundCharacterId = MultiplayerSync.accountProfile?.xiejianCharacterId
-        || MailService.profile?.xiejianCharacterId
-        || (!AuthManager.getCurrentUser() ? STORAGE.loadCharacterBinding(this.currentMailboxId) : '');
-      if (boundCharacterId) {
-        this._xiejianCharacterId = boundCharacterId;
-        await window.gameMapRenderer.loadCharacter(boundCharacterId);
-      } else {
-        return;
+    try {
+      if (!this._xiejianCharacterId) {
+        const boundCharacterId = MultiplayerSync.accountProfile?.xiejianCharacterId
+          || MailService.profile?.xiejianCharacterId
+          || (!AuthManager.getCurrentUser() ? STORAGE.loadCharacterBinding(this.currentMailboxId) : '');
+        if (boundCharacterId) {
+          this._xiejianCharacterId = boundCharacterId;
+          await window.gameMapRenderer.loadCharacter(boundCharacterId);
+        } else {
+          return;
+        }
       }
-    }
 
-    if (this._xiejianMapKey) {
-      this._xiejianMapPositions[this._xiejianMapKey] = {
-        x: window.gameMapRenderer.player.x,
-        y: window.gameMapRenderer.player.y
-      };
-    }
+      if (this._xiejianMapKey) {
+        this._xiejianMapPositions[this._xiejianMapKey] = {
+          x: window.gameMapRenderer.player.x,
+          y: window.gameMapRenderer.player.y
+        };
+      }
 
-    this._xiejianMapKey = mapKey;
-    this._xiejianPendingMapKey = mapKey;
-    await window.gameMapRenderer.setMapBackground(mapKey);
-    this._syncMapSelect();
-    const position = this._xiejianMapPositions[mapKey]
-      || window.gameMapRenderer.getDefaultSpawnPoint();
-    window.gameMapRenderer.player.x = position.x;
-    window.gameMapRenderer.player.y = position.y;
-    window.gameMapRenderer.player.moving = false;
-    window.gameMapRenderer.player.action = 'personality';
-    window.gameMapRenderer.player.frame = 0;
-    window.gameMapRenderer.centerCamera();
-    MultiplayerSync.changeMap(mapKey, position);
-    if (AuthManager.getCurrentUser() && typeof MailService.getWorldItems === 'function') {
-      MailService.getWorldItems(mapKey).then(items => {
-        if (this._xiejianMapKey !== mapKey) return;
-        MultiplayerSync.worldItems = items;
-        window.gameMapRenderer?.setWorldItems(items);
-        this._updateXiejianWorldItemStatus(items);
-      }).catch(error => console.warn('[WorldItems] 无法刷新地图物品:', error));
+      this._xiejianMapKey = mapKey;
+      this._xiejianPendingMapKey = mapKey;
+      
+      // Add timeout for map loading
+      const mapLoadPromise = window.gameMapRenderer.setMapBackground(mapKey);
+      const timeoutPromise = new Promise((resolve) => setTimeout(resolve, 5000));
+      await Promise.race([mapLoadPromise, timeoutPromise]);
+      
+      this._syncMapSelect();
+      const position = this._xiejianMapPositions[mapKey]
+        || window.gameMapRenderer.getDefaultSpawnPoint();
+      window.gameMapRenderer.player.x = position.x;
+      window.gameMapRenderer.player.y = position.y;
+      window.gameMapRenderer.player.moving = false;
+      window.gameMapRenderer.player.action = 'personality';
+      window.gameMapRenderer.player.frame = 0;
+      window.gameMapRenderer.centerCamera();
+      MultiplayerSync.changeMap(mapKey, position);
+      if (AuthManager.getCurrentUser() && typeof MailService.getWorldItems === 'function') {
+        MailService.getWorldItems(mapKey).then(items => {
+          if (this._xiejianMapKey !== mapKey) return;
+          MultiplayerSync.worldItems = items;
+          window.gameMapRenderer?.setWorldItems(items);
+          this._updateXiejianWorldItemStatus(items);
+        }).catch(error => console.warn('[WorldItems] 无法刷新地图物品:', error));
+      }
+      this._refreshXiejianRemotePlayers();
+    } catch (error) {
+      console.error('[Xiejian] Enter map error:', error);
+      this._setXiejianEntryStatus('地图加载失败，请重试', true);
+    } finally {
+      // Always close the entry overlay, even if loading failed
+      this._closeXiejianEntry();
     }
-    this._refreshXiejianRemotePlayers();
-    this._closeXiejianEntry();
   },
 
   _refreshXiejianRemotePlayers() {
@@ -2710,7 +3305,7 @@ const App = {
     const currentUser = AuthManager.getCurrentUser();
     if (!currentUser) return;
 
-    const isXiejian = mailboxId === 'mailbox-xiejian';
+    const isXiejian = this._isXiejianMailbox(mailboxId);
     const sharedMailbox = STORAGE.loadSharedMailbox(mailboxId);
     const isShared = sharedMailbox && sharedMailbox.members && sharedMailbox.members.length > 1;
 
@@ -2769,7 +3364,11 @@ const App = {
       });
 
       MultiplayerSync.on('chat', (data) => {
-        this._handleRemoteChat(data, currentUser);
+        this._handleRemoteChat(data, currentUser, 'group', '');
+      });
+
+      MultiplayerSync.on('privateChat', (data) => {
+        this._handleRemoteChat(data, currentUser, 'private', data.userId);
       });
 
       MultiplayerSync.on('mapChange', () => {
@@ -2855,6 +3454,7 @@ const App = {
         });
 
         MultiplayerSync.on('roomState', async (data) => {
+          this._xiejianRoomStateReceived = true;
           this._renderXiejianCharacterChoices();
           const profile = data.accountProfile || {};
           if (!profile.xiejianCharacterId) {
@@ -2865,18 +3465,30 @@ const App = {
           this._xiejianCharacterId = profile.xiejianCharacterId;
           MailService.profile = { ...(MailService.profile || {}), ...profile };
           STORAGE.saveCharacterBinding(this.currentMailboxId, profile.xiejianCharacterId);
-          await window.gameMapRenderer.loadCharacter(profile.xiejianCharacterId);
-          const currentSection = document.getElementById('current-character-section');
-          const guestSection = document.getElementById('guest-character-section');
-          if (currentSection) currentSection.style.display = 'block';
-          if (guestSection) guestSection.style.display = 'none';
-          this._updateCurrentCharacterInfo();
-          this._updateOnlinePlayersList();
-          await this._enterXiejianMap(profile.lastXiejianMapKey || 'xj-jingyuan');
-          window.gameMapRenderer.setWorldItems(data.worldItems || []);
-          this._updateXiejianWorldItemStatus(data.worldItems || []);
-          this._renderXiejianInventory(data.inventory);
-          this._startXiejianPromptLoop();
+          
+          try {
+            // Add timeout for character loading
+            const charLoadPromise = window.gameMapRenderer.loadCharacter(profile.xiejianCharacterId);
+            const charTimeoutPromise = new Promise((resolve) => setTimeout(resolve, 5000));
+            await Promise.race([charLoadPromise, charTimeoutPromise]);
+            
+            const currentSection = document.getElementById('current-character-section');
+            const guestSection = document.getElementById('guest-character-section');
+            if (currentSection) currentSection.style.display = 'block';
+            if (guestSection) guestSection.style.display = 'none';
+            this._updateCurrentCharacterInfo();
+            this._updateOnlinePlayersList();
+            await this._enterXiejianMap(profile.lastXiejianMapKey || 'xj-jingyuan');
+            window.gameMapRenderer.setWorldItems(data.worldItems || []);
+            this._updateXiejianWorldItemStatus(data.worldItems || []);
+            this._renderXiejianInventory(data.inventory);
+            this._startXiejianPromptLoop();
+          } catch (error) {
+            console.error('[Xiejian] Room state error:', error);
+            this._setXiejianEntryStatus('加载失败，请重试', true);
+            // Still close the entry overlay
+            this._closeXiejianEntry();
+          }
         });
 
         MultiplayerSync.on('occupancy', () => {
@@ -2891,6 +3503,14 @@ const App = {
             lastXiejianMapKey: data.mapKey || 'xj-jingyuan'
           };
           STORAGE.saveCharacterBinding(this.currentMailboxId, data.characterId);
+          const currentUser = AuthManager.getCurrentUser();
+          if (currentUser) {
+            const accountKey = typeof MailService !== 'undefined'
+              ? MailService.getAccountKey(currentUser)
+              : String(currentUser.username || '').trim().toLocaleLowerCase('en-US');
+            STORAGE.saveUserCharacterBinding(this.currentMailboxId, accountKey, data.characterId);
+            this._saveMemberCharacterToMailbox(this.currentMailboxId, accountKey, data.characterId);
+          }
           await window.gameMapRenderer.loadCharacter(data.characterId);
           const currentSection = document.getElementById('current-character-section');
           const guestSection = document.getElementById('guest-character-section');
@@ -2905,16 +3525,45 @@ const App = {
 
         MultiplayerSync.on('characterRejected', (data) => {
           if (data.reason === 'binding_locked' && data.boundCharacterId) {
-            this._setXiejianEntryStatus('此账号已经永久绑定角色，正在恢复…');
+            if (data.boundCharacterId === this._xiejianCharacterId) {
+              this._setXiejianEntryStatus('当前角色已绑定，可继续使用');
+              return;
+            }
+            this._setXiejianEntryStatus('正在切换角色…', true);
             return;
           }
-          this._showXiejianCharacterStep();
-          this._setXiejianEntryStatus(
-            data.reason === 'occupied'
-              ? '这个角色已经永久绑定给其他账号，请换一位。'
-              : '该角色暂不可用，请刷新后重试。',
-            true
-          );
+          // Revert to previous character if switching from in-game
+          if (this._previousXiejianCharacterId && this._previousXiejianCharacterId !== this._xiejianCharacterId) {
+            const prevCharId = this._previousXiejianCharacterId;
+            this._xiejianCharacterId = prevCharId;
+            window.gameMapRenderer.loadCharacter(prevCharId);
+            this._updateCurrentCharacterInfo();
+          }
+          // Show guest character section if in-game, otherwise show entry step
+          const currentSection = document.getElementById('current-character-section');
+          const guestSection = document.getElementById('guest-character-section');
+          if (currentSection && currentSection.style.display === 'block') {
+            // In-game switching: show the character grid with error
+            currentSection.style.display = 'none';
+            if (guestSection) guestSection.style.display = 'block';
+            const errorMsg = data.reason === 'occupied'
+              ? '这个角色已经被其他账号选择，请换一位。'
+              : '该角色暂不可用，请选择其他角色。';
+            this._showXiejianFeedback(errorMsg, true);
+            // Re-render the character grid to show occupied status
+            if (this._renderMapCharacterGrid) {
+              this._renderMapCharacterGrid('xiejian');
+            }
+          } else {
+            // Entry flow: show the character step
+            this._showXiejianCharacterStep();
+            this._setXiejianEntryStatus(
+              data.reason === 'occupied'
+                ? '这个角色已经被其他账号选择，请换一位。'
+                : '该角色暂不可用，请刷新后重试。',
+              true
+            );
+          }
         });
 
         MultiplayerSync.on('joinRejected', (data) => {
@@ -2975,9 +3624,9 @@ const App = {
     };
 
     if (isXiejian) {
-      this._xiejianCharacterId = '';
       this._xiejianMapKey = '';
       this._xiejianPendingMapKey = '';
+      this._xiejianRoomStateReceived = false;
       this._openXiejianEntry();
       document.getElementById('xiejian-character-step')?.classList.remove('active');
       document.getElementById('xiejian-map-step')?.classList.remove('active');
@@ -2987,6 +3636,15 @@ const App = {
       if (subtitle) subtitle.textContent = '正在读取账号绑定的角色与最后地图…';
       this._setXiejianEntryStatus('');
       setupMultiplayer();
+      
+      // Add timeout for room_state - if not received in 10 seconds, show character selection
+      setTimeout(() => {
+        if (!this._xiejianRoomStateReceived) {
+          console.warn('[Xiejian] Room state not received within timeout, showing character selection');
+          this._showXiejianCharacterStep();
+          this._updateOnlinePlayersList();
+        }
+      }, 10000);
     } else {
       const characterId = currentUser.role || 'xiu-jing';
       window.gameMapRenderer.loadCharacter(characterId).then(setupMultiplayer);
@@ -2997,7 +3655,16 @@ const App = {
     if (!window.gameMapRenderer) return;
 
     const boundCharacterId = STORAGE.loadCharacterBinding(this.currentMailboxId);
-    this._xiejianCharacterId = boundCharacterId || 'zhou-ran';
+
+    if (!boundCharacterId) {
+      this._xiejianCharacterId = '';
+      this._xiejianMapKey = 'xj-jingyuan';
+      this._xiejianPendingMapKey = 'xj-jingyuan';
+      this._showXiejianCharacterStep();
+      return;
+    }
+
+    this._xiejianCharacterId = boundCharacterId;
     this._xiejianMapKey = 'xj-jingyuan';
     this._xiejianPendingMapKey = 'xj-jingyuan';
 
@@ -3008,8 +3675,8 @@ const App = {
         backpackButton.classList.add('xiejian-active');
       }
 
-      // 优先从本地存储加载背包，如果没有则创建默认
-      const savedInventory = STORAGE.loadInventory(this.currentMailboxId);
+      const accountKey = this._getCurrentAccountKey();
+      const savedInventory = STORAGE.loadInventory(accountKey);
       const guestInventory = savedInventory || {
         combat: {
           hp: 100,
@@ -3033,6 +3700,7 @@ const App = {
       if (mapNameEl) mapNameEl.textContent = '静远书院';
 
       this._bindXiejianGameUI();
+      this._updateCurrentCharacterInfo();
     });
   },
 
@@ -3069,7 +3737,7 @@ const App = {
     });
 
     window.addEventListener('keydown', event => {
-      if (this.currentMailboxId !== 'mailbox-xiejian' || this.currentView !== 'mailbox') return;
+      if (!this._isXiejianMailbox() || this.currentView !== 'mailbox') return;
       const target = event.target;
       if (target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement || target?.isContentEditable) return;
       if (event.key === 'b' || event.key === 'B') {
@@ -3173,7 +3841,8 @@ const App = {
     if (shouldOpen) {
       // 优先从本地存储加载，如果没有再用内存中的
       let inventory = typeof MultiplayerSync !== 'undefined' ? MultiplayerSync.inventory : null;
-      if (!inventory) inventory = STORAGE.loadInventory(this.currentMailboxId);
+      const accountKey = this._getCurrentAccountKey();
+      if (!inventory) inventory = STORAGE.loadInventory(accountKey);
       this._renderXiejianInventory(inventory);
 
       if (AuthManager.getCurrentUser() && typeof MailService !== 'undefined' && typeof MailService.getInventory === 'function') {
@@ -3181,7 +3850,7 @@ const App = {
           if (!serverInventory) return;
           MultiplayerSync.inventory = serverInventory;
           MultiplayerSync.combatProfile = serverInventory.combat || MultiplayerSync.combatProfile;
-          STORAGE.saveInventory(this.currentMailboxId, serverInventory);
+          STORAGE.saveInventory(accountKey, serverInventory);
           if (drawer.classList.contains('open')) this._renderXiejianInventory(serverInventory);
         }).catch(error => console.warn('[Inventory] 无法刷新服务器背包:', error));
       }
@@ -3261,7 +3930,7 @@ const App = {
   _renderXiejianInventory(inventory) {
     if (!inventory) {
       inventory = typeof MultiplayerSync !== 'undefined' ? MultiplayerSync.inventory : null;
-      if (!inventory) inventory = STORAGE.loadInventory(this.currentMailboxId);
+      if (!inventory) inventory = STORAGE.loadInventory(this._getCurrentAccountKey());
       if (!inventory) {
         inventory = this._createDefaultInventory();
       }
@@ -3366,7 +4035,7 @@ const App = {
         : String(index + 1);
     });
 
-    STORAGE.saveInventory(this.currentMailboxId, inventory);
+    STORAGE.saveInventory(this._getCurrentAccountKey(), inventory);
   },
 
   _createDefaultInventory() {
@@ -3484,7 +4153,7 @@ const App = {
   _startXiejianPromptLoop() {
     if (this._xiejianPromptTimer) clearInterval(this._xiejianPromptTimer);
     this._xiejianPromptTimer = setInterval(() => {
-      if (this.currentMailboxId !== 'mailbox-xiejian') return;
+      if (!this._isXiejianMailbox()) return;
       const item = window.gameMapRenderer?.getNearbyWorldItem(80);
       const prompt = document.getElementById('xiejian-interact-prompt');
       const interactButton = document.getElementById('mobile-interact-btn');
@@ -3517,7 +4186,14 @@ const App = {
     clearTimeout(this._xiejianFeedbackTimer);
     this._xiejianFeedbackTimer = setTimeout(() => {
       prompt.classList.remove('error');
-      if (!window.gameMapRenderer?.getNearbyWorldItem(80)) prompt.hidden = true;
+      const nearbyItem = window.gameMapRenderer?.getNearbyWorldItem(80);
+      if (!nearbyItem) {
+        prompt.hidden = true;
+      } else {
+        const icon = document.getElementById('xiejian-interact-icon');
+        if (icon) icon.src = nearbyItem.definition.icon;
+        text.textContent = `${nearbyItem.definition.portable ? '拾取' : '查看'} ${nearbyItem.definition.name}`;
+      }
     }, 2600);
   },
 
@@ -3780,6 +4456,9 @@ const App = {
       const username = this._escapeHtml(player.username || player.name || player.userId || '?');
       const characterName = this._escapeHtml(player.characterName || player.name || '未绑定角色');
       const initial = characterName.charAt(0) || '?';
+      const chatBtn = player.isSelf 
+        ? '' 
+        : `<button class="online-player-chat-btn" data-chat-user-id="${this._escapeHtml(player.userId)}" title="发起私聊">💬</button>`;
       return `
         <div class="online-player-item" data-user-id="${this._escapeHtml(player.userId)}">
           <div class="online-player-avatar">${initial}</div>
@@ -3787,10 +4466,40 @@ const App = {
             <strong class="online-player-name">${username}${player.isSelf ? '（我）' : ''}</strong>
             <small class="online-player-character">${characterName}</small>
           </span>
+          ${chatBtn}
           <span class="online-status" title="${player.isOnline ? '在线' : '离线'}"></span>
         </div>
       `;
     }).join('');
+
+    // Bind chat button click events
+    listEl.querySelectorAll('.online-player-chat-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const userId = btn.dataset.chatUserId;
+        if (userId) {
+          this._openPrivateChat(userId);
+        }
+      });
+    });
+  },
+
+  _openPrivateChat(targetUserId) {
+    // Set the current conversation to private with this user
+    this._currentChatConversation = { type: 'private', targetUserId: targetUserId };
+    
+    // Update conversation users list
+    this._chatConversationUsers.add(targetUserId);
+    
+    // Save current user's member info to mailbox
+    this._saveCurrentUserMemberInfo(this.currentMailboxId);
+    
+    // Open the chat history panel
+    const chatHistoryPanel = document.getElementById('chat-history-panel');
+    if (chatHistoryPanel) {
+      chatHistoryPanel.style.display = 'flex';
+      this._renderChatHistory();
+    }
   },
 
   _bindChatInput() {
@@ -3799,6 +4508,8 @@ const App = {
     const chatHistoryBtn = document.getElementById('chat-history-btn');
     const chatHistoryClose = document.getElementById('chat-history-close');
     const chatHistoryPanel = document.getElementById('chat-history-panel');
+    const historyInput = document.getElementById('chat-history-input');
+    const historySendBtn = document.getElementById('chat-history-send');
     if (!chatInput || !chatSendBtn) return;
 
     // 获取或创建访客ID
@@ -3809,6 +4520,45 @@ const App = {
         localStorage.setItem('guest_chat_key', guestKey);
       }
       return guestKey;
+    };
+
+    const getCurrentUserInfo = () => {
+      const currentUser = AuthManager.getCurrentUser();
+      const accountKey = currentUser
+        ? (typeof MailService !== 'undefined'
+            ? MailService.getAccountKey(currentUser)
+            : String(currentUser.username || '').trim().toLocaleLowerCase('en-US'))
+        : getGuestKey();
+      const displayName = currentUser
+        ? (currentUser.displayName || currentUser.username || '我')
+        : '访客';
+      return { currentUser, accountKey, displayName };
+    };
+
+    const getSenderInfo = () => {
+      let characterId = window.gameMapRenderer?.selectedCharacter || '';
+      let characterName = '';
+
+      if (characterId) {
+        if (window.gameMapRenderer?.getCharacterInfo) {
+          const charInfo = window.gameMapRenderer.getCharacterInfo(characterId);
+          if (charInfo) {
+            characterName = charInfo.name || '';
+          }
+        }
+      } else {
+        // Fallback: use bound character for this mailbox (first map entry character)
+        const { currentUser, accountKey } = getCurrentUserInfo();
+        const boundCharId = STORAGE.loadUserCharacterBinding(this.currentMailboxId, accountKey);
+        if (boundCharId && window.gameMapRenderer?.getCharacterInfo) {
+          const charInfo = window.gameMapRenderer.getCharacterInfo(boundCharId);
+          if (charInfo) {
+            characterId = boundCharId;
+            characterName = charInfo.name || '';
+          }
+        }
+      }
+      return { characterId, characterName };
     };
 
     const sendChat = () => {
@@ -3823,25 +4573,64 @@ const App = {
         return;
       }
 
-      const currentUser = AuthManager.getCurrentUser();
-      const accountKey = currentUser
-        ? (typeof MailService !== 'undefined'
-            ? MailService.getAccountKey(currentUser)
-            : String(currentUser.username || '').trim().toLocaleLowerCase('en-US'))
-        : getGuestKey();
-      const displayName = currentUser
-        ? (currentUser.displayName || currentUser.username || '我')
-        : '访客';
+      const { currentUser, accountKey, displayName } = getCurrentUserInfo();
+      const { characterId, characterName } = getSenderInfo();
+
+      const senderName = characterName
+        ? `${displayName}（${characterName}）`
+        : displayName;
+
+      const messageId = 'msg_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6);
 
       if (typeof MultiplayerSync !== 'undefined' && MultiplayerSync.broadcastChat) {
-        MultiplayerSync.broadcastChat(content);
+        MultiplayerSync.broadcastChat(content, messageId);
       }
 
       window.gameMapRenderer.showChatBubble(accountKey, content);
 
-      this._addChatMessage(accountKey, displayName, content, true);
+      this._addChatMessage(accountKey, senderName, content, true, characterId, messageId, 'group', '');
 
       chatInput.value = '';
+    };
+
+    const sendHistoryChat = () => {
+      if (!historyInput) return;
+      const content = historyInput.value.trim();
+      if (!content) return;
+      if (content.length > 50) {
+        content = content.substring(0, 50);
+      }
+
+      const { currentUser, accountKey, displayName } = getCurrentUserInfo();
+      const { characterId, characterName } = getSenderInfo();
+
+      const senderName = characterName
+        ? `${displayName}（${characterName}）`
+        : displayName;
+
+      const messageId = 'msg_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6);
+      const convType = this._currentChatConversation.type;
+      const targetUserId = this._currentChatConversation.targetUserId;
+
+      if (convType === 'private' && targetUserId) {
+        // Send private chat via WebSocket
+        if (typeof MultiplayerSync !== 'undefined' && MultiplayerSync.sendPrivateChat) {
+          MultiplayerSync.sendPrivateChat(targetUserId, content, messageId);
+        }
+        // Also broadcast locally for immediate display
+        this._addChatMessage(accountKey, senderName, content, true, characterId, messageId, 'private', targetUserId);
+      } else {
+        // Group chat - broadcast to all
+        if (typeof MultiplayerSync !== 'undefined' && MultiplayerSync.broadcastChat) {
+          MultiplayerSync.broadcastChat(content, messageId);
+        }
+        if (window.gameMapRenderer) {
+          window.gameMapRenderer.showChatBubble(accountKey, content);
+        }
+        this._addChatMessage(accountKey, senderName, content, true, characterId, messageId, 'group', '');
+      }
+
+      historyInput.value = '';
     };
 
     chatInput.addEventListener('keydown', (e) => {
@@ -3855,6 +4644,22 @@ const App = {
       e.stopPropagation();
       sendChat();
     });
+
+    if (historyInput) {
+      historyInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          sendHistoryChat();
+        }
+      });
+    }
+
+    if (historySendBtn) {
+      historySendBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        sendHistoryChat();
+      });
+    }
 
     if (chatHistoryBtn) {
       chatHistoryBtn.addEventListener('click', () => {
@@ -3875,51 +4680,235 @@ const App = {
     }
   },
 
-  _getChatHistoryKey() {
+  _getChatHistoryKey(type = 'group', targetUserId = '') {
     const currentUser = AuthManager.getCurrentUser();
-    if (currentUser) {
+    let mailboxId = this.currentMailboxId;
+    if (!mailboxId && currentUser) {
       const sharedMailboxId = AuthManager.getSharedMailboxId(currentUser.id);
-      if (sharedMailboxId) return 'chat_history_' + sharedMailboxId;
+      if (sharedMailboxId) mailboxId = sharedMailboxId;
     }
-    // 访客模式：使用当前信箱ID
-    if (this.currentMailboxId) {
-      return 'chat_history_guest_' + this.currentMailboxId;
+    if (!mailboxId) return null;
+    
+    if (type === 'group') {
+      return 'chat_history_group_' + mailboxId;
+    } else {
+      // Private chat: sort the two user IDs to create a shared key
+      const currentUserKey = currentUser
+        ? (typeof MailService !== 'undefined'
+            ? MailService.getAccountKey(currentUser)
+            : String(currentUser.username || '').trim().toLocaleLowerCase('en-US'))
+        : '';
+      const pair = [currentUserKey, targetUserId].sort().join('_');
+      return 'chat_history_private_' + mailboxId + '_' + pair;
     }
-    return null;
   },
 
-  _loadChatHistory() {
-    const key = this._getChatHistoryKey();
+  _loadChatHistory(type = 'group', targetUserId = '') {
+    const key = this._getChatHistoryKey(type, targetUserId);
     if (!key) return [];
     try {
-      return JSON.parse(localStorage.getItem(key) || '[]');
+      const messages = JSON.parse(localStorage.getItem(key) || '[]');
+      const uniqueMessages = this._deduplicateMessages(messages);
+      
+      // Fix isSelf flag based on current user's accountKey
+      const currentUser = AuthManager.getCurrentUser();
+      if (currentUser) {
+        const accountKey = typeof MailService !== 'undefined'
+          ? MailService.getAccountKey(currentUser)
+          : String(currentUser.username || '').trim().toLocaleLowerCase('en-US');
+        
+        let needsUpdate = false;
+        for (const msg of uniqueMessages) {
+          const shouldBeSelf = msg.userId === accountKey || msg.accountKey === accountKey;
+          if (msg.isSelf !== shouldBeSelf) {
+            msg.isSelf = shouldBeSelf;
+            needsUpdate = true;
+          }
+        }
+        if (needsUpdate) {
+          this._saveChatHistory(type, targetUserId, uniqueMessages);
+        }
+      }
+      
+      if (uniqueMessages.length !== messages.length) {
+        this._saveChatHistory(type, targetUserId, uniqueMessages);
+      }
+      return uniqueMessages;
     } catch (e) {
       return [];
     }
   },
 
-  _saveChatHistory(messages) {
-    const key = this._getChatHistoryKey();
+  _loadAllChatHistory() {
+    // Load both group and all private conversations
+    const result = {
+      group: [],
+      private: {}
+    };
+    
+    result.group = this._loadChatHistory('group');
+    
+    // Load private conversations from localStorage
+    try {
+      const keys = Object.keys(localStorage);
+      const privateKeys = keys.filter(k => k.startsWith('chat_history_private_'));
+      for (const pk of privateKeys) {
+        const match = pk.match(/chat_history_private_(.+)_(.+)_(.+)/);
+        if (match) {
+          const mailboxId = match[1];
+          if (mailboxId === this.currentMailboxId) {
+            const pair = [match[2], match[3]].sort().join('_');
+            const messages = JSON.parse(localStorage.getItem(pk) || '[]');
+            if (messages.length > 0) {
+              // Determine the other user
+              const currentUser = AuthManager.getCurrentUser();
+              let accountKey = '';
+              if (currentUser) {
+                accountKey = typeof MailService !== 'undefined'
+                  ? MailService.getAccountKey(currentUser)
+                  : String(currentUser.username || '').trim().toLocaleLowerCase('en-US');
+              }
+              const otherUserId = match[2] === accountKey ? match[3] : match[2];
+              if (!result.private[otherUserId]) {
+                result.private[otherUserId] = [];
+              }
+              result.private[otherUserId] = result.private[otherUserId].concat(messages);
+            }
+          }
+        }
+      }
+    } catch (e) {}
+    
+    return result;
+  },
+
+  _deduplicateMessages(messages) {
+    if (!messages || messages.length === 0) return [];
+    
+    const seen = new Set();
+    const uniqueMessages = [];
+    
+    for (const msg of messages) {
+      let key = '';
+      if (msg.messageId) {
+        key = 'mid:' + msg.messageId;
+      } else {
+        const roundedTimestamp = Math.floor((msg.timestamp || 0) / 5000) * 5000;
+        key = 'uid:' + msg.userId + ':content:' + msg.content + ':time:' + roundedTimestamp;
+      }
+      
+      if (!seen.has(key)) {
+        seen.add(key);
+        uniqueMessages.push(msg);
+      } else {
+        const existingIndex = uniqueMessages.findIndex(m => {
+          if (msg.messageId && m.messageId === msg.messageId) return true;
+          if (!msg.messageId) {
+            const roundedTimestamp = Math.floor((m.timestamp || 0) / 5000) * 5000;
+            return m.userId === msg.userId && m.content === msg.content && roundedTimestamp === Math.floor((msg.timestamp || 0) / 5000) * 5000;
+          }
+          return false;
+        });
+        if (existingIndex !== -1 && msg.isSelf !== undefined) {
+          if (msg.isSelf === true || uniqueMessages[existingIndex].isSelf !== true) {
+            uniqueMessages[existingIndex].isSelf = msg.isSelf;
+            if (msg.userName) uniqueMessages[existingIndex].userName = msg.userName;
+          }
+        }
+      }
+    }
+    
+    return uniqueMessages;
+  },
+
+  _saveChatHistory(type = 'group', targetUserId = '', messages) {
+    const key = this._getChatHistoryKey(type, targetUserId);
     if (!key) return;
     try {
       localStorage.setItem(key, JSON.stringify(messages));
     } catch (e) {}
   },
 
-  _addChatMessage(userId, userName, content, isSelf) {
-    const messages = this._loadChatHistory();
+  _clearChatHistory(type = 'group', targetUserId = '') {
+    const key = this._getChatHistoryKey(type, targetUserId);
+    if (!key) return;
+    try {
+      localStorage.removeItem(key);
+    } catch (e) {}
+    const panel = document.getElementById('chat-history-panel');
+    if (panel && panel.style.display !== 'none') {
+      this._renderChatHistory();
+    }
+  },
+
+  _addChatMessage(userId, userName, content, isSelf, characterId = '', messageId = '', conversationType = 'group', targetUserId = '') {
+    // If no explicit conversation type, use the current one
+    if (!conversationType) {
+      conversationType = this._currentChatConversation.type;
+      targetUserId = this._currentChatConversation.targetUserId;
+    }
+    
+    const messages = this._loadChatHistory(conversationType, targetUserId);
+    
+    // Deduplication: if messageId is provided, check if it already exists
+    if (messageId) {
+      const existingIndex = messages.findIndex(m => m.messageId === messageId);
+      if (existingIndex !== -1) {
+        if (isSelf === true || messages[existingIndex].isSelf !== true) {
+          messages[existingIndex].isSelf = isSelf;
+        }
+        messages[existingIndex].userName = userName;
+        messages[existingIndex].characterId = characterId;
+        this._saveChatHistory(conversationType, targetUserId, messages);
+        this._updateConversationUsers();
+        const panel = document.getElementById('chat-history-panel');
+        if (panel && panel.style.display !== 'none') {
+          this._renderChatHistory();
+        }
+        return;
+      }
+    }
+    
+    // Also deduplicate by userId + content + approximate timestamp
+    const timeWindow = 5000;
+    const existingIndex = messages.findIndex(m => 
+      m.userId === userId && 
+      m.content === content && 
+      Math.abs(m.timestamp - Date.now()) < timeWindow
+    );
+    if (existingIndex !== -1) {
+      if (isSelf === true || messages[existingIndex].isSelf !== true) {
+        messages[existingIndex].isSelf = isSelf;
+      }
+      messages[existingIndex].userName = userName;
+      messages[existingIndex].characterId = characterId;
+      if (messageId) {
+        messages[existingIndex].messageId = messageId;
+      }
+      this._saveChatHistory(conversationType, targetUserId, messages);
+      this._updateConversationUsers();
+      const panel = document.getElementById('chat-history-panel');
+      if (panel && panel.style.display !== 'none') {
+        this._renderChatHistory();
+      }
+      return;
+    }
+    
     messages.push({
-      id: Date.now() + '-' + Math.random().toString(36).slice(2, 6),
+      id: messageId || (Date.now() + '-' + Math.random().toString(36).slice(2, 6)),
+      messageId: messageId || '',
       userId: userId,
       userName: userName,
       content: content,
       isSelf: isSelf,
+      characterId: characterId,
       timestamp: Date.now()
     });
     if (messages.length > 200) {
       messages.splice(0, messages.length - 200);
     }
-    this._saveChatHistory(messages);
+    this._saveChatHistory(conversationType, targetUserId, messages);
+    this._updateConversationUsers();
 
     const panel = document.getElementById('chat-history-panel');
     if (panel && panel.style.display !== 'none') {
@@ -3927,30 +4916,181 @@ const App = {
     }
   },
 
+  _updateConversationUsers() {
+    // Collect all users who have private chat history with current user
+    const existingUsers = new Set(this._chatConversationUsers);
+    this._chatConversationUsers.clear();
+    const allHistory = this._loadAllChatHistory();
+    Object.keys(allHistory.private).forEach(userId => {
+      if (allHistory.private[userId].length > 0) {
+        this._chatConversationUsers.add(userId);
+      }
+    });
+    // Preserve manually-added users (e.g., from chat button clicks)
+    existingUsers.forEach(userId => {
+      this._chatConversationUsers.add(userId);
+    });
+  },
+
+  _getConversationDisplayName(userId) {
+    // Get character info first
+    const { characterName } = this._resolveMemberCharacter(userId, this.currentMailboxId);
+    
+    // Try user info
+    const userInfo = this._getUserInfoById(userId);
+    let displayName = '';
+    
+    if (userInfo) {
+      displayName = userInfo.displayName || userInfo.username || '';
+    }
+    
+    // Fallback: check mailbox memberNames
+    if (!displayName && this.currentMailboxId) {
+      const mailboxes = MailboxManager.getMailboxes();
+      const mailbox = mailboxes.find(mb => mb.id === this.currentMailboxId);
+      if (mailbox?.memberNames && mailbox.memberNames[userId]) {
+        displayName = mailbox.memberNames[userId];
+      }
+    }
+    
+    // Check if this is the current user
+    if (!displayName) {
+      const currentUser = AuthManager.getCurrentUser();
+      if (currentUser) {
+        const accountKey = typeof MailService !== 'undefined'
+          ? MailService.getAccountKey(currentUser)
+          : String(currentUser.username || '').trim().toLocaleLowerCase('en-US');
+        if (userId === accountKey) {
+          displayName = currentUser.displayName || currentUser.username || '我';
+        }
+      }
+    }
+    
+    // Check online players
+    if (!displayName && typeof MultiplayerSync !== 'undefined') {
+      const onlinePlayers = MultiplayerSync.getOnlinePlayers();
+      const player = onlinePlayers[userId];
+      if (player) {
+        displayName = player.displayName || player.username || player.name || '';
+      }
+    }
+    
+    if (!displayName) displayName = userId;
+    
+    // Format with character name
+    return characterName
+      ? `${displayName}（${characterName}）`
+      : displayName;
+  },
+
   _renderChatHistory() {
     const listEl = document.getElementById('chat-history-list');
-    if (!listEl) return;
+    const conversationListEl = document.getElementById('chat-conversation-list');
+    const titleEl = document.getElementById('chat-history-title');
+    if (!listEl || !conversationListEl) return;
 
-    const messages = this._loadChatHistory();
-
-    if (messages.length === 0) {
-      listEl.innerHTML = '<div class="chat-history-empty">暂无聊天记录</div>';
-      return;
-    }
-
-    listEl.innerHTML = messages.map(msg => {
-      const initial = (msg.userName || '?').charAt(0);
+    this._updateConversationUsers();
+    
+    // Render conversation list in sidebar
+    const conversations = this._buildConversationList();
+    conversationListEl.innerHTML = conversations.map(conv => {
+      const initial = conv.name.charAt(0);
+      const isActive = this._currentChatConversation.type === conv.type 
+        && this._currentChatConversation.targetUserId === conv.targetUserId;
+      const lastMessage = conv.lastMessage ? this._escapeHtml(conv.lastMessage).substring(0, 20) : '暂无消息';
       return `
-        <div class="chat-history-item ${msg.isSelf ? 'self' : ''}">
-          <div class="chat-history-avatar">${initial}</div>
-          <div>
-            <div class="chat-history-bubble">${this._escapeHtml(msg.content)}</div>
+        <div class="chat-conversation-item ${conv.type} ${isActive ? 'active' : ''}" 
+             data-conversation-type="${conv.type}" 
+             data-target-user-id="${conv.targetUserId || ''}">
+          <div class="chat-conversation-avatar">${conv.type === 'group' ? '群' : initial}</div>
+          <div class="chat-conversation-info">
+            <div class="chat-conversation-name">${this._escapeHtml(conv.name)}</div>
+            <div class="chat-conversation-preview">${lastMessage}</div>
           </div>
         </div>
       `;
     }).join('');
 
-    listEl.scrollTop = listEl.scrollHeight;
+    // Bind click events on conversation items
+    conversationListEl.querySelectorAll('.chat-conversation-item').forEach(item => {
+      item.addEventListener('click', () => {
+        const convType = item.dataset.conversationType;
+        const targetUserId = item.dataset.targetUserId || '';
+        this._currentChatConversation = { type: convType, targetUserId: targetUserId };
+        this._renderChatHistory();
+      });
+    });
+
+    // Update title
+    const currentConv = conversations.find(c => 
+      c.type === this._currentChatConversation.type && 
+      c.targetUserId === this._currentChatConversation.targetUserId
+    );
+    if (titleEl) {
+      titleEl.textContent = currentConv ? currentConv.name : '聊天记录';
+    }
+
+    // Render messages for current conversation
+    const messages = this._loadChatHistory(
+      this._currentChatConversation.type, 
+      this._currentChatConversation.targetUserId
+    );
+
+    if (messages.length === 0) {
+      listEl.innerHTML = '<div class="chat-history-empty">暂无聊天记录</div>';
+    } else {
+      listEl.innerHTML = messages.map(msg => {
+        const initial = (msg.userName || '?').charAt(0);
+        const displayName = this._escapeHtml(msg.userName || '用户');
+        return `
+          <div class="chat-history-item ${msg.isSelf ? 'self' : ''}">
+            <div class="chat-history-avatar">${initial}</div>
+            <div>
+              <div class="chat-history-name">${displayName}</div>
+              <div class="chat-history-bubble">${this._escapeHtml(msg.content)}</div>
+            </div>
+          </div>
+        `;
+      }).join('');
+      listEl.scrollTop = listEl.scrollHeight;
+    }
+  },
+
+  _buildConversationList() {
+    const conversations = [];
+    
+    // Group chat always first
+    const groupMessages = this._loadChatHistory('group');
+    const groupLast = groupMessages.length > 0 ? groupMessages[groupMessages.length - 1] : null;
+    conversations.push({
+      type: 'group',
+      targetUserId: '',
+      name: '信箱群聊',
+      lastMessage: groupLast ? groupLast.content : '',
+      lastTime: groupLast ? groupLast.timestamp : 0
+    });
+    
+    // Private chats with known users
+    this._chatConversationUsers.forEach(userId => {
+      const messages = this._loadChatHistory('private', userId);
+      const lastMsg = messages.length > 0 ? messages[messages.length - 1] : null;
+      conversations.push({
+        type: 'private',
+        targetUserId: userId,
+        name: this._getConversationDisplayName(userId),
+        lastMessage: lastMsg ? lastMsg.content : '',
+        lastTime: lastMsg ? lastMsg.timestamp : 0
+      });
+    });
+    
+    // Sort: group first, then by last message time descending
+    conversations.sort((a, b) => {
+      if (a.type === 'group') return -1;
+      if (b.type === 'group') return 1;
+      return (b.lastTime || 0) - (a.lastTime || 0);
+    });
+    
+    return conversations;
   },
 
   _escapeHtml(text) {
@@ -4048,27 +5188,50 @@ const App = {
     }).catch(() => {});
   },
 
-  _handleRemoteChat(data, currentUser) {
+  _handleRemoteChat(data, currentUser, convType = 'group', convTargetUserId = '') {
     if (!data || !data.userId || !data.content) return;
     const accountKey = typeof MailService !== 'undefined'
       ? MailService.getAccountKey(currentUser)
       : String(currentUser.username || '').trim().toLocaleLowerCase('en-US');
-    if (data.userId === accountKey) return;
+    
+    // Strictly filter out messages from self
+    if (data.userId === accountKey || data.accountKey === accountKey) return;
 
-    const userInfo = this._getUserInfoById(data.userId);
-    const remotePlayer = typeof MultiplayerSync !== 'undefined'
-      ? MultiplayerSync.getPlayers()[data.userId]
-      : null;
-    const characterName = this.currentMailboxId === 'mailbox-xiejian'
-      && remotePlayer?.characterId
-      && window.gameMapRenderer?.getCharacterInfo
-      ? window.gameMapRenderer.getCharacterInfo(remotePlayer.characterId)?.name
-      : '';
-    const senderName = characterName || userInfo?.displayName || userInfo?.username || '对方';
+    // Use senderName from message if available, otherwise construct it
+    let senderName = data.senderName || '';
+    if (!senderName) {
+      const userInfo = this._getUserInfoById(data.userId);
+      let displayName = userInfo?.displayName || userInfo?.username || '';
 
-    this._addChatMessage(data.userId, senderName, data.content, false);
+      // Fallback: check mailbox memberNames
+      if (!displayName) {
+        const mailboxes = MailboxManager.getMailboxes();
+        const mailbox = mailboxes.find(mb => mb.id === this.currentMailboxId);
+        if (mailbox?.memberNames && mailbox.memberNames[data.userId]) {
+          displayName = mailbox.memberNames[data.userId];
+        }
+      }
+      
+      // Final fallback
+      if (!displayName) displayName = data.userId || '对方';
 
-    const canShowBubble = this.currentMailboxId !== 'mailbox-xiejian'
+      // Use _resolveMemberCharacter to get the user's bound character (first map character)
+      const { characterName } = this._resolveMemberCharacter(data.userId, this.currentMailboxId);
+
+      senderName = characterName
+        ? `${displayName}（${characterName}）`
+        : displayName;
+    }
+
+    // Pass the messageId from the remote message for deduplication
+    this._addChatMessage(data.userId, senderName, data.content, false, data.characterId || '', data.messageId || '', convType, convTargetUserId);
+
+    // Update conversation users for private chat
+    if (convType === 'private' && convTargetUserId) {
+      this._chatConversationUsers.add(convTargetUserId);
+    }
+
+    const canShowBubble = !this._isXiejianMailbox()
       || !data.mapKey
       || data.mapKey === this._xiejianMapKey;
     if (canShowBubble && window.gameMapRenderer && window.gameMapRenderer.showChatBubble) {
@@ -4079,41 +5242,61 @@ const App = {
   _getUserInfoById(userId) {
     try {
       const users = JSON.parse(localStorage.getItem('xinjian_users') || '[]');
-      return users.find(u => u.id === userId) || null;
+      return users.find(u => 
+        u.id === userId || 
+        u.username === userId || 
+        String(u.username || '').toLowerCase() === String(userId).toLowerCase() ||
+        String(u.displayName || '').toLowerCase() === String(userId).toLowerCase()
+      ) || null;
     } catch (e) {
       return null;
     }
+  },
+
+  _getCurrentAccountKey() {
+    const currentUser = AuthManager.getCurrentUser();
+    if (currentUser) {
+      return MailService.getAccountKey(currentUser);
+    }
+    // 访客模式：基于 mailboxId 生成一个唯一 key（保持向后兼容）
+    return `guest_${this.currentMailboxId || 'default'}`;
   },
 
   _updateCurrentCharacterInfo() {
     const currentUser = AuthManager.getCurrentUser();
     const boundCharId = STORAGE.loadCharacterBinding(this.currentMailboxId);
 
-    // 只要有绑定角色或者已登录，就更新信息
     const charNameEl = document.getElementById('current-char-name');
     const charSectEl = document.getElementById('current-char-sect');
     const charAvatarEl = document.getElementById('current-char-avatar');
 
     const isXiejian = this._isXiejianMailbox();
-    const charId = isXiejian
-      ? (this._xiejianCharacterId
+
+    let charId = '';
+    if (window.gameMapRenderer?.selectedCharacter) {
+      charId = window.gameMapRenderer.selectedCharacter;
+    } else if (isXiejian) {
+      charId = this._xiejianCharacterId
         || MultiplayerSync.accountProfile?.xiejianCharacterId
         || MailService.profile?.xiejianCharacterId
         || (!currentUser ? boundCharId : '')
-        || 'zhou-ran')
-      : ((currentUser && currentUser.role) || boundCharId || 'xiu-jing');
+        || 'zhou-ran';
+    } else {
+      charId = (currentUser && currentUser.role) || boundCharId || 'xiu-jing';
+    }
+
+    if (isXiejian && charId && !this._xiejianCharacterId) {
+      this._xiejianCharacterId = charId;
+    }
+
     let charName = '角色';
     let charSect = '门派';
     let charInitial = '?';
 
-    if (window.gameMapRenderer && typeof window.gameMapRenderer.getCharacterInfo === 'function') {
-      const charInfo = window.gameMapRenderer.getCharacterInfo(charId);
-      if (charInfo) {
-        charName = charInfo.name || charName;
-        charSect = charInfo.sect || charSect;
-        charInitial = charInfo.name ? charInfo.name.charAt(0) : charInitial;
-      }
-    } else {
+    // Use global character name lookup (always available)
+    const globalCharName = getCharacterName(charId);
+    if (globalCharName) {
+      charName = globalCharName;
       const charNames = {
         'xiu-jing': { name: '修璟', sect: '寒门' },
         'xuan-xuan': { name: '萱宣', sect: '寒门' },
@@ -4121,14 +5304,20 @@ const App = {
         'he-qingfeng': { name: '贺清风', sect: '天行教' },
         'ren-chaoye': { name: '任朝野', sect: '天行教' },
         'shen-chiyi': { name: '沈池懿', sect: '静远书院' },
-        'qi-pingchuan': { name: '戚凭川', sect: '镇沅侯府' },
-        'jiang-haoan': { name: '江淮安', sect: '妙手回春' },
-        'tang-wanchu': { name: '唐挽初', sect: '竹报平安' }
+        'qi-pingchuan': { name: '戚凭川', sect: '桃止门' },
+        'jiang-huaian': { name: '江淮安', sect: '丹溪谷' },
+        'tang-wanchu': { name: '唐挽初', sect: '不还门' }
       };
       if (charNames[charId]) {
-        charName = charNames[charId].name;
         charSect = charNames[charId].sect;
-        charInitial = charName.charAt(0);
+      }
+      charInitial = charName.charAt(0);
+    } else if (window.gameMapRenderer && typeof window.gameMapRenderer.getCharacterInfo === 'function') {
+      const charInfo = window.gameMapRenderer.getCharacterInfo(charId);
+      if (charInfo) {
+        charName = charInfo.name || charName;
+        charSect = charInfo.sect || charSect;
+        charInitial = charInfo.name ? charInfo.name.charAt(0) : charInitial;
       }
     }
 
@@ -4346,8 +5535,21 @@ const App = {
         
         window.gameMapRenderer.setMapBackground(mapBg);
 
+        // Save per-user character binding (first character when entering map)
+        if (defaultCharacterId && currentUser) {
+          const accountKey = typeof MailService !== 'undefined'
+            ? MailService.getAccountKey(currentUser)
+            : String(currentUser.username || '').trim().toLocaleLowerCase('en-US');
+          STORAGE.saveUserCharacterBinding(this.currentMailboxId, accountKey, defaultCharacterId);
+          this._saveMemberCharacterToMailbox(this.currentMailboxId, accountKey, defaultCharacterId);
+        }
+
+        if (isXiejianMailbox && defaultCharacterId) {
+            this._xiejianCharacterId = defaultCharacterId;
+        }
+
         // 进入地图时加载本地背包数据
-        const savedInventory = !AuthManager.getCurrentUser() ? STORAGE.loadInventory(this.currentMailboxId) : null;
+        const savedInventory = !AuthManager.getCurrentUser() ? STORAGE.loadInventory(this._getCurrentAccountKey()) : null;
         if (savedInventory && typeof MultiplayerSync !== 'undefined' && !MultiplayerSync.inventory) {
           MultiplayerSync.inventory = savedInventory;
         }
@@ -4355,7 +5557,7 @@ const App = {
         // 单人模式：不再初始化多人游戏
         if (isXiejianMailbox && !isLoggedIn) {
           this._initGuestXiejianSystems();
-        } else if (currentUser && (currentUser.role === 'xiu-jing' || currentUser.role === 'xuan-xuan')) {
+        } else if (!isXiejianMailbox && currentUser && (currentUser.role === 'xiu-jing' || currentUser.role === 'xuan-xuan')) {
           setTimeout(() => {
             this._syncMapCharacter(currentUser.role);
           }, 200);
@@ -4384,23 +5586,43 @@ const App = {
               </div>
             `;
             const boundCharId = STORAGE.loadCharacterBinding(this.currentMailboxId);
-            if (char.id === boundCharId) {
-              btn.classList.add('bound');
-              btn.title = '已绑定此角色';
+            if (char.id === boundCharId || char.id === window.gameMapRenderer.selectedCharacter) {
+              btn.classList.add('active');
+              btn.title = '当前角色';
             }
             btn.addEventListener('click', () => {
+              // Track previous character for potential revert
+              const prevCharId = window.gameMapRenderer.selectedCharacter || this._xiejianCharacterId;
+              if (prevCharId && prevCharId !== char.id) {
+                this._previousXiejianCharacterId = prevCharId;
+              }
               document.querySelectorAll('.character-card').forEach(b => {
                 b.classList.remove('active');
                 b.classList.remove('bound');
               });
               btn.classList.add('active');
-              btn.classList.add('bound');
-              btn.title = '已绑定此角色';
+              btn.title = '已选择此角色';
               window.gameMapRenderer.setCharacter(char.id);
               STORAGE.saveCharacterBinding(this.currentMailboxId, char.id);
-              // 立即更新当前角色信息显示
+              const currentUser = AuthManager.getCurrentUser();
+              if (currentUser) {
+                const accountKey = typeof MailService !== 'undefined'
+                  ? MailService.getAccountKey(currentUser)
+                  : String(currentUser.username || '').trim().toLocaleLowerCase('en-US');
+                STORAGE.saveUserCharacterBinding(this.currentMailboxId, accountKey, char.id);
+                this._saveMemberCharacterToMailbox(this.currentMailboxId, accountKey, char.id);
+              }
+              if (this._isXiejianMailbox()) {
+                this._xiejianCharacterId = char.id;
+                if (typeof MultiplayerSync !== 'undefined') {
+                  MultiplayerSync.requestCharacter?.(char.id);
+                }
+                const currentCharSection = document.getElementById('current-character-section');
+                const guestCharSection = document.getElementById('guest-character-section');
+                if (currentCharSection) currentCharSection.style.display = 'block';
+                if (guestCharSection) guestCharSection.style.display = 'none';
+              }
               this._updateCurrentCharacterInfo();
-              // 同步更新背包头像
               this._syncInventoryPortrait(char.id);
             });
             grid.appendChild(btn);
@@ -4552,11 +5774,13 @@ const App = {
         // 添加切换角色按钮点击事件
         const switchCharBtn = document.getElementById('switch-char-btn');
         if (switchCharBtn) {
-          switchCharBtn.hidden = isXiejianMailbox;
+          switchCharBtn.hidden = false;
           switchCharBtn.addEventListener('click', () => {
-            if (isXiejianMailbox) return;
             if (currentCharSection) currentCharSection.style.display = 'none';
             if (guestCharSection) guestCharSection.style.display = 'block';
+            if (isXiejianMailbox && this._renderMapCharacterGrid) {
+              this._renderMapCharacterGrid('xiejian');
+            }
           });
         }
 
@@ -4713,7 +5937,6 @@ const App = {
       // 防御性修复：切信箱/切视图时 mailbox-view 可能被重新渲染，
       // 导致 canvas 仍挂在「已从 DOM 删除的旧 #mailbox-map-view 节点」上，
       // 新的当前 mapContainer 为空 → 地图渲染了但用户看不到。
-      // 故重新挂载 canvas + 更新 renderer.container 引用以保证 resize 能读到正确尺寸。
       if (window.gameMapRenderer && window.gameMapRenderer.canvas) {
         if (!mapContainer.contains(window.gameMapRenderer.canvas)) {
           mapContainer.appendChild(window.gameMapRenderer.canvas);
@@ -4733,9 +5956,16 @@ const App = {
       // 这样即使背景图加载失败，tile map 也不会是错误的「村庄」
       const targetTileIdx = isXiejianMailbox ? 5 : (isHanmenMailbox ? 5 : 0);
       window.gameMapRenderer.loadMap(targetTileIdx);
-
+      
       window.gameMapRenderer.setMapBackground(mapBg);
-      // 修复：切信箱/回到地图模式后地图名不更新（挟剑还显示寒门）
+      // 同步更新选中分类，确保渲染走挟剑背景图路径
+      if (isXiejianMailbox) {
+        window.gameMapRenderer.setCategory('xiejian');
+      } else if (isHanmenMailbox) {
+        window.gameMapRenderer.setCategory('hanmen');
+      }
+      
+      // 修复：切信箱/回到地图模式后地图名不更新
       {
         const _mapNameEl = document.getElementById('map-name');
         if (_mapNameEl) {
@@ -4793,8 +6023,6 @@ const App = {
           window.gameMapRenderer.loadMap(hmIdx);
           window.gameMapRenderer.loadCharacter('xiu-jing');
           window.gameMapRenderer.setPartner('xuan-xuan');
-          // hmIdx 是标准 maps 数组索引（this.maps，6元素），不是 getMaps() 合并数组索引
-          // getMaps() 合并数组有 10 个挟剑子地图前置，索引错位，读名要用 renderer.maps
           const stdMaps = window.gameMapRenderer.maps || [];
           const mapNameEl = document.getElementById('map-name');
           if (mapNameEl && stdMaps[hmIdx]) {

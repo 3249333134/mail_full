@@ -25,9 +25,27 @@ export const InventorySystem = {
 
   async bootstrap({ useRemote = true } = {}) {
     this.ensureLocal();
-    let remote = null;
-    if (useRemote) { try { remote = await RemoteResourceLoader.loadItems(); } catch(_){} }
-    if (remote) this.applyDefinitions(remote);
+    
+    // 优先从 bootstrap API 获取 itemDefinitions
+    if (useRemote) {
+      try {
+        // 尝试从 /api/game/bootstrap 获取完整定义
+        const bootstrapResponse = await fetch('/api/game/bootstrap', { cache: 'no-cache' });
+        if (bootstrapResponse.ok) {
+          const payload = await bootstrapResponse.json();
+          if (payload.itemDefinitions && typeof payload.itemDefinitions === 'object') {
+            this.applyDefinitions(payload.itemDefinitions);
+            return this.getDefsPlainObject();
+          }
+        }
+      } catch (_) {}
+      
+      // 备选方案：通过 RemoteResourceLoader 加载
+      try {
+        const remote = await RemoteResourceLoader.loadItems();
+        if (remote) this.applyDefinitions(remote);
+      } catch (_) {}
+    }
     return this.getDefsPlainObject();
   },
 

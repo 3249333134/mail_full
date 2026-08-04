@@ -3,10 +3,11 @@
    ======================================== */
 
 Object.assign(App, {
-  async renderReader(letterId) {
-    let letter = null;
+  async renderReader(letterId, overrideLetter = null) {
+    let letter = overrideLetter;
     const allMailboxes = MailboxManager.getMailboxes();
     for (const mb of allMailboxes) {
+      if (letter) break;
       const letters = MailboxManager.loadMailboxLetters(mb.id);
       const found = letters.find(x => x.id === letterId);
       if (found) {
@@ -27,17 +28,18 @@ Object.assign(App, {
 
     this.currentMailboxId = letter.mailboxId;
     const isShared = MailboxManager.isSharedMailbox(letter.mailboxId);
-    let senderName = letter.sender || '';
-    let recipientName = letter.recipient || '';
+    // 优先使用 identity（含角色名），其次用 letter 上已保存的 sender/recipient，最后才是 author.username
+    let senderName = letter.senderIdentity?.identityName || letter.sender || '';
+    let recipientName = letter.recipientIdentity?.identityName || letter.recipient || '';
 
-    if (letter.author) {
-      senderName = letter.author.displayName || letter.author.username || senderName;
+    if (!senderName && letter.author) {
+      senderName = letter.author.displayName || letter.author.username || '';
     }
 
     if (isShared && letter.author) {
       document.getElementById('reader-title').textContent = `${senderName} 致 ${recipientName || '未知的人'}`;
     } else {
-      document.getElementById('reader-title').textContent = `致 ${letter.recipient || '未知的人'}`;
+      document.getElementById('reader-title').textContent = `致 ${recipientName || '未知的人'}`;
     }
 
     const content = document.getElementById('reader-content');
@@ -107,6 +109,9 @@ Object.assign(App, {
 
       html += '</div>';
     });
+    if (Array.isArray(letter.itemAttachments) && letter.itemAttachments.length) {
+      html += this.renderReaderItemAttachments(letter.itemAttachments);
+    }
 
     content.innerHTML = html;
 
@@ -118,7 +123,8 @@ Object.assign(App, {
     const timeStr = letter.time || '';
     const weekday = letter.weekday || '';
     const letterTitle = letter.letterTitle || '';
-    const recipient = letter.recipient || '';
+    // 优先使用 recipientIdentity（含角色名）
+    const recipient = letter.recipientIdentity?.identityName || letter.recipient || '';
     const dateStr = letter.date || '';
 
     switch (style) {
@@ -146,7 +152,8 @@ Object.assign(App, {
   },
 
   renderReaderFooter(letter, style) {
-    const sender = letter.sender || '';
+    // 优先使用 senderIdentity（含角色名）
+    const sender = letter.senderIdentity?.identityName || letter.sender || '';
     const location = letter.location || '';
 
     switch (style) {
@@ -544,13 +551,14 @@ Object.assign(App, {
 
   renderReaderElement(elem) {
     const style = `position:absolute;left:${elem.x || 0}px;top:${elem.y || 0}px;`;
-    const rot = elem.rotate ? `transform:rotate(${elem.rotate}deg);` : '';
+    const rotation = elem.rotation ?? elem.rotate ?? 0;
+    const rot = rotation ? `transform:rotate(${rotation}deg);` : '';
 
     switch (elem.type) {
       case 'text':
         return `<div style="${style}${rot}font-family:var(--font-handwriting);font-size:${elem.fontSize || 16}px;line-height:1.8;padding:4px 8px;white-space:pre-wrap;">${(elem.text || '').replace(/\n/g, '<br>')}</div>`;
       case 'image':
-        return `<div style="${style}${rot}max-width:${elem.width || 200}px;"><img src="${elem.src}" style="max-width:100%;border-radius:4px;box-shadow:0 2px 8px rgba(0,0,0,0.1);"></div>`;
+        return `<div style="${style}${rot}width:${elem.width || 200}px;"><div class="${ImageFrames.className(elem.frameStyle)}"><img src="${elem.src}" alt="信件图片"></div></div>`;
       case 'voice':
         const dur = elem.duration || 0;
         const dm = Math.floor(dur / 60);
@@ -565,6 +573,37 @@ Object.assign(App, {
       default:
         return '';
     }
+  },
+
+  renderReaderItemAttachments(items) {
+    const escape = value => String(value ?? '').replace(/[&<>"']/g, char => ({
+      '&': '&amp;',
+      '<': '&lt;',
+      '>': '&gt;',
+      '"': '&quot;',
+      "'": '&#39;'
+    })[char]);
+    return `
+      <section class="reader-item-attachments" aria-label="随信物品">
+        <header>
+          <h3>随信物品</h3>
+          <p>${items.every(item => item.status === 'received') ? '物品已收入收信账号背包' : '物品正在由信件安全托管'}</p>
+        </header>
+        <div class="reader-item-attachment-grid">
+          ${items.map(item => `
+            <article class="reader-item-attachment">
+              <img src="${escape(item.icon || '')}" alt="">
+              <div>
+                <h4>${escape(item.name || item.definitionId)}</h4>
+                <p>${escape(item.description || '')}</p>
+                <small>${escape(item.originLabel || '来自 既有物品')}</small>
+                <em>${item.status === 'received' ? '已到账' : '已托管'}</em>
+              </div>
+            </article>
+          `).join('')}
+        </div>
+      </section>
+    `;
   },
 
   /* ========================================

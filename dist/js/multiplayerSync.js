@@ -1,4 +1,25 @@
 /* Multiplayer synchronization for shared mailboxes and Xiejian. */
+
+// Character name lookup (always available, independent of gameMapRenderer)
+const MP_CHARACTER_NAME_MAP = {
+  'zhou-ran': '周然', 'he-qingfeng': '贺清风', 'ren-chaoye': '任朝野',
+  'shen-chiyi': '沈池懿', 'qi-pingchuan': '戚凭川', 'jiang-huaian': '江淮安',
+  'tang-wanchu': '唐挽初',
+  'xuan-xuan': '萱宣', 'xiu-jing': '修璟',
+  'mask-dude': 'Mask Dude', 'ninja-frog': '忍者蛙', 'pink-man': '粉衣人',
+  'virtual-guy': '虚拟人'
+};
+
+function mpGetCharacterName(charId) {
+  if (!charId) return '';
+  if (MP_CHARACTER_NAME_MAP[charId]) return MP_CHARACTER_NAME_MAP[charId];
+  if (typeof window !== 'undefined' && window.gameMapRenderer?.getCharacterInfo) {
+    const info = window.gameMapRenderer.getCharacterInfo(charId);
+    if (info?.name) return info.name;
+  }
+  return '';
+}
+
 const MultiplayerSync = {
   currentUser: null,
   players: {},
@@ -226,11 +247,52 @@ const MultiplayerSync = {
     });
   },
 
-  broadcastChat(content) {
+  broadcastChat(content, messageId) {
     if (!this.currentUser || !String(content || '').trim()) return;
+    
+    // Get display name and character info
+    const currentUser = this.currentUser;
+    const displayName = currentUser.displayName || currentUser.username || this.accountKey || '';
+    const characterId = this.selectedCharacterId || '';
+    const characterName = mpGetCharacterName(characterId);
+    
+    // Create sender name with character info
+    const senderName = characterName 
+      ? `${displayName}（${characterName}）`
+      : displayName;
+    
+    // Add accountKey and messageId to help server identify the sender and for deduplication
     this._wsSend({
       type: 'chat',
+      accountKey: this.accountKey,
+      messageId: messageId || '',
       content: String(content).trim(),
+      senderName: senderName,
+      characterId: characterId,
+      timestamp: Date.now()
+    });
+  },
+
+  sendPrivateChat(toUserId, content, messageId) {
+    if (!this.currentUser || !toUserId || !String(content || '').trim()) return;
+    
+    const currentUser = this.currentUser;
+    const displayName = currentUser.displayName || currentUser.username || this.accountKey || '';
+    const characterId = this.selectedCharacterId || '';
+    const characterName = mpGetCharacterName(characterId);
+    
+    const senderName = characterName 
+      ? `${displayName}（${characterName}）`
+      : displayName;
+    
+    this._wsSend({
+      type: 'private_chat',
+      toUserId: toUserId,
+      accountKey: this.accountKey,
+      messageId: messageId || '',
+      content: String(content).trim(),
+      senderName: senderName,
+      characterId: characterId,
       timestamp: Date.now()
     });
   },
@@ -414,7 +476,19 @@ const MultiplayerSync = {
     }
 
     if (message.type === 'chat') {
-      if (message.userId !== this.accountKey) this._emit('chat', message);
+      // Strictly filter out messages from self using both userId and accountKey
+      // This prevents any case where our own message gets treated as remote
+      if (message.userId !== this.accountKey && message.accountKey !== this.accountKey) {
+        this._emit('chat', message);
+      }
+      return;
+    }
+
+    if (message.type === 'private_chat') {
+      // Private chat: filter out messages from self
+      if (message.userId !== this.accountKey && message.accountKey !== this.accountKey) {
+        this._emit('privateChat', message);
+      }
       return;
     }
 

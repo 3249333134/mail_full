@@ -1359,6 +1359,20 @@ Object.assign(MailboxManager, {
     }
     members.push(userId);
 
+    // Save member info
+    const currentUser = AuthManager.getCurrentUser();
+    const displayName = currentUser
+      ? (currentUser.displayName || currentUser.username || userId)
+      : userId;
+    const charId = currentUser?.role || '';
+
+    // Update memberNames and memberCharacters
+    const memberNames = { ...(mb.memberNames || {}), [userId]: displayName };
+    const memberCharacters = { ...(mb.memberCharacters || {}) };
+    if (charId && !memberCharacters[userId]) {
+      memberCharacters[userId] = { characterId: charId, boundAt: Date.now() };
+    }
+
     let finalMailbox;
 
     if (mb.isShared) {
@@ -1366,18 +1380,18 @@ Object.assign(MailboxManager, {
       const allShared = STORAGE.loadSharedMailboxes();
       const idx = allShared.findIndex(m => m.id === mb.id);
       if (idx >= 0) {
-        allShared[idx] = { ...allShared[idx], members, updatedAt: Date.now() };
+        allShared[idx] = { ...allShared[idx], members, memberNames, memberCharacters, updatedAt: Date.now(), _memberDataDirty: true };
         finalMailbox = allShared[idx];
         STORAGE.saveSharedMailbox(finalMailbox);
       } else {
-        finalMailbox = { ...mb, members, updatedAt: Date.now(), isShared: true, isCustom: true };
+        finalMailbox = { ...mb, members, memberNames, memberCharacters, updatedAt: Date.now(), isShared: true, isCustom: true, _memberDataDirty: true };
         STORAGE.saveSharedMailbox(finalMailbox);
       }
     } else {
       // 私有信箱升级为共享
       const privateList = STORAGE.loadMailboxes();
       const idx = privateList.findIndex(m => m.id === mb.id);
-      const upgraded = { ...mb, members, isShared: true, isCustom: true, updatedAt: Date.now() };
+      const upgraded = { ...mb, members, memberNames, memberCharacters, isShared: true, isCustom: true, updatedAt: Date.now(), _memberDataDirty: true };
       if (idx >= 0) {
         privateList[idx] = upgraded;
         STORAGE.saveMailboxes(privateList);
@@ -1447,16 +1461,36 @@ Object.assign(MailboxManager, {
             try {
               const locals = STORAGE.loadMailboxes() || [];
               const idx = locals.findIndex(m => String(m.id) === String(mb.id));
+              
+              // Get current user's info for memberNames
+              const currentUser = AuthManager.getCurrentUser();
+              const displayName = currentUser
+                ? (currentUser.displayName || currentUser.username || accountKey)
+                : accountKey;
+              const charId = currentUser?.role || '';
+
               if (idx >= 0) {
                 const members = Array.isArray(locals[idx].members) ? locals[idx].members.slice() : [];
                 if (!members.includes(accountKey)) members.push(accountKey);
                 const memberAccountKeys = Array.isArray(locals[idx].memberAccountKeys) ? locals[idx].memberAccountKeys.slice() : [];
                 if (!memberAccountKeys.includes(accountKey)) memberAccountKeys.push(accountKey);
-                locals[idx] = { ...locals[idx], ...mb, members, memberAccountKeys, _remoteUpsertNeeded: false };
+                
+                // Save memberNames and memberCharacters
+                const memberNames = { ...(locals[idx].memberNames || {}), [accountKey]: displayName };
+                const memberCharacters = { ...(locals[idx].memberCharacters || {}) };
+                if (charId && !memberCharacters[accountKey]) {
+                  memberCharacters[accountKey] = { characterId: charId, boundAt: Date.now() };
+                }
+                
+                locals[idx] = { ...locals[idx], ...mb, members, memberAccountKeys, memberNames, memberCharacters, _remoteUpsertNeeded: false, _memberDataDirty: true };
               } else {
-                const base = { ...mb, _remoteUpsertNeeded: false };
+                const base = { ...mb, _remoteUpsertNeeded: false, _memberDataDirty: true };
                 if (!Array.isArray(base.members)) base.members = [accountKey];
                 if (!Array.isArray(base.memberAccountKeys)) base.memberAccountKeys = [accountKey];
+                base.memberNames = { ...(base.memberNames || {}), [accountKey]: displayName };
+                if (charId) {
+                  base.memberCharacters = { ...(base.memberCharacters || {}), [accountKey]: { characterId: charId, boundAt: Date.now() } };
+                }
                 locals.push(base);
               }
               STORAGE.saveMailboxes(locals);

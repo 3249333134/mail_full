@@ -49,11 +49,14 @@ const Editor = {
       const hours = String(now.getHours()).padStart(2, '0');
       const minutes = String(now.getMinutes()).padStart(2, '0');
       const currentUser = AuthManager.getCurrentUser();
-      const isShared = MailboxManager.isSharedMailbox(this.mailboxId);
+      const isShared = this.mailboxId ? MailboxManager.isSharedMailbox(this.mailboxId) : false;
+      
+      // 使用当前 mailboxId，如果没有则保持为空，让 getIdentityName 搜索所有信箱
+      const effectiveMailboxId = this.mailboxId || '';
       
       this.letter = {
         id: 'letter-' + Date.now() + '-' + Math.random().toString(36).slice(2, 8),
-        mailboxId: this.mailboxId || 'mailbox-may',
+        mailboxId: effectiveMailboxId,
         paperStyle: this.paperStyle,
         envelopeStyle: 'kraft-brown',
         recipient: '',
@@ -76,18 +79,32 @@ const Editor = {
           username: currentUser.username,
           displayName: currentUser.displayName || currentUser.username
         };
-        this.letter.sender = currentUser.displayName || currentUser.username;
       }
 
       if (currentUser) {
         this.letter.senderAccountKey = MailService.getAccountKey(currentUser);
-        this.letter.sender = MailService.getIdentityName(this.letter.mailboxId, currentUser);
+        // 传入空字符串让 getIdentityName 搜索所有信箱的角色绑定
+        this.letter.sender = MailService.getIdentityName(effectiveMailboxId || null, currentUser);
       }
       if (this.pendingRecipient) {
         this.letter.recipientAccountKey = this.pendingRecipient.accountKey;
-        this.letter.recipient = this.pendingRecipient.identityName ||
-          this.pendingRecipient.displayName ||
-          this.pendingRecipient.username;
+        // 优先使用 identityName（角色名），否则通过 getIdentityName 获取
+        if (this.pendingRecipient.identityName) {
+          this.letter.recipient = this.pendingRecipient.identityName;
+        } else if (typeof MailService !== 'undefined' && this.pendingRecipient.accountKey) {
+          // 创建临时用户对象来获取角色名（getAccountKey 使用 username 或 id）
+          const tempUser = {
+            username: this.pendingRecipient.accountKey,
+            id: this.pendingRecipient.accountKey,
+            displayName: this.pendingRecipient.displayName,
+            role: this.pendingRecipient.characterId || ''
+          };
+          this.letter.recipient = MailService.getIdentityName(effectiveMailboxId || null, tempUser);
+        } else {
+          this.letter.recipient = this.pendingRecipient.displayName ||
+            this.pendingRecipient.username ||
+            this.pendingRecipient.fullName;
+        }
       }
     }
     this.letter.itemAttachmentIds = Array.isArray(this.letter.itemAttachmentIds)
@@ -619,30 +636,25 @@ const Editor = {
 
     const recipientInput = document.getElementById('meta-recipient');
     const senderInput = document.getElementById('meta-sender');
-    if (this.letter.recipientAccountKey) {
-      recipientInput.readOnly = true;
-      recipientInput.title = '点击重新选择收信人';
-      recipientInput.addEventListener('click', () => {
-        App._openRecipientPicker(this.letter.mailboxId, recipient => {
-          this.letter.recipientAccountKey = recipient.accountKey;
-          this.letter.recipient = recipient.identityName || recipient.displayName || recipient.username;
-          recipientInput.value = this.letter.recipient;
-          this.updateTitle();
-          this.updateAllWidgets();
-          this._renderEnvelopePreview(this.letter.envelopeStyle || 'vintage-stamp');
-        });
+    
+    recipientInput.readOnly = true;
+    recipientInput.title = '点击选择收信人';
+    recipientInput.addEventListener('click', () => {
+      App._openRecipientPicker(this.letter.mailboxId, recipient => {
+        this.letter.recipientAccountKey = recipient.accountKey;
+        this.letter.recipient = recipient.identityName || recipient.displayName || recipient.username || recipient.fullName;
+        recipientInput.value = this.letter.recipient;
+        this.updateTitle();
+        this.updateAllWidgets();
+        this._renderEnvelopePreview(this.letter.envelopeStyle || 'vintage-stamp');
       });
-    }
+    });
+
     if (this.letter.senderAccountKey) {
       senderInput.readOnly = true;
       senderInput.title = '写信身份由当前账号决定';
     }
 
-    recipientInput.addEventListener('input', (e) => {
-      this.letter.recipient = e.target.value;
-      this.updateAllWidgets();
-      this._renderEnvelopePreview(this.letter.envelopeStyle || 'vintage-stamp');
-    });
     senderInput.addEventListener('input', (e) => {
       this.letter.sender = e.target.value;
       this.updateAllWidgets();

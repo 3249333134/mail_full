@@ -33,7 +33,56 @@ class AssetManagerClass {
       return this.loading.get(path);
     }
 
-    const promise = new Promise((resolve) => {
+    // 优先使用全局 ResourceManager（持久化缓存 + 多源回退）
+    // ResourceManager 由外层 js/resourceManager.js 注入到 window
+    const useRM = (typeof ResourceManager !== 'undefined')
+      && ResourceManager
+      && ResourceManager._configured
+      && ResourceManager.config
+      && ResourceManager.config.enableCache;
+
+    const promise = useRM
+      ? this._loadImageViaResourceManager(path)
+      : this._loadImageDirect(path);
+
+    this.loading.set(path, promise);
+    return promise;
+  }
+
+  /**
+   * 通过 ResourceManager 加载：IndexedDB 持久化缓存 + 多源 CDN 回退 + 自动重试
+   * 注意：ResourceManager 期望相对路径（不含 ASSET_BASE 前缀），便于跨源统一寻址
+   */
+  async _loadImageViaResourceManager(path) {
+    try {
+      // 拼接完整资源 URL（含 ASSET_BASE 前缀）作为 ResourceManager 的 cacheKey。
+      // 这样 ResourceManager 在 resolveCandidates 时会派生：
+      //   remoteBaseUrls + clean  → 远端 CDN URL（若配置了 CDN）
+      //   localBaseUrl + clean   → 本地最终 URL（如 ./sendbox/src/assets/xiejian/...）
+      // 缓存命中时直接返回，未命中则多源回退加载。
+      const fullPath = this.getAssetUrl(path);
+      const img = await ResourceManager.loadImage(fullPath);
+      if (img) {
+        this.cache.set(path, img);
+        this.loading.delete(path);
+        return img;
+      }
+      // RM 全部失败则降级直连
+      const directImg = await this._loadImageDirect(path);
+      if (!directImg) this.failedPaths.add(path);
+      this.loading.delete(path);
+      return directImg;
+    } catch (e) {
+      // 回退到直连
+      const directImg = await this._loadImageDirect(path);
+      if (!directImg) this.failedPaths.add(path);
+      this.loading.delete(path);
+      return directImg;
+    }
+  }
+
+  _loadImageDirect(path) {
+    return new Promise((resolve) => {
       const candidates = this.getAssetUrls(path);
       let index = 0;
       const tryNext = () => {
@@ -61,9 +110,6 @@ class AssetManagerClass {
       };
       tryNext();
     });
-
-    this.loading.set(path, promise);
-    return promise;
   }
 
   async loadMultiple(paths) {

@@ -28,17 +28,18 @@ Object.assign(App, {
 
     this.currentMailboxId = letter.mailboxId;
     const isShared = MailboxManager.isSharedMailbox(letter.mailboxId);
-    let senderName = letter.sender || '';
-    let recipientName = letter.recipient || '';
+    // 优先使用 identity（含角色名），其次用 letter 上已保存的 sender/recipient，最后才是 author.username
+    let senderName = letter.senderIdentity?.identityName || letter.sender || '';
+    let recipientName = letter.recipientIdentity?.identityName || letter.recipient || '';
 
-    if (letter.author) {
-      senderName = letter.author.displayName || letter.author.username || senderName;
+    if (!senderName && letter.author) {
+      senderName = letter.author.displayName || letter.author.username || '';
     }
 
     if (isShared && letter.author) {
       document.getElementById('reader-title').textContent = `${senderName} 致 ${recipientName || '未知的人'}`;
     } else {
-      document.getElementById('reader-title').textContent = `致 ${letter.recipient || '未知的人'}`;
+      document.getElementById('reader-title').textContent = `致 ${recipientName || '未知的人'}`;
     }
 
     const content = document.getElementById('reader-content');
@@ -122,7 +123,8 @@ Object.assign(App, {
     const timeStr = letter.time || '';
     const weekday = letter.weekday || '';
     const letterTitle = letter.letterTitle || '';
-    const recipient = letter.recipient || '';
+    // 优先使用 recipientIdentity（含角色名）
+    const recipient = letter.recipientIdentity?.identityName || letter.recipient || '';
     const dateStr = letter.date || '';
 
     switch (style) {
@@ -150,7 +152,8 @@ Object.assign(App, {
   },
 
   renderReaderFooter(letter, style) {
-    const sender = letter.sender || '';
+    // 优先使用 senderIdentity（含角色名）
+    const sender = letter.senderIdentity?.identityName || letter.sender || '';
     const location = letter.location || '';
 
     switch (style) {

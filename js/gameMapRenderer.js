@@ -1,7 +1,7 @@
 import { TILE, MAP_W, MAP_H, PLAYER_SPEED, TILE_TYPE, TILE_SOLID } from '../sendbox/src/gameConfig.js';
 import { PixelArt } from '../sendbox/src/pixelArt.js';
 import { MapManager, PRESET_MAPS } from '../sendbox/src/mapManager.js';
-import { AssetManager } from '../sendbox/src/assetManager.js';
+import { AssetManager } from '../sendbox/src/assetManager.js?v=20260804b';
 import { ASSET_CATEGORIES } from '../sendbox/src/assetManifest.js';
 
 // ===== 模块化数据接入（替换点A：优先用 CharacterSystem / MapSystem，缺失再兜底）=====
@@ -654,6 +654,9 @@ export class GameMapRenderer {
           if (mapNameEl) {
             mapNameEl.textContent = mapModel?.name || xjMapNames[bgKey] || bgKey;
           }
+          
+          // 加载该地图的世界道具
+          this._loadWorldItemsForMap(bgKey);
         }
         return img;
       }).catch(() => {
@@ -690,6 +693,9 @@ export class GameMapRenderer {
           };
           mapNameEl.textContent = bgNames[bgKey] || bgKey;
         }
+        
+        // 加载该地图的世界道具
+        this._loadWorldItemsForMap(bgKey);
       }
       return img;
     }).catch(() => {
@@ -1470,16 +1476,80 @@ export class GameMapRenderer {
     return this.worldItems.find(item => Math.hypot(item.x - x, item.y - y) <= 30) || null;
   }
 
+  async _loadWorldItemsForMap(mapKey) {
+    if (!mapKey) return;
+    try {
+      // 从服务端加载世界道具
+      if (typeof MailService !== 'undefined' && MailService.getWorldItems) {
+        const accountKey = typeof AuthManager !== 'undefined' 
+          ? (MailService.getAccountKey?.(AuthManager.getCurrentUser()) || '') 
+          : '';
+        if (accountKey) {
+          const items = await MailService.getWorldItems(mapKey);
+          if (Array.isArray(items) && items.length > 0) {
+            this.setWorldItems(items);
+            return;
+          }
+        }
+      }
+      
+      // 兜底：使用本地地图数据初始化道具
+      this._initWorldItemsFromMapData(mapKey);
+    } catch (e) {
+      console.warn('[GameMapRenderer] 加载世界道具失败:', e?.message || e);
+      // 兜底：使用本地地图数据初始化道具
+      this._initWorldItemsFromMapData(mapKey);
+    }
+  }
+
+  _initWorldItemsFromMapData(mapKey) {
+    const mapModel = MapSystem.getMap(mapKey);
+    if (!mapModel || !mapModel.initialWorldItemDefs) {
+      this.setWorldItems([]);
+      return;
+    }
+    
+    const worldSize = this.getWorldSize();
+    const items = mapModel.instantiateWorldItems({
+      seed: Date.now(),
+      worldW: worldSize.width,
+      worldH: worldSize.height
+    });
+    
+    this.setWorldItems(items);
+  }
+
   _loadWorldItemImage(item) {
-    const url = item?.definition?.icon;
+    const iconPath = item?.definition?.icon;
+    if (!iconPath) return;
+    
+    // 使用 AssetManager 解析路径，获取完整的可访问 URL
+    const url = this.assetManager.getAssetUrl(iconPath);
     if (!url || this.worldItemImages[url]) return;
+    
     const image = new Image();
+    image.onload = () => {
+      // 强制重绘，确保道具显示
+      if (this.canvas && this.mapBackgroundLoaded) {
+        this._needsRedraw = true;
+      }
+    };
+    image.onerror = () => {
+      // 加载失败时尝试直接使用路径
+      if (url !== iconPath) {
+        const fallbackImage = new Image();
+        fallbackImage.src = iconPath;
+        this.worldItemImages[url] = fallbackImage;
+      }
+    };
     image.src = url;
     this.worldItemImages[url] = image;
   }
 
   _drawWorldItem(item) {
-    const image = this.worldItemImages[item.definition?.icon];
+    const iconPath = item?.definition?.icon;
+    const imageKey = iconPath ? this.assetManager.getAssetUrl(iconPath) : null;
+    const image = imageKey ? this.worldItemImages[imageKey] : null;
     const fixed = item.definition?.portable === false;
     const size = fixed ? 50 : 38;
     const x = item.x - this.camera.x;

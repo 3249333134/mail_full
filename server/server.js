@@ -4,8 +4,8 @@ const fs = require('fs');
 const path = require('path');
 const { URL } = require('url');
 require('dotenv').config();
-const { initMongo, isMongoEnabled } = require('./mongoClient');
-const mongoDao = require('./mongoDao');
+const { initMysql, isMysqlEnabled } = require('./mysqlClient');
+const mysqlDao = require('./mysqlDao');
 const {
   itemDefinitions,
   starterItems,
@@ -29,6 +29,12 @@ const MAX_ROOM_CONNECTIONS = 11;
 const COMBAT_ATTACK_COOLDOWN_MS = Number(process.env.COMBAT_ATTACK_COOLDOWN_MS || 900);
 const XIEJIAN_CHARACTERS = new Set(Object.keys(characterDefinitions));
 const XIEJIAN_CHARACTER_NAMES = Object.fromEntries(Object.entries(characterDefinitions).map(([id, def]) => [id, def.name]));
+// 全局角色名映射（所有信箱的角色）
+const GLOBAL_CHARACTER_NAMES = {
+  ...XIEJIAN_CHARACTER_NAMES,
+  'xiu-jing': '修璟',
+  'xuan-xuan': '萱宣',
+};
 const DEFINITIONS_VERSION = String(process.env.GAME_RESOURCE_VERSION || '20260802-domain-v1');
 const DEFAULT_XIEJIAN_MAP = 'xj-jingyuan';
 const ITEM_DATA_VERSION = 2;
@@ -278,13 +284,14 @@ function createItemInstance(instanceId, definitionId, location) {
 
 function ensureWorldSeed() {
   if (persistentState.worldSeedVersion >= 1) return;
+  const itemsToSave = [];
   for (const [mapKey, nodeId, definitionId, rawCount] of placements) {
     const count = Number(rawCount) || 1;
     for (let index = 0; index < count; index += 1) {
       const instanceId = `world:v1:${mapKey}:${definitionId}:${index + 1}`;
       if (persistentState.itemInstances[instanceId]) continue;
       const position = nodePosition(mapKey, nodeId, index);
-      persistentState.itemInstances[instanceId] = createItemInstance(instanceId, definitionId, {
+      const instance = createItemInstance(instanceId, definitionId, {
         locationType: 'world',
         mapKey,
         nodeId,
@@ -292,9 +299,20 @@ function ensureWorldSeed() {
         origin: { type: 'map', mapKey, nodeId, ...position },
         acquisition: { method: 'world', at: Date.now(), mapKey, nodeId }
       });
+      persistentState.itemInstances[instanceId] = instance;
+      itemsToSave.push(instance);
     }
   }
   persistentState.worldSeedVersion = 1;
+  
+  // 同步到 MySQL
+  if (isMysqlEnabled() && itemsToSave.length > 0) {
+    itemsToSave.forEach(item => {
+      mysqlDao.saveItemInstance(item).catch(err => {
+        console.warn('[ensureWorldSeed] 保存道具实例到 MySQL 失败:', err?.message || err);
+      });
+    });
+  }
 }
 
 function ensureInventory(accountKey) {
@@ -518,13 +536,7 @@ function saveState() {
   const tempFile = `${STATE_FILE}.tmp`;
   fs.writeFileSync(tempFile, JSON.stringify(persistentState, null, 2), 'utf8');
   fs.renameSync(tempFile, STATE_FILE);
-
-  // 双写：MONGO_ENABLED=1 时同步 accounts/profiles/letters/inventories 到 Mongo（热迁移）
-  if (isMongoEnabled()) {
-    mongoDao.importFromState(persistentState).catch(err =>
-      console.warn('[mongo] importFromState 热写入失败：', err?.message || err)
-    );
-  }
+  // 注：各 API 调用点已做双写（内存 + MySQL），此处不再全量热同步
 }
 
 function normalizeAccountKey(value) {
@@ -603,19 +615,46 @@ function getAccountIdentity(accountKey, mailboxId) {
     role: 'user'
   };
   const profile = accountProfile(accountKey, mailboxId || 'mailbox-xiejian');
+  
+  // 1. 优先从 mailbox 的 memberCharacters 获取角色
+  let characterId = '';
+  if (mailboxId) {
+    const mailbox = persistentState.mailboxes[mailboxId];
+    if (mailbox?.memberCharacters && mailbox.memberCharacters[accountKey]) {
+      const raw = mailbox.memberCharacters[accountKey];
+      characterId = typeof raw === 'string' ? raw : (raw.characterId || raw.id || '');
+    }
+  }
+  
+  // 2. 如果 mailbox 没有，再从 worldProfiles 获取（挟剑地图）
+  if (!characterId && mailboxId === 'mailbox-xiejian' && profile.xiejianCharacterId) {
+    characterId = profile.xiejianCharacterId;
+  }
+  
+  // 3. 从 account.role 获取（寒门双主角）
+  if (!characterId) {
+    if (account.role === 'xiu-jing' || account.role === 'xuan-xuan') {
+      characterId = account.role;
+    }
+  }
+  
+  // 决定显示名
   let identityName = account.displayName || account.username || accountKey;
-  if (mailboxId === 'mailbox-xiejian' && profile.xiejianCharacterId) {
-    identityName = XIEJIAN_CHARACTER_NAMES[profile.xiejianCharacterId] || profile.xiejianCharacterId;
+  if (characterId && GLOBAL_CHARACTER_NAMES[characterId]) {
+    identityName = GLOBAL_CHARACTER_NAMES[characterId];
+  } else if (mailboxId === 'mailbox-xiejian' && characterId) {
+    identityName = XIEJIAN_CHARACTER_NAMES[characterId] || characterId;
   } else if (mailboxId === 'mailbox-hanmen-duet') {
     if (account.role === 'xiu-jing') identityName = '修璟';
     if (account.role === 'xuan-xuan') identityName = '萱宣';
   }
+  
   return {
     accountKey,
     username: account.username,
     displayName: account.displayName,
     role: account.role,
-    characterId: mailboxId === 'mailbox-xiejian' ? profile.xiejianCharacterId : account.role,
+    characterId: characterId || (mailboxId === 'mailbox-xiejian' ? profile.xiejianCharacterId : account.role),
     identityName
   };
 }
@@ -711,6 +750,21 @@ async function handleApi(req, res, parsedUrl) {
   if (!parsedUrl.pathname.startsWith('/api/')) return false;
 
   try {
+    // ======== 资源持久化：bootstrap 配置 ========
+    if (req.method === 'GET' && parsedUrl.pathname === '/api/resources/bootstrap') {
+      jsonResponse(res, 200, {
+        resourceVersion: DEFINITIONS_VERSION,
+        cacheVersion: DEFINITIONS_VERSION,
+        // 远端 CDN / 备用服务器地址（按优先级排列）
+        remoteBaseUrls: envUrlList('RESOURCE_REMOTE_BASE_URLS'),
+        assetBaseUrls: envUrlList('RESOURCE_REMOTE_BASE_URLS'),
+        localBaseUrl: './',
+        maxRetries: 3,
+        enableCache: true,
+      });
+      return true;
+    }
+
     if (req.method === 'GET' && parsedUrl.pathname === '/api/game/bootstrap') {
       jsonResponse(res, 200, {
         resourceVersion: DEFINITIONS_VERSION,
@@ -778,9 +832,9 @@ async function handleApi(req, res, parsedUrl) {
       const accountKey = normalizeAccountKey(parsedUrl.searchParams.get('accountKey'));
       const mailboxId = String(parsedUrl.searchParams.get('mailboxId') || '');
       let mongoLetters = null;
-      if (isMongoEnabled()) {
+      if (isMysqlEnabled()) {
         try {
-          mongoLetters = await mongoDao.loadLetters(mailboxId, accountKey);
+          mongoLetters = await mysqlDao.loadLetters(mailboxId, accountKey);
         } catch (_) { mongoLetters = null; }
       }
       // 1) 如果 Mongo 可用且有结果 → 用 Mongo 结果格式化输出（同时合并 persistentState，保证双写不丢）
@@ -796,7 +850,7 @@ async function handleApi(req, res, parsedUrl) {
           if (!old || ((r.letter?.updatedAt || r.updatedAt || 0) > (old.letter?.updatedAt || old.updatedAt || 0))) {
             byId.set(key, r);
             // 发现本地更新的 → 顺手 upsert 回 Mongo（异步不阻塞响应）
-            if (isMongoEnabled()) mongoDao.saveLetter(r).catch(() => {});
+            if (isMysqlEnabled()) mysqlDao.saveLetter(r).catch(() => {});
           }
         }
         rawRecords = Array.from(byId.values()).filter(r => r.mailboxId === mailboxId);
@@ -825,7 +879,7 @@ async function handleApi(req, res, parsedUrl) {
       jsonResponse(res, 200, {
         letters,
         unreadCount: letters.filter(letter => letter.isUnread).length,
-        remote: isMongoEnabled() && Array.isArray(mongoLetters),
+        remote: isMysqlEnabled() && Array.isArray(mongoLetters),
         fromCount: (mongoLetters || []).length
       });
       return true;
@@ -871,11 +925,11 @@ async function handleApi(req, res, parsedUrl) {
         }
       };
       persistentState.letters[id] = draftRecord;
-      if (isMongoEnabled()) {
-        try { await mongoDao.saveLetter(draftRecord); } catch (_) {}
+      if (isMysqlEnabled()) {
+        try { await mysqlDao.saveLetter(draftRecord); } catch (_) {}
       }
       saveState();
-      jsonResponse(res, 200, { letter: persistentState.letters[id].letter, remote: isMongoEnabled() });
+      jsonResponse(res, 200, { letter: persistentState.letters[id].letter, remote: isMysqlEnabled() });
       return true;
     }
 
@@ -892,11 +946,11 @@ async function handleApi(req, res, parsedUrl) {
         return true;
       }
       delete persistentState.letters[id];
-      if (isMongoEnabled()) {
-        try { await mongoDao.deleteLetter(id, accountKey); } catch (_) {}
+      if (isMysqlEnabled()) {
+        try { await mysqlDao.deleteLetter(id, accountKey); } catch (_) {}
       }
       saveState();
-      jsonResponse(res, 200, { success: true, remote: isMongoEnabled() });
+      jsonResponse(res, 200, { success: true, remote: isMysqlEnabled() });
       return true;
     }
 
@@ -916,7 +970,7 @@ async function handleApi(req, res, parsedUrl) {
       }
       const duplicate = Object.values(persistentState.letters).find(record =>
         record.senderAccountKey === accountKey && record.clientMessageId === clientMessageId
-      ) || (isMongoEnabled() ? null : null);
+      ) || (isMysqlEnabled() ? null : null);
       if (duplicate) {
         jsonResponse(res, 200, { letter: publicLetter(duplicate, accountKey), duplicate: true });
         return true;
@@ -971,12 +1025,12 @@ async function handleApi(req, res, parsedUrl) {
         instance.pendingOwnerAccountKey = recipientAccountKey;
       }
       persistentState.letters[id] = record;
-      if (isMongoEnabled()) {
-        try { await mongoDao.saveLetter(record); } catch (_) {}
+      if (isMysqlEnabled()) {
+        try { await mysqlDao.saveLetter(record); } catch (_) {}
       }
       saveState();
       notifyInventoryForAccount(accountKey);
-      jsonResponse(res, 200, { letter: publicLetter(record, accountKey), duplicate: false, remote: isMongoEnabled() });
+      jsonResponse(res, 200, { letter: publicLetter(record, accountKey), duplicate: false, remote: isMysqlEnabled() });
       return true;
     }
 
@@ -1019,10 +1073,10 @@ async function handleApi(req, res, parsedUrl) {
         receivedItems.push(publicInstance(instance));
       }
       record.readAt = record.readAt || Date.now();
-      if (isMongoEnabled()) {
+      if (isMysqlEnabled()) {
         try {
-          await mongoDao.saveLetter(record);
-          await mongoDao.markLetterRead(id, accountKey);
+          await mysqlDao.saveLetter(record);
+          await mysqlDao.markLetterRead(id, accountKey);
         } catch (_) {}
       }
       saveState();
@@ -1032,7 +1086,7 @@ async function handleApi(req, res, parsedUrl) {
         receivedItems,
         inventory: inventoryState(accountKey),
         letter: publicLetter(record, accountKey),
-        remote: isMongoEnabled()
+        remote: isMysqlEnabled()
       });
       return true;
     }
@@ -1060,8 +1114,8 @@ async function handleApi(req, res, parsedUrl) {
       if (!record.updatedAt) record.updatedAt = Date.now();
       persistentState.letters[record.id] = record;
       let saved = null;
-      if (isMongoEnabled()) {
-        try { saved = await mongoDao.saveLetter(record); } catch (e) { saved = null; }
+      if (isMysqlEnabled()) {
+        try { saved = await mysqlDao.saveLetter(record); } catch (e) { saved = null; }
       }
       saveState();
       jsonResponse(res, 200, { success: true, record: saved || record, remote: !!saved });
@@ -1077,15 +1131,15 @@ async function handleApi(req, res, parsedUrl) {
         if (!r || !r.id) continue;
         if (!r.updatedAt) r.updatedAt = Date.now();
         persistentState.letters[r.id] = r;
-        if (isMongoEnabled()) {
-          try { await mongoDao.saveLetter(r); results.push({ id: r.id, ok: true }); }
+        if (isMysqlEnabled()) {
+          try { await mysqlDao.saveLetter(r); results.push({ id: r.id, ok: true }); }
           catch (e) { results.push({ id: r.id, ok: false, err: String(e?.message || e) }); }
         } else {
           results.push({ id: r.id, ok: true, local: true });
         }
       }
       saveState();
-      jsonResponse(res, 200, { success: true, results, remote: isMongoEnabled() });
+      jsonResponse(res, 200, { success: true, results, remote: isMysqlEnabled() });
       return true;
     }
 
@@ -1093,8 +1147,8 @@ async function handleApi(req, res, parsedUrl) {
       const accountKey = normalizeAccountKey(parsedUrl.searchParams.get('accountKey'));
       const mailboxId = String(parsedUrl.searchParams.get('mailboxId') || '');
       let list = [];
-      if (isMongoEnabled()) {
-        try { list = await mongoDao.loadLetters(mailboxId, accountKey) || []; }
+      if (isMysqlEnabled()) {
+        try { list = await mysqlDao.loadLetters(mailboxId, accountKey) || []; }
         catch (_) { list = []; }
       }
       if (!Array.isArray(list) || list.length === 0) {
@@ -1105,7 +1159,7 @@ async function handleApi(req, res, parsedUrl) {
             (r.deliveryStatus === 'draft' && r.senderAccountKey === accountKey))
         );
       }
-      jsonResponse(res, 200, { success: true, letters: list, remote: isMongoEnabled() && list.length > 0 });
+      jsonResponse(res, 200, { success: true, letters: list, remote: isMysqlEnabled() && list.length > 0 });
       return true;
     }
 
@@ -1115,11 +1169,11 @@ async function handleApi(req, res, parsedUrl) {
       const accountKey = normalizeAccountKey(body.accountKey || '');
       if (!id) { jsonResponse(res, 400, { success: false, message: 'id 必填' }); return true; }
       delete persistentState.letters[id];
-      if (isMongoEnabled()) {
-        try { await mongoDao.deleteLetter(id, accountKey); } catch (_) {}
+      if (isMysqlEnabled()) {
+        try { await mysqlDao.deleteLetter(id, accountKey); } catch (_) {}
       }
       saveState();
-      jsonResponse(res, 200, { success: true, remote: isMongoEnabled() });
+      jsonResponse(res, 200, { success: true, remote: isMysqlEnabled() });
       return true;
     }
 
@@ -1141,14 +1195,15 @@ async function handleApi(req, res, parsedUrl) {
       return true;
     }
 
-    // ======== 新增：远端 MongoDB 新接口 ========
+    // ======== 远端 MySQL 接口 ========
 
     // 健康检查（前端用它判断能不能走云端模式）
     if (req.method === 'GET' && parsedUrl.pathname === '/api/health') {
       jsonResponse(res, 200, {
         ok: true,
         server: 'xinjian',
-        mongoEnabled: isMongoEnabled(),
+        mysqlEnabled: isMysqlEnabled(),
+        mongoEnabled: isMysqlEnabled(), // 兼容前端旧字段
         port: PORT,
         time: Date.now()
       });
@@ -1170,13 +1225,13 @@ async function handleApi(req, res, parsedUrl) {
         jsonResponse(res, 400, { success: false, message: '密码至少需要6个字符', user: null });
         return true;
       }
-      if (isMongoEnabled()) {
-        const r = await mongoDao.createUser({ username, password, displayName, role });
+      if (isMysqlEnabled()) {
+        const r = await mysqlDao.createUser({ username, password, displayName, role });
         if (r && r.error) {
           jsonResponse(res, 409, { success: false, message: r.error, user: null });
         } else if (r) {
           // 同步创建一条 account，保持 /api/accounts/sync 的语义一致
-          await mongoDao.syncAccount({ accountKey: username, username, displayName, role, userId: r.id });
+          await mysqlDao.syncAccount({ accountKey: username, username, displayName, role, userId: r.id });
           jsonResponse(res, 200, { success: true, message: '注册成功（云端）', user: r, remote: true });
         } else {
           jsonResponse(res, 500, { success: false, message: '云端注册失败，请稍后再试', user: null });
@@ -1209,21 +1264,21 @@ async function handleApi(req, res, parsedUrl) {
         jsonResponse(res, 400, { success: false, message: '用户名和密码不能为空', user: null });
         return true;
       }
-      if (isMongoEnabled()) {
-        const user = await mongoDao.findUserByUsername(username);
+      if (isMysqlEnabled()) {
+        const user = await mysqlDao.findUserByUsername(username);
         if (!user) {
           jsonResponse(res, 404, { success: false, message: '用户不存在', user: null });
           return true;
         }
-        const ok = await mongoDao.verifyPassword(user, password);
+        const ok = await mysqlDao.verifyPassword(user, password);
         if (!ok) {
           jsonResponse(res, 401, { success: false, message: '密码错误', user: null });
           return true;
         }
-        await mongoDao.recordLogin(user.id);
-        const safe = mongoDao.sanitizeUser(user);
+        await mysqlDao.recordLogin(user.id);
+        const safe = mysqlDao.sanitizeUser(user);
         // 同时也 syncAccount 确保 accounts 表里有这个用户（后续 mail/letters/inventory 用）
-        await mongoDao.syncAccount({ accountKey: username, username: safe.username, displayName: safe.displayName, role: safe.role, userId: safe.id });
+        await mysqlDao.syncAccount({ accountKey: username, username: safe.username, displayName: safe.displayName, role: safe.role, userId: safe.id });
         jsonResponse(res, 200, { success: true, message: '登录成功（云端）', user: safe, remote: true });
       } else {
         // 降级：走内存 state（兼容本地模式；这里不做密码严格校验因为本地没有 passwordHash）
@@ -1250,8 +1305,8 @@ async function handleApi(req, res, parsedUrl) {
 
     if (req.method === 'POST' && parsedUrl.pathname === '/api/auth/logout') {
       const body = await readJsonBody(req).catch(() => ({}));
-      if (isMongoEnabled() && body?.userId) {
-        await mongoDao.recordLogin(body.userId); // 记录 lastSeenAt
+      if (isMysqlEnabled() && body?.userId) {
+        await mysqlDao.recordLogin(body.userId); // 记录 lastSeenAt
       }
       jsonResponse(res, 200, { success: true, message: '已退出' });
       return true;
@@ -1261,8 +1316,8 @@ async function handleApi(req, res, parsedUrl) {
     // 列表
     if (req.method === 'GET' && parsedUrl.pathname === '/api/mailboxes') {
       const accountKey = normalizeAccountKey(parsedUrl.searchParams.get('accountKey'));
-      if (isMongoEnabled()) {
-        const list = await mongoDao.listMailboxesByMember(accountKey);
+      if (isMysqlEnabled()) {
+        const list = await mysqlDao.listMailboxesByMember(accountKey);
         jsonResponse(res, 200, { mailboxes: Array.isArray(list) ? list : [], remote: true });
       } else {
         const list = Object.values(persistentState.mailboxes).filter(mailbox =>
@@ -1276,7 +1331,7 @@ async function handleApi(req, res, parsedUrl) {
     if (req.method === 'POST' && parsedUrl.pathname === '/api/mailboxes') {
       const body = await readJsonBody(req);
       const ownerAccountKey = normalizeAccountKey(body.ownerAccountKey || body.accountKey);
-      if (isMongoEnabled()) {
+      if (isMysqlEnabled()) {
         const hasId = !!body.id;
         const hasMailboxCode = !!body.mailboxCode;
         let r;
@@ -1286,14 +1341,14 @@ async function handleApi(req, res, parsedUrl) {
           if (ownerAccountKey && !patch.ownerAccountKey) patch.ownerAccountKey = ownerAccountKey;
           if (hasMailboxCode && !patch.id) {
             // 只有 mailboxCode 没有 id：先按 code 找原 id，找不到就生成新 id
-            const existing = await mongoDao.findMailboxByCode(hasMailboxCode);
+            const existing = await mysqlDao.findMailboxByCode(hasMailboxCode);
             if (existing && existing.id) patch.id = existing.id;
             else patch.id = 'mailbox-' + Date.now() + '-' + Math.random().toString(36).slice(2, 7);
           }
           if (!patch.memberAccountKeys && ownerAccountKey) patch.memberAccountKeys = [ownerAccountKey];
-          r = await mongoDao.upsertMailboxRemote(patch);
+          r = await mysqlDao.upsertMailboxRemote(patch);
         } else {
-          r = await mongoDao.createMailbox({
+          r = await mysqlDao.createMailbox({
             name: body.name, desc: body.desc, icon: body.icon,
             themeColor: body.themeColor, mapBackground: body.mapBackground,
             isCustom: body.isCustom !== false, ownerAccountKey, visibility: body.visibility
@@ -1315,13 +1370,13 @@ async function handleApi(req, res, parsedUrl) {
     }
     if (req.method === 'GET' && parsedUrl.pathname === '/api/mailboxes/directory') {
       const query = String(parsedUrl.searchParams.get('q') || '').trim().toLowerCase();
-      const source = isMongoEnabled()
-        ? (await mongoDao.listPublicMailboxes(query) || [])
+      const source = isMysqlEnabled()
+        ? (await mysqlDao.listPublicMailboxes(query) || [])
         : Object.values(persistentState.mailboxes)
           .filter(mailbox => mailbox.visibility === 'public')
           .filter(mailbox => !query || mailbox.name.toLowerCase().includes(query) || mailbox.mailboxCode.toLowerCase().includes(query));
       const directory = source.map(mailbox => ({ id: mailbox.id, name: mailbox.name, desc: mailbox.desc, icon: mailbox.icon, mailboxCode: mailbox.mailboxCode, memberCount: (mailbox.memberAccountKeys || []).length, isCustom: mailbox.isCustom })).slice(0, 50);
-      jsonResponse(res, 200, { mailboxes: directory, remote: isMongoEnabled(), persistent: true });
+      jsonResponse(res, 200, { mailboxes: directory, remote: isMysqlEnabled(), persistent: true });
       return true;
     }
 
@@ -1329,8 +1384,8 @@ async function handleApi(req, res, parsedUrl) {
     if (req.method === 'GET' && parsedUrl.pathname.startsWith('/api/mailboxes/')) {
       const id = decodeURIComponent(parsedUrl.pathname.slice('/api/mailboxes/'.length));
       if (!id) { jsonResponse(res, 400, { error: 'missing_id' }); return true; }
-      if (isMongoEnabled()) {
-        const mb = await mongoDao.getMailboxById(id);
+      if (isMysqlEnabled()) {
+        const mb = await mysqlDao.getMailboxById(id);
         jsonResponse(res, mb ? 200 : 404, { mailbox: mb || null });
       } else {
         const mailbox = persistentState.mailboxes[id] || null;
@@ -1343,8 +1398,8 @@ async function handleApi(req, res, parsedUrl) {
     if (req.method === 'GET' && parsedUrl.pathname === '/api/mailbox_codes/lookup') {
       const code = String(parsedUrl.searchParams.get('code') || '').trim().toUpperCase();
       if (!code) { jsonResponse(res, 400, { success: false, message: 'code 为空' }); return true; }
-      if (isMongoEnabled()) {
-        const mb = await mongoDao.findMailboxByCode(code);
+      if (isMysqlEnabled()) {
+        const mb = await mysqlDao.findMailboxByCode(code);
         if (mb) {
           jsonResponse(res, 200, { success: true, code, mailbox: mb, remote: true });
         } else {
@@ -1364,8 +1419,8 @@ async function handleApi(req, res, parsedUrl) {
       const accountKey = normalizeAccountKey(body.accountKey);
       if (!code) { jsonResponse(res, 400, { success: false, message: 'code 为空' }); return true; }
       if (!accountKey) { jsonResponse(res, 401, { success: false, message: '未登录' }); return true; }
-      if (isMongoEnabled()) {
-        const r = await mongoDao.joinMailboxByCode(code, accountKey);
+      if (isMysqlEnabled()) {
+        const r = await mysqlDao.joinMailboxByCode(code, accountKey);
         if (r && r.error) {
           jsonResponse(res, 404, { success: false, message: r.error });
         } else if (r) {
@@ -1385,13 +1440,13 @@ async function handleApi(req, res, parsedUrl) {
     if (req.method === 'POST' && parsedUrl.pathname === '/api/mailboxes/share/build') {
       const body = await readJsonBody(req);
       const mailboxId = String(body.mailboxId || '');
-      if (!mailboxId || !isMongoEnabled()) {
+      if (!mailboxId || !isMysqlEnabled()) {
         jsonResponse(res, 400, { success: false, message: mailboxId ? '云端未启用' : '缺少 mailboxId' });
         return true;
       }
-      const mb = await mongoDao.getMailboxById(mailboxId);
+      const mb = await mysqlDao.getMailboxById(mailboxId);
       if (!mb) { jsonResponse(res, 404, { success: false, message: '信箱不存在' }); return true; }
-      const letters = await mongoDao.loadLetters(mailboxId, mb.ownerAccountKey || '') || [];
+      const letters = await mysqlDao.loadLetters(mailboxId, mb.ownerAccountKey || '') || [];
       const lts = (letters || []).slice(0, Number(body.maxLetters || 10)).map(l => ({
         id: l.letter?.id || l.id, title: l.letter?.title || '', from: l.letter?.senderIdentity || l.letter?.from || '',
         to: l.letter?.recipientIdentity || l.letter?.to || '', date: l.sentAt || l.updatedAt || 0,
@@ -1409,8 +1464,8 @@ async function handleApi(req, res, parsedUrl) {
       const body = await readJsonBody(req);
       const accountKey = normalizeAccountKey(body.accountKey);
       if (!accountKey) { jsonResponse(res, 400, { error: 'invalid_account' }); return true; }
-      if (isMongoEnabled()) {
-        const r = await mongoDao.saveInventory(accountKey, body.inventory);
+      if (isMysqlEnabled()) {
+        const r = await mysqlDao.saveInventory(accountKey, body.inventory);
         jsonResponse(res, 200, { success: true, inventory: r, remote: true });
       } else {
         // 降级：写回 state.json（兼容）
@@ -1434,12 +1489,12 @@ async function handleApi(req, res, parsedUrl) {
       const m = parsedUrl.searchParams.get('month');
       const d = parsedUrl.searchParams.get('day');
       if (!accountKey) { jsonResponse(res, 400, { error: 'invalid_account' }); return true; }
-      if (isMongoEnabled()) {
+      if (isMysqlEnabled()) {
         const year = y == null ? null : Number(y);
         const month = m == null ? null : Number(m);
         const day = d == null ? null : Number(d);
         const query = year != null && month != null ? { year, month, ...(day != null ? { day } : {}) } : {};
-        const r = await mongoDao.loadJournal(accountKey, query);
+        const r = await mysqlDao.loadJournal(accountKey, query);
         jsonResponse(res, 200, { success: true, entries: Array.isArray(r) ? r : (r ? [r] : []), remote: true });
       } else {
         jsonResponse(res, 200, { success: true, entries: [], remote: false, fallback: true });
@@ -1450,8 +1505,8 @@ async function handleApi(req, res, parsedUrl) {
       const body = await readJsonBody(req);
       const accountKey = normalizeAccountKey(body.accountKey);
       if (!accountKey) { jsonResponse(res, 400, { error: 'invalid_account' }); return true; }
-      if (isMongoEnabled()) {
-        const r = await mongoDao.saveJournal(accountKey, body);
+      if (isMysqlEnabled()) {
+        const r = await mysqlDao.saveJournal(accountKey, body);
         jsonResponse(res, 200, { success: true, entry: r, remote: true });
       } else {
         jsonResponse(res, 503, { success: false, message: '云端未启用，手账保存在本地', fallback: true });
@@ -1541,8 +1596,25 @@ const server = http.createServer(async (req, res) => {
       res.end('Not Found');
       return;
     }
-    const contentType = contentTypes[path.extname(filePath).toLowerCase()] || 'text/html; charset=utf-8';
-    res.writeHead(200, { 'Content-Type': contentType });
+    const ext = path.extname(filePath).toLowerCase();
+    const contentType = contentTypes[ext] || 'text/html; charset=utf-8';
+    // 静态资源缓存头（HTML 不缓存，其他资源长缓存）
+    const isHtml = ext === '.html' || urlPath === '/';
+    const cacheControl = isHtml
+      ? 'no-cache, no-store, must-revalidate'
+      : 'public, max-age=604800, immutable'; // 7 天长缓存（通过 ?v= 版本号更新）
+    const headers = {
+      'Content-Type': contentType,
+      'Cache-Control': cacheControl,
+    };
+    if (!isHtml) {
+      // 生成弱 ETag（基于文件大小 + 修改时间）
+      try {
+        const stat = fs.statSync(filePath);
+        headers['ETag'] = `W/"${stat.size.toString(36)}-${stat.mtimeMs.toString(36)}"`;
+      } catch (_) {}
+    }
+    res.writeHead(200, headers);
     res.end(data);
   });
 });
@@ -1957,6 +2029,17 @@ if (!HTTP_ONLY) {
           };
           if (!inventory.itemIds.includes(instanceId)) inventory.itemIds.push(instanceId);
           saveState();
+          
+          // 同步到 MySQL
+          if (isMysqlEnabled()) {
+            mysqlDao.saveItemInstance(instance).catch(err => {
+              console.warn('[item_pickup] 保存道具实例到 MySQL 失败:', err?.message || err);
+            });
+            mysqlDao.saveInventory(clientId, inventory).catch(err => {
+              console.warn('[item_pickup] 保存背包到 MySQL 失败:', err?.message || err);
+            });
+          }
+          
           broadcastToMap(room, player.mapKey, {
             type: 'world_item_removed',
             instanceId,
@@ -1991,6 +2074,17 @@ if (!HTTP_ONLY) {
           instance.ny = routePosition.ny;
           inventory.itemIds = inventory.itemIds.filter(id => id !== instanceId);
           saveState();
+          
+          // 同步到 MySQL
+          if (isMysqlEnabled()) {
+            mysqlDao.saveItemInstance(instance).catch(err => {
+              console.warn('[item_drop] 保存道具实例到 MySQL 失败:', err?.message || err);
+            });
+            mysqlDao.saveInventory(clientId, inventory).catch(err => {
+              console.warn('[item_drop] 保存背包到 MySQL 失败:', err?.message || err);
+            });
+          }
+          
           sendInventory(ws, clientId);
           broadcastToMap(room, player.mapKey, {
             type: 'world_item_spawned',
@@ -2279,6 +2373,41 @@ if (!HTTP_ONLY) {
           return;
         }
 
+        if (message.type === 'private_chat') {
+          const toUserId = message.toUserId;
+          if (!toUserId) {
+            send(ws, { type: 'error', reason: 'missing toUserId for private_chat' });
+            return;
+          }
+          const targetClient = room.clients.get(toUserId);
+          if (targetClient) {
+            send(targetClient.ws, {
+              type: 'private_chat',
+              userId: clientId,
+              accountKey: message.accountKey || clientId,
+              messageId: message.messageId || '',
+              mapKey: player.mapKey,
+              content: message.content,
+              senderName: message.senderName || clientId,
+              characterId: message.characterId || '',
+              timestamp: Date.now()
+            });
+          }
+          // Also send back to sender so they can see their own message
+          send(ws, {
+            type: 'private_chat',
+            userId: clientId,
+            accountKey: message.accountKey || clientId,
+            messageId: message.messageId || '',
+            mapKey: player.mapKey,
+            content: message.content,
+            senderName: message.senderName || clientId,
+            characterId: message.characterId || '',
+            timestamp: Date.now()
+          });
+          return;
+        }
+
         if (message.type === 'chat') {
           broadcastToRoom(currentRoomId, {
             type: 'chat',
@@ -2444,12 +2573,84 @@ if (!HTTP_ONLY) {
   }, 500).unref();
 }
 
-// 启动前初始化 MongoDB（失败自动降级到 state.json）
+// 预设账号种子：为已知账号创建 users 认证记录（state.json 中无密码信息）
+const PRESET_USERS = [
+  { username: 'xiujing', password: '123456', displayName: '修璟', role: 'xiu-jing' },
+  { username: 'xuanxuan', password: '123456', displayName: '萱宣', role: 'xuan-xuan' },
+  { username: 'xumin', password: 'xumin999', displayName: '徐敏', role: 'user' }
+];
+
+async function seedPresetUsers() {
+  if (!isMysqlEnabled()) return;
+  for (const preset of PRESET_USERS) {
+    try {
+      const existing = await mysqlDao.findUserByUsername(preset.username);
+      if (!existing) {
+        const created = await mysqlDao.createUser({
+          username: preset.username,
+          password: preset.password,
+          displayName: preset.displayName,
+          role: preset.role
+        });
+        if (created && !created.error) {
+          // 同步创建 account 记录
+          await mysqlDao.syncAccount({
+            accountKey: preset.username.toLowerCase(),
+            username: preset.username,
+            displayName: preset.displayName,
+            role: preset.role,
+            userId: created.id
+          });
+          console.log(`[bootstrap] 预设账号已创建: ${preset.username}`);
+        }
+      }
+    } catch (e) {
+      // 重复或其他错误，忽略
+    }
+  }
+}
+
+// 启动前初始化 MySQL（失败自动降级到 state.json）
 (async function bootstrap() {
   try {
-    await initMongo();
+    await initMysql();
+    if (isMysqlEnabled()) {
+      try {
+        // 先检查 MySQL 中是否已有数据（mailboxes 表行数）
+        const { query } = require('./mysqlClient');
+        const rows = await query('SELECT COUNT(*) AS cnt FROM mailboxes');
+        const mysqlMailboxCount = rows && rows.length > 0 ? Number(rows[0].cnt) : 0;
+        console.log(`[bootstrap] MySQL mailboxes 表行数: ${mysqlMailboxCount}`);
+
+        if (mysqlMailboxCount === 0) {
+          // MySQL 为空：从 state.json 迁移数据到 MySQL
+          console.log('[bootstrap] MySQL 数据库为空，尝试从 state.json 迁移数据...');
+          if (fs.existsSync(STATE_FILE)) {
+            try {
+              const stateFromFile = JSON.parse(fs.readFileSync(STATE_FILE, 'utf8'));
+              const stateMailboxCount = Object.keys(stateFromFile.mailboxes || {}).length;
+              if (stateMailboxCount > 0) {
+                console.log(`[bootstrap] state.json 有 ${stateMailboxCount} 个信箱，开始迁移...`);
+                await mysqlDao.importFromState(stateFromFile);
+                console.log('[bootstrap] state.json → MySQL 迁移完成');
+              }
+            } catch (e) {
+              console.warn('[bootstrap] state.json 迁移失败：', e?.message || e);
+            }
+          }
+        }
+
+        // 为预设账号创建 users 认证记录（state.json 中没有密码信息）
+        await seedPresetUsers();
+
+        // 从 MySQL 加载所有数据到内存 persistentState（覆盖 state.json 的数据，以 MySQL 为准）
+        await mysqlDao.loadAllFromState(persistentState);
+      } catch (e) {
+        console.warn('[bootstrap] 数据加载异常（忽略）：', e?.message || e);
+      }
+    }
   } catch (err) {
-    console.warn('[bootstrap] initMongo 异常（忽略，继续本地模式）：', err?.message || err);
+    console.warn('[bootstrap] initMysql 异常（忽略，继续本地模式）：', err?.message || err);
   }
   server.listen(PORT, '0.0.0.0', () => {
     console.log(`Xinjian HTTP: http://0.0.0.0:${PORT}`);

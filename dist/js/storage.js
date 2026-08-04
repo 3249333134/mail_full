@@ -111,11 +111,21 @@ const STORAGE = {
           if (!ok) return;
           const ak = MailService.getAccountKey();
           if (!ak) return;
-          // 只同步 ownerAccountKey == ak 且 _remoteSynced != true 的信箱
+          // 同步规则：
+          // 1) 未同步过的信箱（_remoteSynced != true）→ 全量同步
+          // 2) _memberDataDirty 的信箱 → 重新同步成员数据
+          // 3) 共享信箱（用户是成员之一）→ 同步成员数据
           for (const mb of mailboxes) {
-            if (mb && mb._remoteSynced) continue;
+            if (!mb) continue;
+            const isDirty = mb._memberDataDirty === true;
             const owner = String(mb.ownerAccountKey || mb.owner || mb.createdBy || '').toLowerCase();
-            if (owner && owner !== ak.toLowerCase()) continue;
+            const isOwner = owner && owner === ak.toLowerCase();
+            const isMember = Array.isArray(mb.members) && (mb.members.includes(ak) || mb.members.includes(ak.toLowerCase()));
+            const isMemberByKey = Array.isArray(mb.memberAccountKeys) && (mb.memberAccountKeys.includes(ak) || mb.memberAccountKeys.includes(ak.toLowerCase()));
+            
+            // 跳过条件：已同步且不脏，且用户既不是 owner 也不是成员
+            if (mb._remoteSynced && !isDirty) continue;
+            if (!isOwner && !isMember && !isMemberByKey) continue;
             if (!mb.name) continue;
             try {
               // 如果本地已有 id 或 mailboxCode：后端会自动走 upsert（幂等），不会重复创建
@@ -143,11 +153,14 @@ const STORAGE = {
                   : (Array.isArray(mb.members) ? mb.members : (ak ? [ak] : [])),
                 members: Array.isArray(mb.members)
                   ? mb.members
-                  : (Array.isArray(mb.memberAccountKeys) ? mb.memberAccountKeys : (ak ? [ak] : []))
+                  : (Array.isArray(mb.memberAccountKeys) ? mb.memberAccountKeys : (ak ? [ak] : [])),
+                memberCharacters: mb.memberCharacters || {},
+                memberNames: mb.memberNames || {}
               };
               const r = await MailService.createRemoteMailbox(payload);
               if (r && r.success && r.mailbox) {
                 mb._remoteSynced = true;
+                mb._memberDataDirty = false;
                 mb.id = r.mailbox.id || mb.id;
                 if (r.mailbox.mailboxCode && !mb.mailboxCode) {
                   mb.mailboxCode = r.mailbox.mailboxCode;
@@ -167,6 +180,13 @@ const STORAGE = {
                   ]);
                   mb.memberAccountKeys = Array.from(mergedSet);
                   mb.members = mb.memberAccountKeys;
+                }
+                // 合并远端返回的 memberCharacters 和 memberNames
+                if (r.mailbox.memberCharacters && typeof r.mailbox.memberCharacters === 'object') {
+                  mb.memberCharacters = { ...(mb.memberCharacters || {}), ...r.mailbox.memberCharacters };
+                }
+                if (r.mailbox.memberNames && typeof r.mailbox.memberNames === 'object') {
+                  mb.memberNames = { ...(mb.memberNames || {}), ...r.mailbox.memberNames };
                 }
               }
             } catch (_) { /* 单条失败不影响其他 */ }
@@ -214,7 +234,70 @@ const STORAGE = {
     const combined = [];
     const seen = new Set();
     for (const r of remotes || []) {
-      if (r && r.id) { seen.add(String(r.id)); combined.push({ ...r, _source: 'remote' }); }
+      if (r && r.id) {
+        seen.add(String(r.id));
+        
+        // Ensure memberNames and memberCharacters are parsed objects
+        const ensureObj = (val) => {
+          if (!val) return {};
+          if (typeof val === 'object') return val;
+          if (typeof val === 'string') {
+            try { const parsed = JSON.parse(val); return typeof parsed === 'object' && parsed !== null ? parsed : {}; } catch (_) { return {}; }
+          }
+          return {};
+        };
+        const ensureArray = (val) => {
+          if (!val) return [];
+          if (Array.isArray(val)) return val;
+          if (typeof val === 'string') {
+            try { const parsed = JSON.parse(val); return Array.isArray(parsed) ? parsed : []; } catch (_) { return []; }
+          }
+          return [];
+        };
+        r.memberNames = ensureObj(r.memberNames);
+        r.memberCharacters = ensureObj(r.memberCharacters);
+        r.memberAccountKeys = ensureArray(r.memberAccountKeys);
+        r.members = ensureArray(r.members);
+        
+        // 合并本地已有的 memberCharacters 和 memberNames
+        const localMatch = locals.find(l => l && l.id && String(l.id) === String(r.id));
+        if (localMatch) {
+          r.memberCharacters = { ...(r.memberCharacters || {}), ...(localMatch.memberCharacters || {}) };
+          r.memberNames = { ...(r.memberNames || {}), ...(localMatch.memberNames || {}) };
+          
+          // Merge memberAccountKeys: combine remote and local to ensure no members are lost
+          const remoteKeys = Array.isArray(r.memberAccountKeys) ? r.memberAccountKeys : [];
+          const localKeys = Array.isArray(localMatch.memberAccountKeys) ? localMatch.memberAccountKeys : [];
+          const localMembers = Array.isArray(localMatch.members) ? localMatch.members : [];
+          const mergedKeys = Array.from(new Set([...remoteKeys, ...localKeys, ...localMembers]));
+          // Filter out invalid auto-generated "user-*" keys that don't have matching data
+          const validKeys = mergedKeys.filter(k => {
+            if (!k || typeof k !== 'string') return false;
+            const key = k.toLowerCase().trim();
+            // If the key has matching memberName or memberCharacter, it's valid
+            if (r.memberNames && r.memberNames[key]) return true;
+            if (r.memberCharacters && r.memberCharacters[key]) return true;
+            // If the key is not auto-generated, keep it
+            if (!key.startsWith('user-')) return true;
+            // Auto-generated key with no matching data - filter it out
+            return false;
+          });
+          r.memberAccountKeys = validKeys;
+          
+          // Also merge members array
+          const remoteMembers = Array.isArray(r.members) ? r.members : [];
+          const mergedMembers = Array.from(new Set([...remoteMembers, ...localKeys, ...localMembers, ...remoteKeys]));
+          r.members = mergedMembers.filter(k => {
+            if (!k || typeof k !== 'string') return false;
+            const key = k.toLowerCase().trim();
+            if (r.memberNames && r.memberNames[key]) return true;
+            if (r.memberCharacters && r.memberCharacters[key]) return true;
+            if (!key.startsWith('user-')) return true;
+            return false;
+          });
+        }
+        combined.push({ ...r, _source: 'remote' });
+      }
     }
     for (const l of locals || []) {
       if (!l || !l.id) continue;
@@ -732,18 +815,20 @@ const STORAGE = {
     return mailboxData;
   },
 
-  // --- 背包数据存储 ---
+  // --- 背包数据存储（按 accountKey 存储，支持跨地图和信箱）---
   INVENTORY_KEY: 'xinjian_inventory',
 
-  saveInventory(mailboxId, inventory) {
+  saveInventory(accountKey, inventory) {
+    if (!accountKey) return;
     const all = this.loadAllInventories();
-    all[mailboxId] = { ...inventory, updatedAt: Date.now() };
+    all[accountKey] = { ...inventory, updatedAt: Date.now() };
     localStorage.setItem(this.INVENTORY_KEY, JSON.stringify(all));
   },
 
-  loadInventory(mailboxId) {
+  loadInventory(accountKey) {
+    if (!accountKey) return null;
     const all = this.loadAllInventories();
-    return all[mailboxId] || null;
+    return all[accountKey] || null;
   },
 
   loadAllInventories() {
@@ -774,5 +859,25 @@ const STORAGE = {
     const bindings = this.loadCharacterBindings();
     delete bindings[mailboxId];
     localStorage.setItem(this.CHARACTER_BINDINGS_KEY, JSON.stringify(bindings));
+  },
+
+  // --- 每用户信箱角色绑定 ---
+  USER_CHARACTER_BINDINGS_KEY: 'xinjian_user_character_bindings',
+
+  saveUserCharacterBinding(mailboxId, userId, characterId) {
+    const bindings = this.loadUserCharacterBindings();
+    if (!bindings[mailboxId]) bindings[mailboxId] = {};
+    bindings[mailboxId][userId] = characterId;
+    localStorage.setItem(this.USER_CHARACTER_BINDINGS_KEY, JSON.stringify(bindings));
+  },
+
+  loadUserCharacterBinding(mailboxId, userId) {
+    const bindings = this.loadUserCharacterBindings();
+    return bindings[mailboxId]?.[userId] || null;
+  },
+
+  loadUserCharacterBindings() {
+    const data = localStorage.getItem(this.USER_CHARACTER_BINDINGS_KEY);
+    return data ? JSON.parse(data) : {};
   }
 };

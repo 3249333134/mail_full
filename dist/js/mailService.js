@@ -6,15 +6,20 @@ const MailService = {
   _remoteEnabled: null,      // null=未探测, true=云端可用, false=降级本地
   _remoteEnabledAt: 0,       // 最近探测时间戳
   REMOTE_PROBE_TTL_MS: 60 * 1000, // health 探测 60 秒缓存
-  XIEJIAN_NAMES: {
+  // 全局角色名映射（所有信箱的角色）
+  CHARACTER_NAMES: {
     'zhou-ran': '周然',
     'he-qingfeng': '贺清风',
     'ren-chaoye': '任朝野',
     'shen-chiyi': '沈池懿',
     'qi-pingchuan': '戚凭川',
     'jiang-huaian': '江淮安',
-    'tang-wanchu': '唐挽初'
+    'tang-wanchu': '唐挽初',
+    'xiu-jing': '修璟',
+    'xuan-xuan': '萱宣',
   },
+  // 兼容旧属性
+  get XIEJIAN_NAMES() { return this.CHARACTER_NAMES; },
 
   getBaseUrl() {
     // 允许通过 window.MAIL_API_BASE_URL 覆盖，也支持 ?apiBase=... 查询参数
@@ -70,13 +75,70 @@ const MailService = {
   },
 
   getIdentityName(mailboxId, user = AuthManager.getCurrentUser()) {
-    if (mailboxId === 'mailbox-xiejian' && this.profile?.xiejianCharacterId) {
-      return this.XIEJIAN_NAMES[this.profile.xiejianCharacterId] || this.profile.xiejianCharacterId;
+    const accountKey = this.getAccountKey(user);
+    
+    // 1. 优先从 mailbox 的 memberCharacters 获取角色
+    if (mailboxId) {
+      try {
+        const mailboxes = JSON.parse(localStorage.getItem('xinjian_mailboxes') || '[]');
+        const mailbox = mailboxes.find(mb => mb.id === mailboxId);
+        if (mailbox?.memberCharacters && mailbox.memberCharacters[accountKey]) {
+          const raw = mailbox.memberCharacters[accountKey];
+          const characterId = typeof raw === 'string' ? raw : (raw.characterId || raw.id || '');
+          if (characterId && this.CHARACTER_NAMES[characterId]) {
+            return this.CHARACTER_NAMES[characterId];
+          }
+        }
+      } catch (_) {}
     }
-    if (mailboxId === 'mailbox-hanmen-duet') {
-      if (user?.role === 'xiu-jing') return '修璟';
-      if (user?.role === 'xuan-xuan') return '萱宣';
+    
+    // 2. 没有指定信箱时，搜索所有信箱的 memberCharacters
+    if (!mailboxId) {
+      try {
+        const mailboxes = JSON.parse(localStorage.getItem('xinjian_mailboxes') || '[]');
+        for (const mb of mailboxes) {
+          if (mb.memberCharacters && mb.memberCharacters[accountKey]) {
+            const raw = mb.memberCharacters[accountKey];
+            const characterId = typeof raw === 'string' ? raw : (raw.characterId || raw.id || '');
+            if (characterId && this.CHARACTER_NAMES[characterId]) {
+              return this.CHARACTER_NAMES[characterId];
+            }
+          }
+        }
+      } catch (_) {}
     }
+    
+    // 3. 从 localStorage 的用户角色绑定中查找
+    try {
+      const userBindings = JSON.parse(localStorage.getItem('xinjian_user_character_bindings') || '{}');
+      if (mailboxId && userBindings[mailboxId]?.[accountKey]) {
+        const charId = userBindings[mailboxId][accountKey];
+        if (this.CHARACTER_NAMES[charId]) return this.CHARACTER_NAMES[charId];
+      } else if (!mailboxId) {
+        for (const [mbId, users] of Object.entries(userBindings)) {
+          if (users[accountKey] && this.CHARACTER_NAMES[users[accountKey]]) {
+            return this.CHARACTER_NAMES[users[accountKey]];
+          }
+        }
+      }
+    } catch (_) {}
+    
+    // 4. 从角色绑定中查找（当前信箱的绑定）
+    try {
+      const charBindings = JSON.parse(localStorage.getItem('xinjian_character_bindings') || '{}');
+      if (charBindings[mailboxId] && this.CHARACTER_NAMES[charBindings[mailboxId]]) {
+        return this.CHARACTER_NAMES[charBindings[mailboxId]];
+      }
+    } catch (_) {}
+    
+    // 5. 从当前用户 profile 获取
+    if (this.profile?.xiejianCharacterId && this.CHARACTER_NAMES[this.profile.xiejianCharacterId]) {
+      return this.CHARACTER_NAMES[this.profile.xiejianCharacterId];
+    }
+    if (user?.role && this.CHARACTER_NAMES[user.role]) {
+      return this.CHARACTER_NAMES[user.role];
+    }
+    
     return user?.displayName || user?.username || '';
   },
 
