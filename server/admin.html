@@ -1,0 +1,993 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mail Admin Dashboard</title>
+<style>
+:root {
+  --bg: #f0f2f5;
+  --card-bg: #fff;
+  --text: #1a1a2e;
+  --text-secondary: #6b7280;
+  --primary: #4f46e5;
+  --primary-hover: #4338ca;
+  --success: #059669;
+  --warning: #d97706;
+  --danger: #dc2626;
+  --border: #e5e7eb;
+  --sidebar-bg: #1e1b4b;
+  --sidebar-text: #c7d2fe;
+  --sidebar-active: #4f46e5;
+  --radius: 8px;
+  --shadow: 0 1px 3px rgba(0,0,0,.1);
+  --font-mono: 'Consolas', 'Monaco', monospace;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background:var(--bg); color:var(--text); display:flex; min-height:100vh; }
+.sidebar { width:240px; background:var(--sidebar-bg); color:var(--sidebar-text); flex-shrink:0; display:flex; flex-direction:column; position:fixed; top:0; left:0; bottom:0; z-index:100; }
+.sidebar-header { padding:24px 20px 16px; border-bottom:1px solid rgba(255,255,255,.1); }
+.sidebar-header h2 { font-size:16px; font-weight:700; color:#fff; display:flex; align-items:center; gap:8px; }
+.sidebar-header .badge { font-size:10px; background:var(--primary); color:#fff; padding:2px 8px; border-radius:10px; text-transform:uppercase; }
+.sidebar-header .ws-dot { display:inline-block; width:6px; height:6px; border-radius:50%; margin-left:4px; background:var(--success); }
+.sidebar-header .ws-dot.off { background:var(--danger); }
+.sidebar-nav { flex:1; overflow-y:auto; padding:12px 0; }
+.nav-item { display:flex; align-items:center; gap:10px; padding:10px 20px; cursor:pointer; font-size:13px; transition:all .15s; border-left:3px solid transparent; color:var(--sidebar-text); }
+.nav-item:hover { background:rgba(255,255,255,.05); color:#fff; }
+.nav-item.active { background:rgba(79,70,229,.2); border-left-color:var(--sidebar-active); color:#fff; font-weight:600; }
+.nav-item .icon { width:18px; text-align:center; font-size:14px; }
+.main { margin-left:240px; flex:1; padding:24px; max-width:calc(100vw - 240px); overflow-y:auto; }
+.header { display:flex; justify-content:space-between; align-items:center; margin-bottom:24px; }
+.header h1 { font-size:22px; font-weight:700; }
+.header .status-dot { display:inline-block; width:8px; height:8px; border-radius:50%; margin-right:6px; }
+.status-dot.online { background:var(--success); animation:pulse 2s infinite; }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.5} }
+.stats-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:16px; margin-bottom:24px; }
+.stat-card { background:var(--card-bg); border-radius:var(--radius); padding:16px 20px; box-shadow:var(--shadow); }
+.stat-card .label { font-size:11px; color:var(--text-secondary); text-transform:uppercase; letter-spacing:.5px; }
+.stat-card .value { font-size:28px; font-weight:700; margin-top:4px; }
+.stat-card .value.small { font-size:18px; }
+.panel { display:none; }
+.panel.active { display:block; }
+.card { background:var(--card-bg); border-radius:var(--radius); box-shadow:var(--shadow); margin-bottom:20px; }
+.card-header { padding:16px 20px; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; }
+.card-header h3 { font-size:15px; font-weight:600; }
+.card-body { padding:16px 20px; }
+.btn { display:inline-flex; align-items:center; gap:6px; padding:8px 16px; border-radius:6px; font-size:13px; font-weight:500; cursor:pointer; border:none; transition:all .15s; }
+.btn-primary { background:var(--primary); color:#fff; }
+.btn-primary:hover { background:var(--primary-hover); }
+.btn-success { background:var(--success); color:#fff; }
+.btn-danger { background:var(--danger); color:#fff; }
+.btn-danger:hover { background:#b91c1c; }
+.btn-outline { background:transparent; border:1px solid var(--border); color:var(--text); }
+.btn-outline:hover { border-color:var(--primary); color:var(--primary); }
+.btn-sm { padding:4px 10px; font-size:12px; }
+.btn-xs { padding:2px 8px; font-size:11px; }
+table { width:100%; border-collapse:collapse; }
+th, td { padding:10px 12px; text-align:left; font-size:13px; border-bottom:1px solid var(--border); }
+th { font-weight:600; color:var(--text-secondary); text-transform:uppercase; font-size:11px; letter-spacing:.5px; }
+tr:hover { background:rgba(79,70,229,.03); }
+.tag { display:inline-block; padding:2px 8px; border-radius:10px; font-size:11px; font-weight:500; }
+.tag-green { background:#d1fae5; color:#065f46; }
+.tag-blue { background:#dbeafe; color:#1e40af; }
+.tag-yellow { background:#fef3c7; color:#92400e; }
+.tag-red { background:#fee2e2; color:#991b1b; }
+.tag-gray { background:#f3f4f6; color:#374151; }
+.tag-purple { background:#ede9fe; color:#5b21b6; }
+code { background:rgba(0,0,0,.06); padding:2px 6px; border-radius:4px; font-family:var(--font-mono); font-size:12px; }
+.empty { text-align:center; padding:40px; color:var(--text-secondary); font-size:14px; }
+.form-group { margin-bottom:14px; }
+.form-group label { display:block; font-size:12px; font-weight:600; margin-bottom:4px; color:var(--text-secondary); }
+.form-group input, .form-group select, .form-group textarea { width:100%; padding:8px 12px; border:1px solid var(--border); border-radius:6px; font-size:13px; outline:none; transition:border-color .15s; }
+.form-group input:focus, .form-group select:focus, .form-group textarea:focus { border-color:var(--primary); }
+.form-row { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+.modal-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,.4); z-index:200; justify-content:center; align-items:center; }
+.modal-overlay.show { display:flex; }
+.modal { background:var(--card-bg); border-radius:12px; padding:24px; width:520px; max-width:90vw; max-height:85vh; overflow-y:auto; box-shadow:0 20px 60px rgba(0,0,0,.3); }
+.modal h3 { font-size:18px; margin-bottom:16px; }
+.modal-actions { display:flex; gap:8px; justify-content:flex-end; margin-top:20px; }
+.refresh-info { font-size:12px; color:var(--text-secondary); margin-left:12px; }
+/* 搜索过滤 */
+.search-bar { display:flex; gap:8px; margin-bottom:16px; flex-wrap:wrap; }
+.search-bar input { flex:1; min-width:200px; padding:8px 12px; border:1px solid var(--border); border-radius:6px; font-size:13px; outline:none; }
+.search-bar input:focus { border-color:var(--primary); }
+.search-bar select { padding:8px 12px; border:1px solid var(--border); border-radius:6px; font-size:13px; outline:none; }
+/* 可见性切换 */
+.toggle-badge { cursor:pointer; padding:4px 10px; border-radius:10px; font-size:11px; font-weight:500; border:none; transition:all .15s; }
+.toggle-public { background:#d1fae5; color:#065f46; }
+.toggle-private { background:#fef3c7; color:#92400e; }
+.toggle-badge:hover { transform:scale(1.05); }
+/* 成员行 */
+.member-row { display:flex; align-items:center; justify-content:space-between; padding:8px 0; border-bottom:1px solid var(--border); }
+.member-row:last-child { border:none; }
+.member-info { display:flex; flex-direction:column; gap:2px; }
+.member-info .name { font-weight:600; font-size:13px; }
+.member-info .detail { font-size:11px; color:var(--text-secondary); }
+/* 信件行 */
+.letter-row { display:flex; align-items:center; justify-content:space-between; padding:10px 0; border-bottom:1px solid var(--border); }
+.letter-row:last-child { border:none; }
+.letter-info { display:flex; flex-direction:column; gap:2px; }
+.letter-info .title { font-weight:500; font-size:13px; }
+.letter-info .meta { font-size:11px; color:var(--text-secondary); }
+/* 确认对话框 */
+.confirm-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,.5); z-index:300; justify-content:center; align-items:center; }
+.confirm-overlay.show { display:flex; }
+.confirm-dialog { background:var(--card-bg); border-radius:12px; padding:24px; width:420px; max-width:90vw; box-shadow:0 20px 60px rgba(0,0,0,.3); }
+.confirm-dialog h4 { font-size:16px; margin-bottom:8px; }
+.confirm-dialog .confirm-body { font-size:13px; color:var(--text-secondary); margin-bottom:20px; line-height:1.6; }
+.confirm-dialog .confirm-actions { display:flex; gap:8px; justify-content:flex-end; }
+/* 信件面板（内嵌展开） */
+.letter-panel { margin-top:12px; padding:12px 16px; background:#fafbfc; border-radius:var(--radius); border:1px solid var(--border); max-height:400px; overflow-y:auto; }
+.letter-panel-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; }
+.letter-panel-header h4 { font-size:13px; }
+@media (max-width:768px) { .sidebar { width:200px; } .main { margin-left:200px; max-width:calc(100vw - 200px); } }
+</style>
+</head>
+<body>
+
+<div class="sidebar">
+  <div class="sidebar-header">
+    <h2>📮 信箱后台 <span class="badge">Admin</span><span class="ws-dot" id="wsDot" title="WebSocket"></span></h2>
+  </div>
+  <div class="sidebar-nav">
+    <div class="nav-item active" data-panel="overview">
+      <span class="icon">📊</span> 系统概览
+    </div>
+    <div class="nav-item" data-panel="accounts">
+      <span class="icon">👤</span> 账号管理
+    </div>
+    <div class="nav-item" data-panel="characters">
+      <span class="icon">🎭</span> 角色绑定
+    </div>
+    <div class="nav-item" data-panel="mailboxes">
+      <span class="icon">📬</span> 信箱管理
+    </div>
+    <div class="nav-item" data-panel="letters">
+      <span class="icon">✉️</span> 信件收发
+    </div>
+    <div class="nav-item" data-panel="world">
+      <span class="icon">🌍</span> 游戏世界
+    </div>
+    <div class="nav-item" data-panel="websocket">
+      <span class="icon">🔌</span> WebSocket
+    </div>
+    <div class="nav-item" data-panel="combat">
+      <span class="icon">⚔️</span> 战斗系统
+    </div>
+  </div>
+</div>
+
+<div class="main">
+  <div class="header">
+    <h1><span class="status-dot online"></span>系统管理后台</h1>
+    <div>
+      <span class="refresh-info" id="refreshInfo">自动刷新: 5s</span>
+      <button class="btn btn-outline btn-sm" onclick="refresh()" style="margin-left:8px">🔄 刷新</button>
+    </div>
+  </div>
+
+  <!-- ======== 概览面板 ======== -->
+  <div class="panel active" id="panel-overview">
+    <div class="stats-grid" id="overviewStats"></div>
+    <div class="card">
+      <div class="card-header"><h3>服务器信息</h3></div>
+      <div class="card-body" id="serverInfo"></div>
+    </div>
+  </div>
+
+  <!-- ======== 账号管理 ======== -->
+  <div class="panel" id="panel-accounts">
+    <div class="card">
+      <div class="card-header">
+        <h3>所有账号</h3>
+        <button class="btn btn-primary btn-sm" onclick="openRegisterModal()">+ 注册新账号</button>
+      </div>
+      <div class="card-body" id="accountsTable"></div>
+    </div>
+  </div>
+
+  <!-- ======== 角色绑定 ======== -->
+  <div class="panel" id="panel-characters">
+    <div class="card">
+      <div class="card-header">
+        <h3>角色绑定关系</h3>
+        <button class="btn btn-primary btn-sm" onclick="openBindModal()">+ 绑定角色</button>
+      </div>
+      <div class="card-body" id="characterBindingsTable"></div>
+    </div>
+  </div>
+
+  <!-- ======== 信箱管理 ======== -->
+  <div class="panel" id="panel-mailboxes">
+    <div class="card">
+      <div class="card-header">
+        <h3>信箱列表 (<span id="mailboxCountBadge">0</span>)</h3>
+        <button class="btn btn-primary btn-sm" onclick="openMailboxModal()">+ 创建信箱</button>
+      </div>
+      <div class="card-body">
+        <div class="search-bar">
+          <input type="text" id="mbSearch" placeholder="🔍 搜索信箱名称/信箱号/所有者..." oninput="renderMailboxes()">
+          <select id="mbVisibilityFilter" onchange="renderMailboxes()">
+            <option value="all">全部可见性</option>
+            <option value="public">公开</option>
+            <option value="private">私有</option>
+          </select>
+          <select id="mbTypeFilter" onchange="renderMailboxes()">
+            <option value="all">全部类型</option>
+            <option value="custom">自定义</option>
+            <option value="system">系统</option>
+          </select>
+        </div>
+        <div id="mailboxesTable"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======== 信件管理 ======== -->
+  <div class="panel" id="panel-letters">
+    <div class="card">
+      <div class="card-header">
+        <h3>信件列表</h3>
+        <button class="btn btn-primary btn-sm" onclick="openLetterModal()">+ 发送新信件</button>
+      </div>
+      <div class="card-body" id="lettersTable"></div>
+    </div>
+  </div>
+
+  <!-- ======== 游戏世界 ======== -->
+  <div class="panel" id="panel-world">
+    <div class="card">
+      <div class="card-header"><h3>游戏世界状态</h3></div>
+      <div class="card-body" id="worldState"></div>
+    </div>
+  </div>
+
+  <!-- ======== WebSocket ======== -->
+  <div class="panel" id="panel-websocket">
+    <div class="card">
+      <div class="card-header"><h3>WebSocket 连接状态</h3></div>
+      <div class="card-body" id="wsState"></div>
+    </div>
+  </div>
+
+  <!-- ======== 战斗系统 ======== -->
+  <div class="panel" id="panel-combat">
+    <div class="card">
+      <div class="card-header"><h3>战斗档案</h3></div>
+      <div class="card-body" id="combatProfiles"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ======== 模态框: 注册账号 ======== -->
+<div class="modal-overlay" id="modal-register">
+  <div class="modal">
+    <h3>注册新账号</h3>
+    <div class="form-group"><label>用户名</label><input type="text" id="reg-username" placeholder="至少3个字符"></div>
+    <div class="form-group"><label>密码</label><input type="password" id="reg-password" placeholder="至少6个字符"></div>
+    <div class="form-group"><label>显示名称</label><input type="text" id="reg-displayName" placeholder="可选"></div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="closeModal('modal-register')">取消</button>
+      <button class="btn btn-primary" onclick="doRegister()">注册</button>
+    </div>
+  </div>
+</div>
+
+<!-- ======== 模态框: 绑定角色 ======== -->
+<div class="modal-overlay" id="modal-bind">
+  <div class="modal">
+    <h3>绑定角色</h3>
+    <div class="form-group"><label>角色ID</label><input type="text" id="bind-characterId" placeholder="如: jingyuan-chibi20"></div>
+    <div class="form-group"><label>账号Key</label><input type="text" id="bind-accountKey" placeholder="如: user123"></div>
+    <div class="form-group"><label>世界ID</label><input type="text" id="bind-worldId" placeholder="默认: mailbox-xiejian" value="mailbox-xiejian"></div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="closeModal('modal-bind')">取消</button>
+      <button class="btn btn-primary" onclick="doBind()">绑定</button>
+    </div>
+  </div>
+</div>
+
+<!-- ======== 模态框: 创建/编辑信箱 ======== -->
+<div class="modal-overlay" id="modal-mailbox">
+  <div class="modal">
+    <h3 id="mailboxModalTitle">创建信箱</h3>
+    <input type="hidden" id="mailbox-editId">
+    <div class="form-group"><label>信箱名称 *</label><input type="text" id="mailbox-name" placeholder="信箱名称"></div>
+    <div class="form-group"><label>信箱号</label><input type="text" id="mailbox-code" placeholder="如: XJ001"></div>
+    <div class="form-group"><label>描述</label><input type="text" id="mailbox-desc" placeholder="可选"></div>
+    <div class="form-group"><label>所有者账号Key</label><input type="text" id="mailbox-owner" placeholder="账号Key"></div>
+    <div class="form-group"><label>可见性</label>
+      <select id="mailbox-visibility"><option value="public">公开</option><option value="private">私有</option></select>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="closeModal('modal-mailbox')">取消</button>
+      <button class="btn btn-primary" onclick="doSaveMailbox()">保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- ======== 模态框: 发送信件 ======== -->
+<div class="modal-overlay" id="modal-letter">
+  <div class="modal" style="width:560px">
+    <h3>发送新信件</h3>
+    <div class="form-row">
+      <div class="form-group"><label>发信人账号</label><input type="text" id="letter-sender" placeholder="发信人 accountKey"></div>
+      <div class="form-group"><label>收信人账号</label><input type="text" id="letter-recipient" placeholder="收信人 accountKey"></div>
+    </div>
+    <div class="form-group"><label>信箱ID</label><input type="text" id="letter-mailboxId" placeholder="信箱ID"></div>
+    <div class="form-group"><label>标题</label><input type="text" id="letter-title" placeholder="信件标题"></div>
+    <div class="form-group"><label>内容</label><textarea id="letter-body" rows="4" placeholder="信件内容"></textarea></div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="closeModal('modal-letter')">取消</button>
+      <button class="btn btn-primary" onclick="doSendLetter()">发送</button>
+    </div>
+  </div>
+</div>
+
+<!-- ======== 模态框: 成员管理 ======== -->
+<div class="modal-overlay" id="modal-members">
+  <div class="modal">
+    <h3>👥 成员管理 — <span id="memberMailboxName"></span></h3>
+    <div class="form-row" style="margin-bottom:16px">
+      <input type="text" id="member-add-accountKey" placeholder="输入 accountKey 添加成员" style="flex:1;padding:8px 12px;border:1px solid var(--border);border-radius:6px;font-size:13px">
+      <input type="text" id="member-add-displayName" placeholder="显示名(可选)" style="flex:1;padding:8px 12px;border:1px solid var(--border);border-radius:6px;font-size:13px">
+      <button class="btn btn-primary btn-sm" onclick="doAddMember()">添加</button>
+    </div>
+    <div id="memberList"></div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="closeModal('modal-members')">关闭</button>
+    </div>
+  </div>
+</div>
+
+<!-- ======== 模态框: 编辑战斗属性 ======== -->
+<div class="modal-overlay" id="modal-combat">
+  <div class="modal">
+    <h3>编辑战斗属性</h3>
+    <div class="form-row">
+      <div class="form-group"><label>HP</label><input type="number" id="combat-hp"></div>
+      <div class="form-group"><label>最大HP</label><input type="number" id="combat-maxHp"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>攻击力</label><input type="number" id="combat-atk"></div>
+      <div class="form-group"><label>防御力</label><input type="number" id="combat-def"></div>
+    </div>
+    <div class="form-group"><label>速度</label><input type="number" id="combat-spd"></div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="closeModal('modal-combat')">取消</button>
+      <button class="btn btn-primary" onclick="doUpdateCombat()">保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- ======== 全局确认对话框 ======== -->
+<div class="confirm-overlay" id="confirmOverlay">
+  <div class="confirm-dialog">
+    <h4 id="confirmTitle">确认操作</h4>
+    <div class="confirm-body" id="confirmBody"></div>
+    <div class="confirm-actions">
+      <button class="btn btn-outline" onclick="closeConfirm()">取消</button>
+      <button class="btn btn-danger" id="confirmOkBtn" onclick="confirmOk()">确认</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const API = window.location.origin;
+let stateData = null;
+let pollTimer = null;
+let openedLetterMailboxId = null;
+let currentMemberMailboxId = null;
+let confirmCallback = null;
+let adminWs = null;
+
+// ===== WebSocket 实时同步 =====
+function connectAdminWS() {
+  try {
+    const wsUrl = `ws://${location.hostname}:${new URL(API).port || '3000'}?admin=true`;
+    adminWs = new WebSocket(wsUrl);
+    adminWs.onopen = () => {
+      document.getElementById('wsDot').classList.remove('off');
+      document.getElementById('refreshInfo').textContent = '🟢 WS 实时同步 | 轮询备用: 5s';
+    };
+    adminWs.onmessage = (e) => {
+      const msg = JSON.parse(e.data);
+      if (msg.type === 'admin_connected') return;
+      if (msg.type === 'mailbox_changed' || msg.type === 'mailbox_deleted') {
+        refresh();
+      }
+      if (msg.type === 'letter_changed') {
+        if (openedLetterMailboxId === msg.mailboxId) {
+          loadLettersForMailbox(msg.mailboxId);
+        }
+        refresh(); // 更新概览统计
+      }
+    };
+    adminWs.onclose = () => {
+      document.getElementById('wsDot').classList.add('off');
+      document.getElementById('refreshInfo').textContent = '🔴 WS 断开 | 轮询刷新: 5s';
+      setTimeout(connectAdminWS, 3000);
+    };
+    adminWs.onerror = () => {
+      adminWs.close();
+    };
+  } catch (_) {
+    setTimeout(connectAdminWS, 3000);
+  }
+}
+
+// ===== 确认对话框 =====
+function showConfirm(title, body, callback, okText = '确认删除') {
+  document.getElementById('confirmTitle').textContent = title;
+  document.getElementById('confirmBody').innerHTML = body;
+  document.getElementById('confirmOkBtn').textContent = okText;
+  confirmCallback = callback;
+  document.getElementById('confirmOverlay').classList.add('show');
+}
+function closeConfirm() {
+  document.getElementById('confirmOverlay').classList.remove('show');
+  confirmCallback = null;
+}
+function confirmOk() {
+  if (confirmCallback) confirmCallback();
+  closeConfirm();
+}
+
+// ===== 导航 =====
+document.querySelectorAll('.nav-item').forEach(item => {
+  item.addEventListener('click', () => {
+    document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    item.classList.add('active');
+    document.getElementById('panel-' + item.dataset.panel).classList.add('active');
+    refresh();
+  });
+});
+
+// ===== API 调用 =====
+async function fetchState() {
+  try {
+    const res = await fetch(API + '/api/admin/state');
+    stateData = await res.json();
+  } catch(e) {
+    stateData = null;
+  }
+}
+
+async function apiPost(path, body) {
+  const res = await fetch(API + path, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body) });
+  return res.json();
+}
+
+async function apiDel(path) {
+  const res = await fetch(API + path, { method:'DELETE', headers:{'Content-Type':'application/json'} });
+  return res.json();
+}
+
+async function apiGet(path) {
+  const res = await fetch(API + path);
+  return res.json();
+}
+
+// ===== 刷新所有面板 =====
+async function refresh() {
+  await fetchState();
+  if (!stateData) return;
+  const activePanel = document.querySelector('.panel.active');
+  if (!activePanel) return;
+  const panelId = activePanel.id;
+  if (panelId === 'panel-overview') renderOverview();
+  else if (panelId === 'panel-accounts') renderAccounts();
+  else if (panelId === 'panel-characters') renderCharacterBindings();
+  else if (panelId === 'panel-mailboxes') renderMailboxes();
+  else if (panelId === 'panel-letters') renderLetters();
+  else if (panelId === 'panel-world') renderWorldState();
+  else if (panelId === 'panel-websocket') renderWSState();
+  else if (panelId === 'panel-combat') renderCombatProfiles();
+}
+
+// ===== 概览 =====
+function renderOverview() {
+  const d = stateData;
+  document.getElementById('overviewStats').innerHTML = `
+    <div class="stat-card"><div class="label">账号总数</div><div class="value" style="color:#4f46e5">${d.accountCount}</div></div>
+    <div class="stat-card"><div class="label">信箱总数</div><div class="value" style="color:#059669">${d.mailboxCount}</div></div>
+    <div class="stat-card"><div class="label">信件总数</div><div class="value" style="color:#d97706">${d.letterCount}</div></div>
+    <div class="stat-card"><div class="label">已发送</div><div class="value small" style="color:#2563eb">${d.sentCount}</div></div>
+    <div class="stat-card"><div class="label">草稿</div><div class="value small" style="color:#9333ea">${d.draftCount}</div></div>
+    <div class="stat-card"><div class="label">活跃房间</div><div class="value" style="color:#dc2626">${d.roomCount}</div></div>
+    <div class="stat-card"><div class="label">物品实例</div><div class="value small" style="color:#0891b2">${d.itemInstanceCount}</div></div>
+    <div class="stat-card"><div class="label">行囊数</div><div class="value small" style="color:#be185d">${d.inventoryCount}</div></div>
+  `;
+  const s = d.serverInfo;
+  document.getElementById('serverInfo').innerHTML = `
+    <table>
+      <tr><td>端口</td><td><code>${s.port}</code></td></tr>
+      <tr><td>MySQL</td><td><span class="tag ${s.mysqlEnabled?'tag-green':'tag-red'}">${s.mysqlEnabled?'已启用':'未启用'}</span></td></tr>
+      <tr><td>WebSocket</td><td><span class="tag ${s.httpOnly?'tag-yellow':'tag-green'}">${s.httpOnly?'仅HTTP':'已启用'}</span></td></tr>
+      <tr><td>资源版本</td><td><code>${s.definitionsVersion}</code></td></tr>
+      <tr><td>数据目录</td><td><code>${s.dataDir}</code></td></tr>
+      <tr><td>服务器时间</td><td>${new Date(s.time).toLocaleString()}</td></tr>
+    </table>`;
+}
+
+// ===== 账号管理 =====
+function renderAccounts() {
+  const accounts = stateData.accounts || [];
+  if (!accounts.length) {
+    document.getElementById('accountsTable').innerHTML = '<div class="empty">暂无账号</div>';
+    return;
+  }
+  document.getElementById('accountsTable').innerHTML = `<table>
+    <thead><tr><th>账号Key</th><th>用户名</th><th>显示名</th><th>角色</th><th>绑定角色</th><th>注册时间</th><th>最后活跃</th></tr></thead>
+    <tbody>${accounts.map(a => `
+      <tr>
+        <td><code>${esc(a.accountKey)}</code></td>
+        <td>${esc(a.username)}</td>
+        <td>${esc(a.displayName)}</td>
+        <td><span class="tag tag-blue">${esc(a.role)}</span></td>
+        <td>${a.characterId ? `<span class="tag tag-green">${esc(a.characterId)}</span>` : '<span class="tag tag-yellow">未绑定</span>'}</td>
+        <td>${fmtTime(a.createdAt)}</td>
+        <td>${fmtTime(a.lastSeenAt)}</td>
+      </tr>`).join('')}</tbody></table>`;
+}
+
+// ===== 角色绑定 =====
+function renderCharacterBindings() {
+  const bindings = stateData.roleBindings || {};
+  const worlds = Object.keys(bindings);
+  if (!worlds.length) {
+    document.getElementById('characterBindingsTable').innerHTML = '<div class="empty">暂无角色绑定</div>';
+    return;
+  }
+  let html = '';
+  for (const worldId of worlds) {
+    const b = bindings[worldId];
+    const entries = Object.entries(b);
+    html += `<h4 style="margin:12px 0 8px;font-size:14px">🌐 ${esc(worldId)} <span class="tag tag-blue">${entries.length} 绑定</span></h4>`;
+    if (!entries.length) { html += '<div class="empty">空</div>'; continue; }
+    html += `<table><thead><tr><th>角色ID</th><th>绑定账号</th><th>操作</th></tr></thead><tbody>`;
+    for (const [charId, accountKey] of entries) {
+      html += `<tr>
+        <td><code>${esc(charId)}</code></td>
+        <td><code>${esc(accountKey)}</code></td>
+        <td><button class="btn btn-danger btn-xs" onclick="doUnbind('${esc(charId)}','${esc(worldId)}')">解绑</button></td>
+      </tr>`;
+    }
+    html += `</tbody></table>`;
+  }
+  document.getElementById('characterBindingsTable').innerHTML = html;
+}
+
+async function doBind() {
+  const body = {
+    characterId: document.getElementById('bind-characterId').value.trim(),
+    accountKey: document.getElementById('bind-accountKey').value.trim(),
+    worldId: document.getElementById('bind-worldId').value.trim()
+  };
+  if (!body.characterId || !body.accountKey) return alert('请填写完整');
+  await apiPost('/api/admin/role-bind', body);
+  closeModal('modal-bind');
+  refresh();
+}
+
+async function doUnbind(characterId, worldId) { await apiPost('/api/admin/role-unbind', { characterId, worldId }); refresh(); }
+
+// ===== 信箱管理（增强版） =====
+function getFilteredMailboxes() {
+  const mailboxes = stateData.mailboxes || [];
+  const search = (document.getElementById('mbSearch')?.value || '').toLowerCase();
+  const visFilter = document.getElementById('mbVisibilityFilter')?.value || 'all';
+  const typeFilter = document.getElementById('mbTypeFilter')?.value || 'all';
+  return mailboxes.filter(m => {
+    if (search) {
+      const matchName = (m.name || '').toLowerCase().includes(search);
+      const matchCode = (m.mailboxCode || '').toLowerCase().includes(search);
+      const matchOwner = (m.ownerAccountKey || '').toLowerCase().includes(search);
+      if (!matchName && !matchCode && !matchOwner) return false;
+    }
+    if (visFilter !== 'all' && m.visibility !== visFilter) return false;
+    if (typeFilter === 'custom' && !m.isCustom) return false;
+    if (typeFilter === 'system' && m.isCustom !== false) return false;
+    return true;
+  });
+}
+
+function renderMailboxes() {
+  const mailboxes = getFilteredMailboxes();
+  document.getElementById('mailboxCountBadge').textContent = mailboxes.length;
+  if (!mailboxes.length) {
+    document.getElementById('mailboxesTable').innerHTML = '<div class="empty">暂无匹配的信箱</div>';
+    return;
+  }
+  document.getElementById('mailboxesTable').innerHTML = `<table>
+    <thead><tr>
+      <th>名称</th><th>描述</th><th>信箱号</th><th>所有者</th>
+      <th>成员</th><th>信件</th><th>类型</th><th>可见性</th><th>操作</th>
+    </tr></thead>
+    <tbody>${mailboxes.map(m => {
+      const desc = (m.desc || '').slice(0, 20) + ((m.desc || '').length > 20 ? '...' : '');
+      return `<tr id="mb-row-${esc(m.id)}">
+        <td><strong>${esc(m.name)}</strong><br><code style="font-size:10px;color:var(--text-secondary)">${esc(String(m.id).slice(0,16))}...</code></td>
+        <td style="max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(desc) || '-'}</td>
+        <td><code>${esc(m.mailboxCode||'')}</code></td>
+        <td><code>${esc(m.ownerAccountKey||'')}</code></td>
+        <td><span class="tag tag-blue" style="cursor:pointer" onclick="openMembersModal('${esc(m.id)}')" title="点击管理成员">${m.memberCount}</span></td>
+        <td><span class="tag ${m.letterCount ? 'tag-purple' : 'tag-gray'}" style="cursor:pointer" onclick="toggleLetterPanel('${esc(m.id)}')" title="点击查看信件">${m.letterCount || 0}</span></td>
+        <td><span class="tag ${m.isCustom ? 'tag-green' : 'tag-yellow'}">${m.isCustom ? '自定义' : '系统'}</span></td>
+        <td>
+          <button class="toggle-badge ${m.visibility==='public'?'toggle-public':'toggle-private'}"
+            onclick="doToggleVisibility('${esc(m.id)}','${m.visibility==='public'?'private':'public'}')"
+            title="点击切换可见性">${m.visibility==='public'?'公开':'私有'}</button>
+        </td>
+        <td style="white-space:nowrap">
+          <button class="btn btn-outline btn-xs" onclick="openMailboxEdit('${esc(m.id)}')" title="编辑">✏️</button>
+          <button class="btn btn-outline btn-xs" onclick="openMembersModal('${esc(m.id)}')" title="成员">👥</button>
+          <button class="btn btn-danger btn-xs" onclick="deleteMailbox('${esc(m.id)}')" title="删除">🗑</button>
+        </td>
+      </tr>
+      <tr id="letter-panel-${esc(m.id)}" style="display:none">
+        <td colspan="9" style="padding:0;background:#fafbfc">
+          <div class="letter-panel" id="letter-content-${esc(m.id)}">
+            <div class="letter-panel-header">
+              <h4>📨 信箱「${esc(m.name)}」的信件</h4>
+              <button class="btn btn-outline btn-xs" onclick="toggleLetterPanel('${esc(m.id)}')">✕ 关闭</button>
+            </div>
+            <div id="letter-list-${esc(m.id)}" style="color:var(--text-secondary);font-size:12px">加载中...</div>
+          </div>
+        </td>
+      </tr>`;
+    }).join('')}</tbody></table>`;
+}
+
+// ===== 可见性内联切换 =====
+async function doToggleVisibility(mailboxId, newVisibility) {
+  const r = await apiPost(`/api/admin/mailbox/${encodeURIComponent(mailboxId)}/visibility`, { visibility: newVisibility });
+  if (r.success) refresh();
+  else alert('切换失败: ' + (r.message || 'error'));
+}
+
+// ===== 删除信箱 =====
+function deleteMailbox(id) {
+  const m = (stateData.mailboxes||[]).find(mb => mb.id === id);
+  if (!m) return;
+  showConfirm(
+    '⚠️ 删除信箱',
+    `<p>确定要删除信箱 <strong>「${esc(m.name)}」</strong> 吗？</p>
+     <p>🆔 ID: <code>${esc(m.id)}</code></p>
+     <p>👥 成员: ${m.memberCount} | ✉️ 信件: ${m.letterCount}</p>
+     <p style="color:var(--danger);margin-top:8px"><strong>此操作不可逆！将同时删除该信箱下的所有信件。</strong></p>`,
+    () => doDeleteMailbox(id)
+  );
+}
+
+async function doDeleteMailbox(id) {
+  const r = await apiPost(`/api/admin/mailbox/${encodeURIComponent(id)}/delete`, {});
+  if (r.success) { alert('删除成功！已清理 ' + (r.lettersCleaned || 0) + ' 封信件'); refresh(); }
+  else alert('删除失败: ' + (r.message || 'error'));
+}
+
+// ===== 信件面板展开 =====
+async function toggleLetterPanel(mailboxId) {
+  const panel = document.getElementById('letter-panel-' + mailboxId);
+  if (panel.style.display === 'none' || !panel.style.display) {
+    panel.style.display = 'table-row';
+    openedLetterMailboxId = mailboxId;
+    await loadLettersForMailbox(mailboxId);
+  } else {
+    panel.style.display = 'none';
+    openedLetterMailboxId = null;
+  }
+}
+
+async function loadLettersForMailbox(mailboxId) {
+  const listEl = document.getElementById('letter-list-' + mailboxId);
+  if (!listEl) return;
+  try {
+    const data = await apiGet(`/api/admin/mailbox/${encodeURIComponent(mailboxId)}/letters`);
+    const letters = data.letters || [];
+    if (!letters.length) {
+      listEl.innerHTML = '<div class="empty" style="padding:20px">暂无信件</div>';
+      return;
+    }
+    listEl.innerHTML = letters.map(l => `
+      <div class="letter-row">
+        <div class="letter-info">
+          <div class="title">${esc(l.letterTitle || '无标题')}</div>
+          <div class="meta">
+            ${l.deliveryStatus === 'sent' ? '📤' : l.deliveryStatus === 'draft' ? '📝' : '📥'}
+            发: <code>${esc(l.sender||'')}</code> → 收: <code>${esc(l.recipient||'')}</code>
+            | ${fmtTime(l.createdAt)}
+          </div>
+        </div>
+        <div style="display:flex;gap:4px;align-items:center">
+          <span class="tag ${l.deliveryStatus==='sent'?'tag-green':l.deliveryStatus==='draft'?'tag-yellow':'tag-blue'}">${l.deliveryStatus==='sent'?'已发送':l.deliveryStatus==='draft'?'草稿':'已接收'}</span>
+          <button class="btn btn-danger btn-xs" onclick="deleteLetter('${esc(l.id)}','${esc(mailboxId)}')" title="删除">🗑</button>
+        </div>
+      </div>
+    `).join('');
+  } catch(e) {
+    listEl.innerHTML = '<div style="color:var(--danger);padding:12px">加载失败</div>';
+  }
+}
+
+async function deleteLetter(letterId, mailboxId) {
+  showConfirm(
+    '⚠️ 删除信件',
+    `<p>确定要删除这封信件吗？</p><p>🆔 <code>${esc(letterId)}</code></p><p style="color:var(--danger)">此操作不可逆！</p>`,
+    async () => {
+      const r = await apiPost(`/api/admin/letter/${encodeURIComponent(letterId)}/delete`, {});
+      if (r.success) {
+        loadLettersForMailbox(mailboxId);
+      } else {
+        alert('删除失败: ' + (r.message || 'error'));
+      }
+    }
+  );
+}
+
+// ===== 成员管理 =====
+function openMembersModal(mailboxId) {
+  const m = (stateData.mailboxes||[]).find(mb => mb.id === mailboxId);
+  if (!m) return;
+  currentMemberMailboxId = mailboxId;
+  document.getElementById('memberMailboxName').textContent = m.name || mailboxId;
+  document.getElementById('member-add-accountKey').value = '';
+  document.getElementById('member-add-displayName').value = '';
+  renderMemberList(m);
+  document.getElementById('modal-members').classList.add('show');
+}
+
+function renderMemberList(m) {
+  const memberKeys = m.memberAccountKeys || [];
+  const memberNames = m.memberNames || {};
+  const memberCharacters = m.memberCharacters || {};
+  if (!memberKeys.length) {
+    document.getElementById('memberList').innerHTML = '<div class="empty">暂无成员</div>';
+    return;
+  }
+  document.getElementById('memberList').innerHTML = memberKeys.map(key => {
+    const displayName = memberNames[key] || key;
+    const charInfo = memberCharacters[key] || {};
+    const charId = charInfo.characterId || '';
+    return `<div class="member-row">
+      <div class="member-info">
+        <div class="name">👤 ${esc(displayName)}</div>
+        <div class="detail">
+          <code>${esc(key)}</code>
+          ${charId ? ` | 🎭 <span class="tag tag-green">${esc(charId)}</span>` : ''}
+        </div>
+      </div>
+      <button class="btn btn-danger btn-xs" onclick="doRemoveMember('${esc(key)}')">✕ 移除</button>
+    </div>`;
+  }).join('');
+}
+
+async function doAddMember() {
+  if (!currentMemberMailboxId) return;
+  const accountKey = document.getElementById('member-add-accountKey').value.trim();
+  const displayName = document.getElementById('member-add-displayName').value.trim();
+  if (!accountKey) return alert('请输入 accountKey');
+  const r = await apiPost(`/api/admin/mailbox/${encodeURIComponent(currentMemberMailboxId)}/members`, { accountKey, displayName });
+  if (r.success) {
+    document.getElementById('member-add-accountKey').value = '';
+    document.getElementById('member-add-displayName').value = '';
+    refresh();
+    // 重新渲染成员列表
+    const m = (stateData.mailboxes||[]).find(mb => mb.id === currentMemberMailboxId);
+    if (m) renderMemberList(m);
+  } else {
+    alert('添加失败: ' + (r.message || 'error'));
+  }
+}
+
+async function doRemoveMember(accountKey) {
+  if (!currentMemberMailboxId) return;
+  const r = await apiPost(`/api/admin/mailbox/${encodeURIComponent(currentMemberMailboxId)}/members/${encodeURIComponent(accountKey)}`, {});
+  if (r.success) {
+    refresh();
+    const m = (stateData.mailboxes||[]).find(mb => mb.id === currentMemberMailboxId);
+    if (m) renderMemberList(m);
+  } else {
+    alert('移除失败: ' + (r.message || 'error'));
+  }
+}
+
+// ===== 信箱创建/编辑 =====
+function openMailboxModal() {
+  document.getElementById('mailboxModalTitle').textContent = '创建信箱';
+  document.getElementById('mailbox-editId').value = '';
+  ['name','code','desc','owner'].forEach(id => document.getElementById('mailbox-'+id).value = '');
+  document.getElementById('mailbox-visibility').value = 'public';
+  document.getElementById('modal-mailbox').classList.add('show');
+}
+
+function openMailboxEdit(id) {
+  const m = (stateData.mailboxes||[]).find(mb => mb.id === id);
+  if (!m) return;
+  document.getElementById('mailboxModalTitle').textContent = '编辑信箱';
+  document.getElementById('mailbox-editId').value = m.id;
+  document.getElementById('mailbox-name').value = m.name||'';
+  document.getElementById('mailbox-code').value = m.mailboxCode||'';
+  document.getElementById('mailbox-desc').value = m.desc||'';
+  document.getElementById('mailbox-owner').value = m.ownerAccountKey||'';
+  document.getElementById('mailbox-visibility').value = m.visibility||'public';
+  document.getElementById('modal-mailbox').classList.add('show');
+}
+
+async function doSaveMailbox() {
+  const body = {
+    id: document.getElementById('mailbox-editId').value || undefined,
+    name: document.getElementById('mailbox-name').value.trim(),
+    mailboxCode: document.getElementById('mailbox-code').value.trim(),
+    desc: document.getElementById('mailbox-desc').value.trim(),
+    ownerAccountKey: document.getElementById('mailbox-owner').value.trim(),
+    visibility: document.getElementById('mailbox-visibility').value
+  };
+  if (!body.name) return alert('信箱名称必填');
+  await apiPost('/api/mailboxes', body);
+  closeModal('modal-mailbox');
+  refresh();
+}
+
+// ===== 信件管理 =====
+function renderLetters() {
+  const d = stateData;
+  document.getElementById('lettersTable').innerHTML = `
+    <p style="margin-bottom:12px;color:var(--text-secondary)">
+      总计 <strong>${d.letterCount}</strong> 封信件 | 
+      已发送 <span class="tag tag-green">${d.sentCount}</span> | 
+      草稿 <span class="tag tag-yellow">${d.draftCount}</span>
+    </p>
+    <div class="empty">📨 点击上方「信箱管理」→ 信箱行的信件数 → 展开查看和管理信件</div>`;
+}
+
+function openLetterModal() {
+  ['sender','recipient','mailboxId','title','body'].forEach(id => document.getElementById('letter-'+id).value = '');
+  document.getElementById('modal-letter').classList.add('show');
+}
+
+async function doSendLetter() {
+  const sender = document.getElementById('letter-sender').value.trim();
+  const recipient = document.getElementById('letter-recipient').value.trim();
+  const mailboxId = document.getElementById('letter-mailboxId').value.trim();
+  const title = document.getElementById('letter-title').value.trim();
+  const bodyText = document.getElementById('letter-body').value.trim();
+  if (!sender || !recipient || !mailboxId) return alert('请填写发信人、收信人和信箱ID');
+  const clientMessageId = 'admin-' + Date.now();
+  const letter = { id: 'letter-'+Date.now(), title, bodyText, mailboxId };
+  const result = await apiPost('/api/mail/send', { accountKey:sender, recipientAccountKey:recipient, mailboxId, clientMessageId, letter });
+  if (result.error) return alert('发送失败: ' + result.error);
+  alert('发送成功!');
+  closeModal('modal-letter');
+  refresh();
+}
+
+// ===== 游戏世界 =====
+function renderWorldState() {
+  const rooms = stateData.roomsState || {};
+  const roomIds = Object.keys(rooms);
+  if (!roomIds.length) {
+    document.getElementById('worldState').innerHTML = '<div class="empty">暂无活跃房间（WebSocket未连接客户端）</div>';
+    return;
+  }
+  let html = '';
+  for (const [roomId, room] of Object.entries(rooms)) {
+    html += `<div style="margin-bottom:16px">
+      <h4 style="font-size:14px;margin-bottom:8px">🏠 ${esc(roomId)} | 客户端: ${room.clientCount} | 玩家: ${room.playerCount}</h4>`;
+    if (!room.players.length) { html += '<div class="empty">暂无玩家</div>'; continue; }
+    html += `<table><thead><tr><th>账号</th><th>角色</th><th>地图</th><th>坐标</th><th>状态</th></tr></thead><tbody>`;
+    for (const p of room.players) {
+      html += `<tr>
+        <td><code>${esc(p.accountKey)}</code></td>
+        <td>${p.characterName ? esc(p.characterName) : p.characterId ? '<code>'+esc(p.characterId)+'</code>' : '-'}</td>
+        <td><code>${esc(p.mapKey||'-')}</code></td>
+        <td>${p.x!=null ? `(${p.x}, ${p.y})` : '-'}</td>
+        <td><span class="tag ${p.online?'tag-green':'tag-yellow'}">${p.online?'在线':'待机'}</span></td>
+      </tr>`;
+    }
+    html += `</tbody></table></div>`;
+  }
+  document.getElementById('worldState').innerHTML = html;
+}
+
+// ===== WebSocket =====
+function renderWSState() {
+  const rooms = stateData.roomsState || {};
+  const roomIds = Object.keys(rooms);
+  let totalClients = 0, totalPlayers = 0;
+  for (const r of Object.values(rooms)) { totalClients += r.clientCount; totalPlayers += r.playerCount; }
+  const adminWsStatus = stateData.serverInfo?.httpOnly ? '禁用' : (adminWs?.readyState === WebSocket.OPEN ? '已连接' : '未连接');
+  document.getElementById('wsState').innerHTML = `
+    <div class="stats-grid" style="margin-bottom:12px">
+      <div class="stat-card"><div class="label">活跃房间</div><div class="value small">${roomIds.length}</div></div>
+      <div class="stat-card"><div class="label">总连接数</div><div class="value small">${totalClients}</div></div>
+      <div class="stat-card"><div class="label">总玩家数</div><div class="value small">${totalPlayers}</div></div>
+      <div class="stat-card"><div class="label">Admin WS</div><div class="value small" style="color:${adminWsStatus==='已连接'?'var(--success)':'var(--danger)'}">${adminWsStatus}</div></div>
+    </div>
+    ${roomIds.length ? `<table><thead><tr><th>房间ID</th><th>连接数</th><th>玩家数</th></tr></thead>
+    <tbody>${Object.entries(rooms).map(([id, r]) => `<tr><td><code>${esc(id)}</code></td><td>${r.clientCount}</td><td>${r.playerCount}</td></tr>`).join('')}</tbody></table>` : '<div class="empty">暂无 WebSocket 连接</div>'}`;
+}
+
+// ===== 战斗系统 =====
+function renderCombatProfiles() {
+  const profiles = stateData.combatProfiles || {};
+  const keys = Object.keys(profiles);
+  if (!keys.length) {
+    document.getElementById('combatProfiles').innerHTML = '<div class="empty">暂无战斗档案（需要先选择角色才会生成）</div>';
+    return;
+  }
+  document.getElementById('combatProfiles').innerHTML = `<table>
+    <thead><tr><th>账号Key</th><th>角色ID</th><th>HP</th><th>最大HP</th><th>攻击</th><th>防御</th><th>速度</th><th>操作</th></tr></thead>
+    <tbody>${keys.map(k => {
+      const p = profiles[k];
+      return `<tr>
+        <td><code>${esc(k)}</code></td>
+        <td>${p.characterId ? `<span class="tag tag-blue">${esc(p.characterId)}</span>` : '-'}</td>
+        <td>${p.hp??'-'}</td><td>${p.maxHp??'-'}</td><td>${p.atk??'-'}</td><td>${p.def??'-'}</td><td>${p.spd??'-'}</td>
+        <td><button class="btn btn-outline btn-xs" onclick="openCombatEdit('${esc(k)}')">编辑</button></td>
+      </tr>`;
+    }).join('')}</tbody></table>`;
+}
+
+let editingCombatAccount = '';
+function openCombatEdit(accountKey) {
+  editingCombatAccount = accountKey;
+  const p = stateData.combatProfiles[accountKey] || {};
+  document.getElementById('combat-hp').value = p.hp ?? 100;
+  document.getElementById('combat-maxHp').value = p.maxHp ?? 100;
+  document.getElementById('combat-atk').value = p.atk ?? 10;
+  document.getElementById('combat-def').value = p.def ?? 5;
+  document.getElementById('combat-spd').value = p.spd ?? 8;
+  document.getElementById('modal-combat').classList.add('show');
+}
+
+async function doUpdateCombat() {
+  if (!editingCombatAccount) return;
+  const body = {
+    accountKey: editingCombatAccount,
+    hp: Number(document.getElementById('combat-hp').value),
+    maxHp: Number(document.getElementById('combat-maxHp').value),
+    atk: Number(document.getElementById('combat-atk').value),
+    def: Number(document.getElementById('combat-def').value),
+    spd: Number(document.getElementById('combat-spd').value)
+  };
+  await apiPost('/api/admin/combat-update', body);
+  closeModal('modal-combat');
+  refresh();
+}
+
+// ===== 注册账号 =====
+function openRegisterModal() {
+  ['reg-username','reg-password','reg-displayName'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('modal-register').classList.add('show');
+}
+async function doRegister() {
+  const body = {
+    username: document.getElementById('reg-username').value.trim(),
+    password: document.getElementById('reg-password').value.trim(),
+    displayName: document.getElementById('reg-displayName').value.trim()
+  };
+  if (!body.username || !body.password) return alert('请填写用户名和密码');
+  const r = await apiPost('/api/auth/register', body);
+  if (r.success) { alert('注册成功: ' + r.message); closeModal('modal-register'); refresh(); }
+  else alert('注册失败: ' + r.message);
+}
+
+// ===== 工具函数 =====
+function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function fmtTime(ts) { return ts ? new Date(ts).toLocaleString() : '-'; }
+function closeModal(id) { document.getElementById(id).classList.remove('show'); }
+
+// 点击遮罩关闭
+document.querySelectorAll('.modal-overlay').forEach(overlay => {
+  overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.classList.remove('show'); });
+});
+
+// ===== 初始化 =====
+connectAdminWS();
+refresh();
+pollTimer = setInterval(refresh, 5000);
+</script>
+</body>
+</html>

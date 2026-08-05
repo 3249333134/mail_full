@@ -244,14 +244,14 @@ Object.assign(App, {
         const raw = shareTextarea.value || '';
         if (!raw.trim()) return;
         // 尝试从分享文本中识别纯 6 位码，写到上面的输入框
-        if (/[A-HJ-NP-Z2-9]{4,10}/.test(raw)) {
-          const m1 = raw.match(/[A-HJ-NP-Z2-9]{6,10}/);
+        if (/[A-HJ-NP-Z0-9]{4,10}/.test(raw)) {
+          const m1 = raw.match(/[A-HJ-NP-Z0-9]{6,10}/);
           if (m1 && joinCodeInput.value !== m1[0]) {
             joinCodeInput.value = m1[0];
           }
         } else {
           const clean = raw.replace(/[^A-Za-z0-9]/g, '').toUpperCase();
-          if (/^[A-HJ-NP-Z2-9]{4,10}$/.test(clean) && joinCodeInput.value !== clean) {
+          if (/^[A-HJ-NP-Z0-9]{4,10}$/.test(clean) && joinCodeInput.value !== clean) {
             joinCodeInput.value = clean;
           }
         }

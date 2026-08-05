@@ -800,6 +800,17 @@ const STORAGE = {
     return mailboxes.find(m => m.id === mailboxId) || null;
   },
 
+  deleteSharedMailbox(mailboxId) {
+    const mailboxes = this.loadSharedMailboxes();
+    const idx = mailboxes.findIndex(m => m.id === mailboxId);
+    if (idx >= 0) {
+      mailboxes.splice(idx, 1);
+      localStorage.setItem(this.SHARED_MAILBOXES_KEY, JSON.stringify(mailboxes));
+      return true;
+    }
+    return false;
+  },
+
   // --- 信箱号索引（全局唯一 6 位 code -> mailboxId） ---
   loadMailboxCodesIndex() {
     const data = localStorage.getItem(this.MAILBOX_CODES_INDEX_KEY);
@@ -815,6 +826,20 @@ const STORAGE = {
     const index = this.loadMailboxCodesIndex();
     index[String(code).toUpperCase()] = mailboxId;
     this.saveMailboxCodesIndex(index);
+  },
+
+  deleteMailboxCodeIndexByMailboxId(mailboxId) {
+    if (!mailboxId) return false;
+    const index = this.loadMailboxCodesIndex();
+    let changed = false;
+    for (const [code, id] of Object.entries(index)) {
+      if (id === mailboxId) {
+        delete index[code];
+        changed = true;
+      }
+    }
+    if (changed) this.saveMailboxCodesIndex(index);
+    return changed;
   },
 
   getMailboxIdByCode(code) {

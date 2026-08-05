@@ -457,9 +457,15 @@ Object.assign(MailboxManager, {
         if (typeof STORAGE.initSharedMailbox === 'function') {
           try { STORAGE.initSharedMailbox(); } catch (_) {}
         }
-        const extras = (STORAGE.loadSharedMailboxes ? STORAGE.loadSharedMailboxes() : []).filter(sm =>
-          sm.members && sm.members.includes(currentUser.id)
-        );
+        const cuId = String(currentUser.id || '').toLowerCase();
+        const cuName = String(currentUser.username || '').toLowerCase();
+        const extras = (STORAGE.loadSharedMailboxes ? STORAGE.loadSharedMailboxes() : []).filter(sm => {
+          const arr = Array.isArray(sm.members) ? sm.members : (Array.isArray(sm.memberAccountKeys) ? sm.memberAccountKeys : []);
+          return arr.some(x => {
+            const s = String(x || '').toLowerCase();
+            return s === cuId || s === cuName;
+          });
+        });
         for (const sb of extras) {
           if (!cached.some(m => String(m.id) === String(sb.id))) {
             cached.push({ ...sb, isShared: true, isCustom: true });
@@ -506,11 +512,16 @@ Object.assign(MailboxManager, {
       });
     })();
     const effectiveUserId = currentUser?.id || (typeof this.getCurrentUserId === 'function' ? this.getCurrentUserId() : null);
-    if (effectiveUserId) {
+    const accountKey = String(currentUser?.username || currentUser?.id || '').toLowerCase();
+    if (effectiveUserId || accountKey) {
       const sharedMailboxes = (STORAGE.loadSharedMailboxes() || []).filter(m => m && m.id);
-      const userSharedBoxes = sharedMailboxes.filter(sm =>
-        sm.members && sm.members.includes(effectiveUserId)
-      );
+      const userSharedBoxes = sharedMailboxes.filter(sm => {
+        const arr = Array.isArray(sm.members) ? sm.members : (Array.isArray(sm.memberAccountKeys) ? sm.memberAccountKeys : []);
+        return arr.some(x => {
+          const s = String(x || '').toLowerCase();
+          return s === String(effectiveUserId || '').toLowerCase() || s === accountKey;
+        });
+      });
       userSharedBoxes.forEach(sharedBox => {
         const existingIdx = mailboxes.findIndex(m => m.id === sharedBox.id);
         if (existingIdx === -1) {
@@ -522,9 +533,15 @@ Object.assign(MailboxManager, {
     }
     if (currentUser && (currentUser.role === 'xiu-jing' || currentUser.role === 'xuan-xuan')) {
       if (typeof STORAGE.initSharedMailbox === 'function') STORAGE.initSharedMailbox();
-      const sharedBoxes = (STORAGE.loadSharedMailboxes() || []).filter(m => m && m.id).filter(sm =>
-        sm.members && sm.members.includes(currentUser.id)
-      );
+      const cuId = String(currentUser.id || '').toLowerCase();
+      const cuName = String(currentUser.username || '').toLowerCase();
+      const sharedBoxes = (STORAGE.loadSharedMailboxes() || []).filter(m => m && m.id).filter(sm => {
+        const arr = Array.isArray(sm.members) ? sm.members : (Array.isArray(sm.memberAccountKeys) ? sm.memberAccountKeys : []);
+        return arr.some(x => {
+          const s = String(x || '').toLowerCase();
+          return s === cuId || s === cuName;
+        });
+      });
       sharedBoxes.forEach(sb => {
         const existingIdx = mailboxes.findIndex(m => m.id === sb.id);
         if (existingIdx === -1) {
@@ -602,9 +619,15 @@ Object.assign(MailboxManager, {
       if (typeof STORAGE.initSharedMailbox === 'function') {
         try { STORAGE.initSharedMailbox(); } catch (_) {}
       }
-      const extras = (STORAGE.loadSharedMailboxes ? STORAGE.loadSharedMailboxes() : []).filter(sm =>
-        sm.members && sm.members.includes(currentUser.id)
-      );
+      const cuId = String(currentUser.id || '').toLowerCase();
+      const cuName = String(currentUser.username || '').toLowerCase();
+      const extras = (STORAGE.loadSharedMailboxes ? STORAGE.loadSharedMailboxes() : []).filter(sm => {
+        const arr = Array.isArray(sm.members) ? sm.members : (Array.isArray(sm.memberAccountKeys) ? sm.memberAccountKeys : []);
+        return arr.some(x => {
+          const s = String(x || '').toLowerCase();
+          return s === cuId || s === cuName;
+        });
+      });
       for (const sb of extras) {
         if (!list.some(m => String(m.id) === String(sb.id))) {
           list.push({ ...sb, isShared: true, isCustom: true });
@@ -638,6 +661,57 @@ Object.assign(MailboxManager, {
       return mailboxes[index];
     }
     return null;
+  },
+
+  /**
+   * 统一删除信箱：清理本地所有存储 + 远程同步 + 角色绑定
+   */
+  deleteMailbox(mailboxId) {
+    if (!mailboxId) return false;
+    const isShared = this.isSharedMailbox(mailboxId);
+
+    // 1. 删除该信箱的所有信件
+    if (isShared) {
+      STORAGE.saveSharedLetters(mailboxId, []);
+      STORAGE.deleteSharedMailbox(mailboxId);
+    } else {
+      const allLetters = STORAGE.loadLetters();
+      const remainingLetters = allLetters.filter(l => l.mailboxId !== mailboxId);
+      STORAGE.saveLetters(remainingLetters);
+      // 从私有信箱列表中删除
+      const privates = STORAGE.loadMailboxes() || [];
+      const remainingPrivates = privates.filter(m => m.id !== mailboxId);
+      STORAGE.saveMailboxes(remainingPrivates);
+    }
+
+    // 2. 清理信箱码索引
+    if (typeof STORAGE.deleteMailboxCodeIndexByMailboxId === 'function') {
+      STORAGE.deleteMailboxCodeIndexByMailboxId(mailboxId);
+    }
+
+    // 3. 清理角色绑定
+    if (typeof STORAGE.deleteCharacterBinding === 'function') {
+      STORAGE.deleteCharacterBinding(mailboxId);
+    }
+
+    // 4. 尝试从远程删除（若当前用户是 owner）
+    if (window.MailService && typeof MailService.isRemoteAvailable === 'function') {
+      (async () => {
+        try {
+          const ok = await MailService.isRemoteAvailable();
+          if (ok && typeof MailService.deleteRemoteMailbox === 'function') {
+            await MailService.deleteRemoteMailbox(mailboxId);
+          }
+        } catch (_) {}
+      })();
+    }
+
+    // 5. 清空本地缓存（含信件缓存）
+    if (typeof MailService !== 'undefined' && MailService._mailboxCache) {
+      delete MailService._mailboxCache[mailboxId];
+    }
+
+    return true;
   },
 
   renderMailboxList(container) {
@@ -1275,6 +1349,11 @@ Object.assign(MailboxManager, {
         m.mailboxCode = m.code; // 向上兼容：code -> mailboxCode
         privates[i] = m;
         changed = true;
+      } else if (m.mailboxCode && m.code && m.mailboxCode !== m.code) {
+        // 两者不一致：统一为 mailboxCode（优先），并写回
+        m.code = m.mailboxCode;
+        privates[i] = m;
+        changed = true;
       }
       const finalCode = m.mailboxCode || m.code;
       if (finalCode && saveIndexFn) saveIndexFn(finalCode, m.id);
@@ -1294,6 +1373,10 @@ Object.assign(MailboxManager, {
         sharedChanged = true;
       } else if (!m.mailboxCode && m.code) {
         m.mailboxCode = m.code;
+        shareds[i] = m;
+        sharedChanged = true;
+      } else if (m.mailboxCode && m.code && m.mailboxCode !== m.code) {
+        m.code = m.mailboxCode;
         shareds[i] = m;
         sharedChanged = true;
       }
@@ -1764,20 +1847,48 @@ Object.assign(MailboxManager, {
   // 打包：mailbox 对象 + 前 maxLetters 封信 → JSON → UTF-8 safe base64 → XJ:// 前缀
   buildSharePackage(mailboxId, maxLetters = 10) {
     if (!mailboxId) return null;
-    // 1. 收集信箱对象（个人信箱 > 共享信箱优先）
+    // 1. 收集信箱对象（个人信箱 > 共享信箱 > getMailboxes 合并列表兜底）
     const privates = STORAGE.loadMailboxes() || [];
     let mb = privates.find(m => m.id === mailboxId);
     if (!mb) mb = STORAGE.loadSharedMailbox(mailboxId);
-    if (!mb) return null;
-    // 2. 确保有 mailboxCode
-    if (!mb.mailboxCode && !mb.code) {
-      mb.mailboxCode = this._generateMailboxCode(mb.name);
-      mb.code = mb.mailboxCode;
-    } else if (!mb.mailboxCode && mb.code) {
-      mb.mailboxCode = mb.code;
-    } else if (mb.mailboxCode && !mb.code) {
-      mb.code = mb.mailboxCode;
+    // 兜底：getMailboxes 包含了 remote 缓存数据（默认信箱可能只存在于远端缓存中）
+    if (!mb && typeof this.getMailboxes === 'function') {
+      try {
+        const all = this.getMailboxes();
+        mb = all.find(m => String(m.id) === String(mailboxId)) || null;
+      } catch (_) {}
     }
+    if (!mb) return null;
+    // 2. 确保 mailboxCode / code 一致，且使用所有数据源中最新的 code
+    // 先尝试从 getMailboxes() 获取同 id 信箱（它合并了 remote 缓存，通常最新）
+    let canonicalMb = mb;
+    if (typeof this.getMailboxes === 'function') {
+      try {
+        const all = this.getMailboxes();
+        const merged = all.find(m => String(m.id) === String(mailboxId)) || null;
+        if (merged && merged.mailboxCode) canonicalMb = merged;
+      } catch (_) {}
+    }
+    // 如果 getMailboxes 没拿到，再试共享信箱
+    if (!canonicalMb.mailboxCode) {
+      const sh = STORAGE.loadSharedMailbox(mailboxId);
+      if (sh && sh.mailboxCode) canonicalMb = sh;
+    }
+    // 用索引做最终仲裁
+    let effectiveCode = canonicalMb.mailboxCode || canonicalMb.code || mb.mailboxCode || mb.code || null;
+    if (typeof STORAGE.loadMailboxCodesIndex === 'function') {
+      try {
+        const idx = STORAGE.loadMailboxCodesIndex();
+        const idxCode = idx ? Object.entries(idx).find(([c, id]) => id === mailboxId)?.[0] : null;
+        if (idxCode) effectiveCode = idxCode;
+      } catch (_) {}
+    }
+    if (!effectiveCode) {
+      effectiveCode = this._generateMailboxCode(mb.name || canonicalMb.name);
+    }
+    // 强制统一到 mb 对象（深拷贝前）
+    mb.mailboxCode = effectiveCode;
+    mb.code = effectiveCode;
     // 3. 收集前 maxLetters 封信（只保留元信息：id/title/from/to/date，不要正文/附件 blob，避免包太大）
     const letters = this.loadMailboxLetters(mailboxId).slice(0, maxLetters).map(l => ({
       id: l.id, title: l.title || '', from: l.from || '', to: l.to || '',
@@ -1802,7 +1913,7 @@ Object.assign(MailboxManager, {
     if (!str || typeof str !== 'string') { out.message = '空内容'; return out; }
     const s = str.trim();
     // 情形 1：只是 6 位码，不能做跨用户分享
-    if (/^[A-HJ-NP-Z2-9]{4,10}$/.test(s)) {
+    if (/^[A-HJ-NP-Z0-9]{4,10}$/.test(s)) {
       out.message = '输入是纯信箱号。跨用户分享需要复制「分享内容」字符串（格式 XJ://...），请找朋友发完整分享内容再粘贴到此处';
       out.codeOnly = s.toUpperCase();
       return out;
@@ -1838,11 +1949,15 @@ Object.assign(MailboxManager, {
     if (!parsed || !parsed.success || !parsed.mailbox) { r.message = '解析失败'; return r; }
     const mb = JSON.parse(JSON.stringify(parsed.mailbox));
     const letters = parsed.letters || [];
-    // 确保字段齐全
+    // 确保字段齐全，且 mailboxCode / code 必须一致（避免分享者两端数据不一致导致解析偏差）
     if (!mb.mailboxCode && mb.code) mb.mailboxCode = mb.code;
     if (mb.mailboxCode && !mb.code) mb.code = mb.mailboxCode;
     if (!mb.mailboxCode) {
       mb.mailboxCode = this._generateMailboxCode(mb.name);
+      mb.code = mb.mailboxCode;
+    }
+    // 强制统一：如果两者都存在但不同，取 mailboxCode 为准（打包时也是这么处理的）
+    if (mb.mailboxCode && mb.code && mb.mailboxCode !== mb.code) {
       mb.code = mb.mailboxCode;
     }
     const code = mb.mailboxCode;

@@ -2254,18 +2254,34 @@ const App = {
         e.stopPropagation();
         if (!confirm(`确定要删除信箱"${mailbox.name}"吗？\n该信箱中的所有信件也将被删除。`)) return;
 
-        // 删除该信箱的所有信件
-        if (MailboxManager.isSharedMailbox(mailboxId)) {
-          STORAGE.saveSharedLetters(mailboxId, []);
+        // 统一删除：本地清理 + 索引清理 + 角色绑定清理 + 远程同步
+        if (typeof MailboxManager.deleteMailbox === 'function') {
+          MailboxManager.deleteMailbox(mailboxId);
         } else {
-          const allLetters = STORAGE.loadLetters();
-          const remainingLetters = allLetters.filter(l => l.mailboxId !== mailboxId);
-          STORAGE.saveLetters(remainingLetters);
+          // 兜底：旧版手动清理（不应走到这里）
+          if (MailboxManager.isSharedMailbox(mailboxId)) {
+            STORAGE.saveSharedLetters(mailboxId, []);
+            if (typeof STORAGE.deleteSharedMailbox === 'function') STORAGE.deleteSharedMailbox(mailboxId);
+          } else {
+            const allLetters = STORAGE.loadLetters();
+            const remainingLetters = allLetters.filter(l => l.mailboxId !== mailboxId);
+            STORAGE.saveLetters(remainingLetters);
+            const privates = STORAGE.loadMailboxes() || [];
+            STORAGE.saveMailboxes(privates.filter(m => m.id !== mailboxId));
+          }
+          if (typeof STORAGE.deleteMailboxCodeIndexByMailboxId === 'function') {
+            STORAGE.deleteMailboxCodeIndexByMailboxId(mailboxId);
+          }
+          if (typeof STORAGE.deleteCharacterBinding === 'function') {
+            STORAGE.deleteCharacterBinding(mailboxId);
+          }
         }
 
-        // 删除信箱
-        const remainingMailboxes = mailboxes.filter(m => m.id !== mailboxId);
-        STORAGE.saveMailboxes(remainingMailboxes);
+        // 刷新侧边栏
+        const sidebarNav = document.getElementById('mailbox-sidebar-nav') || document.getElementById('sidebar-nav');
+        if (sidebarNav && typeof MailboxManager.renderSidebarNav === 'function') {
+          MailboxManager.renderSidebarNav(sidebarNav);
+        }
 
         // 返回主页
         this.navigate('home');

@@ -27,6 +27,10 @@ server/server-*.err.log
 .impeccable/
 .trae/
 .vscode/
+.workbuddy/
+
+# Windows system artifacts
+AppData/
 
 # Manual test data (contains runtime logs)
 server/.manual-test-data/
