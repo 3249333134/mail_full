@@ -7,9 +7,10 @@ import { POXIAO_CHARACTER_DEFS, POXIAO_CHARACTER_IDS } from '../data/characters.
 
 const LOCAL_DEFS = { ...JINGYUAN_CHARACTER_DEFS, ...HANMEN_CHARACTER_DEFS, ...MAIN_CHARACTER_DEFS, ...POXIAO_CHARACTER_DEFS };
 const CATEGORY_FILTER = {
-  jingyuan: d => d.category === 'jingyuan', xiejian: d => d.category === 'jingyuan',
+  jingyuan: d => d.category === 'jingyuan', xiejian: d => d.category === 'jingyuan' || d.worldCategory === 'xiejian' || d.worldCategory === 'jingyuan',
   hanmen: d => d.category === 'hanmen', main: d => d.category === 'main',
-  poxiao: d => d.category === 'poxiao',
+  poxiao: d => d.category === 'poxiao' || d.worldCategory === 'poxiao',
+  custom: d => d._custom === true || d.worldCategory === 'custom',
 };
 
 export const CharacterSystem = {
@@ -28,8 +29,14 @@ export const CharacterSystem = {
     this.ensureLocal();
     Object.entries(remote || {}).forEach(([rawId, def]) => {
       const id = this.normalizeId(rawId);
-      if (!LOCAL_DEFS[id] || !def || typeof def !== 'object') return;
-      this._defs.set(id, deepMerge(LOCAL_DEFS[id], { ...def, id }));
+      if (!def || typeof def !== 'object') return;
+      if (LOCAL_DEFS[id]) {
+        // 合并到已有本地定义
+        this._defs.set(id, deepMerge(LOCAL_DEFS[id], { ...def, id }));
+      } else {
+        // 动态新增角色（自定义上传的）
+        this._defs.set(id, { ...def, id, _custom: true });
+      }
       this._cache.delete(id);
     });
     return this;
@@ -37,7 +44,12 @@ export const CharacterSystem = {
 
   async bootstrap(inventoryDefs = null, { useRemote = true } = {}) {
     this.ensureLocal(inventoryDefs);
-    if (useRemote) this.applyDefinitions(await RemoteResourceLoader.loadCharacters().catch(() => null));
+    if (useRemote) {
+      // 从远端 manifest 文件加载（覆盖本地定义）
+      this.applyDefinitions(await RemoteResourceLoader.loadCharacters().catch(() => null));
+      // 从 bootstrap 响应加载（含自定义上传的角色）
+      this.applyDefinitions(RemoteResourceLoader.getBootstrapCharacters());
+    }
     return this;
   },
 

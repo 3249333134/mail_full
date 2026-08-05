@@ -18,15 +18,24 @@ export const MapSystem = {
   applyDefinitions(remote = {}) {
     this.ensureLocal();
     Object.entries(remote || {}).forEach(([key, def]) => {
-      if (!LOCAL_DEFS[key] || !def || typeof def !== 'object') return;
-      this._defs.set(key, deepMerge(LOCAL_DEFS[key], { ...def, key }));
+      if (!def || typeof def !== 'object') return;
+      if (LOCAL_DEFS[key]) {
+        // 合并到已有本地定义
+        this._defs.set(key, deepMerge(LOCAL_DEFS[key], { ...def, key }));
+      } else {
+        // 动态新增地图（自定义上传的）
+        this._defs.set(key, { ...def, key, _custom: true });
+      }
       this._cache.delete(key);
     });
     return this;
   },
   async bootstrap(itemDefs = null, { useRemote = true } = {}) {
     this.ensureLocal(itemDefs);
-    if (useRemote) this.applyDefinitions(await RemoteResourceLoader.loadMaps().catch(() => null));
+    if (useRemote) {
+      this.applyDefinitions(await RemoteResourceLoader.loadMaps().catch(() => null));
+      this.applyDefinitions(RemoteResourceLoader.getBootstrapMaps());
+    }
     return this;
   },
   getMap(key) {

@@ -154,6 +154,15 @@ code { background:rgba(0,0,0,.06); padding:2px 6px; border-radius:4px; font-fami
     <div class="nav-item" data-panel="combat">
       <span class="icon">⚔️</span> 战斗系统
     </div>
+    <div class="nav-item" data-panel="role-defs">
+      <span class="icon">🧩</span> 角色定义
+    </div>
+    <div class="nav-item" data-panel="map-defs">
+      <span class="icon">🗺️</span> 地图定义
+    </div>
+    <div class="nav-item" data-panel="pkg-upload">
+      <span class="icon">📦</span> 资源包上传
+    </div>
   </div>
 </div>
 
@@ -255,6 +264,197 @@ code { background:rgba(0,0,0,.06); padding:2px 6px; border-radius:4px; font-fami
     <div class="card">
       <div class="card-header"><h3>战斗档案</h3></div>
       <div class="card-body" id="combatProfiles"></div>
+    </div>
+  </div>
+
+  <!-- ======== 角色定义管理 ======== -->
+  <div class="panel" id="panel-role-defs">
+    <div class="card">
+      <div class="card-header">
+        <h3>角色定义列表（全部角色：内置 + 自定义）</h3>
+        <button class="btn btn-primary btn-sm" onclick="openUploadCharacterModal()">+ 上传角色包</button>
+      </div>
+      <div class="card-body" id="characterDefsTable">
+        <p style="color:var(--text-secondary)">加载中...</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======== 地图定义管理 ======== -->
+  <div class="panel" id="panel-map-defs">
+    <div class="card">
+      <div class="card-header">
+        <h3>地图定义列表（全部地图：内置 + 自定义）</h3>
+        <button class="btn btn-primary btn-sm" onclick="openUploadMapModal()">+ 上传地图包</button>
+      </div>
+      <div class="card-body" id="mapDefsTable">
+        <p style="color:var(--text-secondary)">加载中...</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======== 资源包上传 ======== -->
+  <div class="panel" id="panel-pkg-upload">
+    <div class="card">
+      <div class="card-header"><h3>📦 资源包上传 — 一键导入角色/地图</h3></div>
+      <div class="card-body" style="padding:24px">
+
+        <!-- 上传区域 -->
+        <div id="pkg-dropzone" style="border:3px dashed var(--border); border-radius:16px; padding:40px; text-align:center; cursor:pointer; transition:all 0.3s; background:var(--bg-secondary); margin-bottom:20px"
+             onclick="document.getElementById('pkg-file-input').click()"
+             ondragover="this.style.borderColor='var(--primary)';this.style.background='var(--bg)'"
+             ondragleave="this.style.borderColor='var(--border)';this.style.background='var(--bg-secondary)'"
+             ondrop="handlePkgDrop(event)">
+          <div style="font-size:48px; margin-bottom:12px">📁</div>
+          <div style="font-size:18px; font-weight:600; margin-bottom:8px">拖拽 .zip 文件到此处</div>
+          <div style="font-size:14px; color:var(--text-secondary)">或点击选择文件 — 支持角色包 / 地图包</div>
+          <input type="file" id="pkg-file-input" accept=".zip" style="display:none" onchange="handlePkgFile(event)">
+        </div>
+
+        <!-- 配置表单 -->
+        <div id="pkg-config" style="display:none; background:var(--bg-secondary); border-radius:12px; padding:20px; margin-bottom:20px">
+          <div style="font-weight:600; margin-bottom:16px; font-size:15px">📋 上传配置</div>
+
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px">
+            <div>
+              <label style="display:block; margin-bottom:4px; font-size:13px; color:var(--text-secondary)">选择文件</label>
+              <div id="pkg-selected-file" style="padding:8px 12px; background:var(--bg); border-radius:8px; font-size:13px">-</div>
+            </div>
+            <div>
+              <label style="display:block; margin-bottom:4px; font-size:13px; color:var(--text-secondary)">世界类别</label>
+              <select id="pkg-world" style="width:100%; padding:8px 12px; background:var(--bg); border:1px solid var(--border); border-radius:8px; font-size:13px; color:var(--text)">
+                <option value="poxiao">破晓 (poxiao)</option>
+                <option value="xiejian">挟剑 (xiejian)</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- 角色包额外字段 -->
+          <div id="pkg-char-fields" style="display:none; margin-top:16px">
+            <div style="font-weight:600; margin-bottom:12px; font-size:14px; color:var(--primary)">🎭 角色包额外参数</div>
+            <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px">
+              <div>
+                <label style="display:block; margin-bottom:4px; font-size:13px; color:var(--text-secondary)">门派 (sect)</label>
+                <input id="pkg-sect" placeholder="例: 缉毒警" style="width:100%; padding:8px 12px; background:var(--bg); border:1px solid var(--border); border-radius:8px; font-size:13px; color:var(--text)">
+              </div>
+              <div>
+                <label style="display:block; margin-bottom:4px; font-size:13px; color:var(--text-secondary)">武力值 (1-10)</label>
+                <input id="pkg-martial" type="number" min="1" max="10" value="5" style="width:100%; padding:8px 12px; background:var(--bg); border:1px solid var(--border); border-radius:8px; font-size:13px; color:var(--text)">
+              </div>
+              <div>
+                <label style="display:block; margin-bottom:4px; font-size:13px; color:var(--text-secondary)">角色描述</label>
+                <input id="pkg-desc" placeholder="可选" style="width:100%; padding:8px 12px; background:var(--bg); border:1px solid var(--border); border-radius:8px; font-size:13px; color:var(--text)">
+              </div>
+            </div>
+          </div>
+
+          <!-- AI 智能分析 -->
+          <div style="margin-top:16px; display:flex; align-items:center; gap:12px">
+            <label style="display:flex; align-items:center; gap:6px; cursor:pointer; font-size:13px; color:var(--text)">
+              <input type="checkbox" id="pkg-ai" checked style="accent-color:var(--primary)"> 🤖 AI 智能分析分类
+            </label>
+          </div>
+
+          <div style="margin-top:16px; display:flex; gap:8px">
+            <button class="btn btn-primary" onclick="uploadPackage()" id="pkg-upload-btn">🚀 开始上传生成</button>
+            <button class="btn btn-outline" onclick="resetPkgUpload()">重置</button>
+          </div>
+        </div>
+
+        <!-- 结果展示 -->
+        <div id="pkg-result" style="display:none"></div>
+
+        <!-- 上传历史 -->
+        <div style="margin-top:32px">
+          <div style="font-weight:600; margin-bottom:12px">📜 自定义资源包列表</div>
+          <div id="pkg-history">
+            <p style="color:var(--text-secondary)">加载中...</p>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ======== 模态框: 上传角色包 ======== -->
+<div class="modal-overlay" id="modal-upload-character">
+  <div class="modal" style="max-width:800px">
+    <h3 id="uc-title">上传角色定义包</h3>
+    <div class="form-group"><label>世界类别</label>
+      <select id="uc-worldCategory">
+        <option value="xiejian">挟剑 (xiejian)</option>
+        <option value="poxiao">破晓 (poxiao)</option>
+        <option value="custom">自定义 (custom)</option>
+      </select>
+    </div>
+    <div class="form-group"><label>角色定义 JSON（完整定义）</label>
+      <textarea id="uc-json" rows="20" placeholder='粘贴完整的角色定义 JSON，例如:
+{
+  "id": "my-character",
+  "name": "我的角色",
+  "category": "jingyuan",
+  "sect": "自定义门派",
+  "dir": "01-我的角色",
+  "portraitPath": "../../fill/my-pack/01-我的角色/portrait.png",
+  "frameRoot": "../../fill/my-pack/01-我的角色/frames",
+  "collision": { "width": 42, "height": 34, "offsetY": 34 },
+  "render": { "width": 112, "height": 112, "nameplateOffsetY": 62 },
+  "baseStats": { "maxHp": 100, "martial": 5, "attack": 16, "defense": 4, "speed": 1 },
+  "defaultItems": ["academy_outer_robe"],
+  "equipmentSlots": ["weapon", "clothing", "accessory"],
+  "actions": {
+    "personality": { "label": "静息", "frameDir": "personality", "frameCount": 4, "frameInterval": 3000, "loop": true },
+    "run": { "label": "奔跑", "frameDir": "run", "frameCount": 4, "frameInterval": 105, "loop": true },
+    "etiquette": { "label": "礼仪", "frameDir": "etiquette", "frameCount": 4, "frameInterval": 220, "loop": false },
+    "martial": { "label": "武术", "frameDir": "martial", "frameCount": 4, "frameInterval": 110, "loop": false },
+    "signature": { "label": "招牌", "frameDir": "signature", "frameCount": 4, "frameInterval": 180, "loop": false }
+  }
+}'></textarea>
+    </div>
+    <p style="font-size:12px;color:var(--text-secondary);margin-bottom:12px">
+      提示：使用已有角色 ID（含内置角色）上传即为“编辑/覆盖”，将顶替原定义并实时生效；
+      禁用后可重新上传或点击“还原”恢复内置默认。角色资源文件（帧动画图片、头像）需提前放在 sendbox 目录下对应路径。
+    </p>
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="closeModal('modal-upload-character')">取消</button>
+      <button class="btn btn-primary" onclick="doUploadCharacter()">上传</button>
+    </div>
+  </div>
+</div>
+
+<!-- ======== 模态框: 上传地图包 ======== -->
+<div class="modal-overlay" id="modal-upload-map">
+  <div class="modal" style="max-width:800px">
+    <h3 id="um-title">上传地图定义包</h3>
+    <div class="form-group"><label>世界类别</label>
+      <select id="um-worldCategory">
+        <option value="xiejian">挟剑 (xiejian)</option>
+        <option value="poxiao">破晓 (poxiao)</option>
+        <option value="custom">自定义 (custom)</option>
+      </select>
+    </div>
+    <div class="form-group"><label>地图定义 JSON（完整定义）</label>
+      <textarea id="um-json" rows="18" placeholder='粘贴完整的地图定义 JSON，例如:
+{
+  "key": "xj-my-map",
+  "name": "我的地图",
+  "category": "xiejian",
+  "bgPath": "xiejian/my-maps/my-map.png",
+  "bgThumbnailPath": "xiejian/my-maps/my-map-thumb.png",
+  "worldScale": 2,
+  "worldSize": { "width": 1200, "height": 900 },
+  "allowedCharacterIds": ["zhou-ran", "he-qingfeng"],
+  "initialWorldItems": []
+}'></textarea>
+    </div>
+    <p style="font-size:12px;color:var(--text-secondary);margin-bottom:12px">
+      提示：使用已有地图 Key（含内置地图）上传即为“编辑/覆盖”，将顶替原定义并实时生效；
+      禁用后可重新上传或点击“还原”恢复内置默认。地图背景图需提前放在 sendbox/src/assets/ 目录下对应路径。
+    </p>
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="closeModal('modal-upload-map')">取消</button>
+      <button class="btn btn-primary" onclick="doUploadMap()">上传</button>
     </div>
   </div>
 </div>
@@ -484,6 +684,9 @@ async function refresh() {
   else if (panelId === 'panel-world') renderWorldState();
   else if (panelId === 'panel-websocket') renderWSState();
   else if (panelId === 'panel-combat') renderCombatProfiles();
+  else if (panelId === 'panel-role-defs') renderCharacterDefs();
+  else if (panelId === 'panel-map-defs') renderMapDefs();
+  else if (panelId === 'panel-pkg-upload') renderPkgUpload();
 }
 
 // ===== 概览 =====
@@ -972,6 +1175,413 @@ async function doRegister() {
   const r = await apiPost('/api/auth/register', body);
   if (r.success) { alert('注册成功: ' + r.message); closeModal('modal-register'); refresh(); }
   else alert('注册失败: ' + r.message);
+}
+
+// ===== 角色定义管理 =====
+async function renderCharacterDefs() {
+  const el = document.getElementById('characterDefsTable');
+  el.innerHTML = '<p style="color:var(--text-secondary)">加载中...</p>';
+  try {
+    const resp = await fetch('/api/game/characters/list');
+    const data = await resp.json();
+    const chars = data.characters || [];
+    if (chars.length === 0) {
+      el.innerHTML = '<p style="color:var(--text-secondary)">暂无角色定义。</p>';
+      return;
+    }
+    let html = '<table class="data-table" style="width:100%"><thead><tr><th>ID</th><th>名称</th><th>类别</th><th>来源</th><th>门派</th><th>动作数</th><th>操作</th></tr></thead><tbody>';
+    for (const ch of chars) {
+      const actionsCount = ch.actions ? Object.keys(ch.actions).length : 0;
+      const sourceTag = ch._builtin
+        ? `<span style="display:inline-block;padding:2px 8px;border-radius:4px;background:rgba(56,189,248,0.15);color:#38bdf8;font-size:11px">内置${ch._modified ? '·已修改' : ''}</span>`
+        : '<span style="display:inline-block;padding:2px 8px;border-radius:4px;background:rgba(34,197,94,0.15);color:#22c55e;font-size:11px">自定义</span>';
+      const editBtn = `<button class="btn btn-outline btn-sm" onclick="openEditCharacterDef('${esc(ch.id)}')">编辑</button>`;
+      const restoreBtn = ch._modified
+        ? `<button class="btn btn-outline btn-sm" onclick="restoreCharacterDef('${esc(ch.id)}')">还原</button>`
+        : '';
+      const delBtn = ch._builtin
+        ? `<button class="btn btn-danger btn-sm" onclick="disableCharacterDef('${esc(ch.id)}')">禁用</button>`
+        : `<button class="btn btn-danger btn-sm" onclick="deleteCharacterDef('${esc(ch.id)}')">删除</button>`;
+      html += `<tr>
+        <td><code>${esc(ch.id)}</code></td>
+        <td><strong>${esc(ch.name)}</strong></td>
+        <td>${esc(ch.worldCategory || 'custom')}</td>
+        <td>${sourceTag}</td>
+        <td>${esc(ch.sect || '-')}</td>
+        <td>${actionsCount}</td>
+        <td>${editBtn} ${restoreBtn} ${delBtn}</td>
+      </tr>`;
+    }
+    html += '</tbody></table>';
+    el.innerHTML = html;
+  } catch (e) {
+    el.innerHTML = `<p style="color:var(--danger)">加载失败：${esc(e.message)}</p>`;
+  }
+}
+
+async function deleteCharacterDef(characterId) {
+  if (!confirm(`确定删除角色定义 "${characterId}" 吗？（此操作不可撤销）`)) return;
+  try {
+    const resp = await fetch(`/api/game/characters/${encodeURIComponent(characterId)}/delete`, { method: 'POST' });
+    const data = await resp.json();
+    if (data.success) {
+      alert('角色定义已删除');
+      renderCharacterDefs();
+    } else {
+      alert('删除失败：' + (data.message || '未知错误'));
+    }
+  } catch (e) {
+    alert('请求失败：' + e.message);
+  }
+}
+
+async function disableCharacterDef(characterId) {
+  if (!confirm(`确定禁用内置角色 "${characterId}" 吗？禁用后将从角色列表中隐藏（可重新上传或还原恢复）。`)) return;
+  try {
+    const resp = await fetch(`/api/game/characters/${encodeURIComponent(characterId)}/delete`, { method: 'POST' });
+    const data = await resp.json();
+    if (data.success) {
+      alert('内置角色已禁用');
+      renderCharacterDefs();
+    } else {
+      alert('禁用失败：' + (data.message || '未知错误'));
+    }
+  } catch (e) {
+    alert('请求失败：' + e.message);
+  }
+}
+
+async function restoreCharacterDef(characterId) {
+  if (!confirm(`确定还原角色定义 "${characterId}" 吗？将恢复为内置默认定义。`)) return;
+  try {
+    const resp = await fetch(`/api/game/characters/${encodeURIComponent(characterId)}/restore`, { method: 'POST' });
+    const data = await resp.json();
+    if (data.success) {
+      alert('角色定义已还原');
+      renderCharacterDefs();
+    } else {
+      alert('还原失败：' + (data.message || '未知错误'));
+    }
+  } catch (e) {
+    alert('请求失败：' + e.message);
+  }
+}
+
+function stripDefMeta(def) {
+  const clean = {};
+  for (const k of Object.keys(def)) {
+    if (k.startsWith('_')) continue;
+    clean[k] = def[k];
+  }
+  return clean;
+}
+
+function openEditCharacterDef(characterId) {
+  fetch('/api/game/characters/list').then(r => r.json()).then(data => {
+    const ch = (data.characters || []).find(c => c.id === characterId);
+    if (!ch) { alert('未找到角色定义'); return; }
+    document.getElementById('uc-worldCategory').value = ch.worldCategory || 'custom';
+    document.getElementById('uc-json').value = JSON.stringify(stripDefMeta(ch), null, 2);
+    document.getElementById('uc-title').textContent = '编辑角色定义：' + characterId;
+    document.getElementById('modal-upload-character').classList.add('show');
+  }).catch(e => alert('加载失败：' + e.message));
+}
+
+function openUploadCharacterModal() {
+  document.getElementById('uc-json').value = '';
+  document.getElementById('uc-title').textContent = '上传/新建角色定义';
+  document.getElementById('modal-upload-character').classList.add('show');
+}
+
+async function doUploadCharacter() {
+  const worldCategory = document.getElementById('uc-worldCategory').value;
+  const jsonStr = document.getElementById('uc-json').value.trim();
+  if (!jsonStr) { alert('请粘贴角色定义 JSON'); return; }
+  let definition;
+  try { definition = JSON.parse(jsonStr); } catch (e) { alert('JSON 解析失败：' + e.message); return; }
+  if (!definition.id) { alert('JSON 中缺少 "id" 字段'); return; }
+
+  try {
+    const resp = await fetch('/api/game/characters/upload', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ worldCategory, definition })
+    });
+    const data = await resp.json();
+    if (data.success) {
+      alert('角色定义上传成功！(需刷新前端页面生效)');
+      closeModal('modal-upload-character');
+      renderCharacterDefs();
+    } else {
+      alert('上传失败：' + (data.message || '未知错误'));
+    }
+  } catch (e) {
+    alert('请求失败：' + e.message);
+  }
+}
+
+// ===== 地图定义管理 =====
+async function renderMapDefs() {
+  const el = document.getElementById('mapDefsTable');
+  el.innerHTML = '<p style="color:var(--text-secondary)">加载中...</p>';
+  try {
+    const resp = await fetch('/api/game/maps/list');
+    const data = await resp.json();
+    const maps = data.maps || [];
+    if (maps.length === 0) {
+      el.innerHTML = '<p style="color:var(--text-secondary)">暂无地图定义。</p>';
+      return;
+    }
+    let html = '<table class="data-table" style="width:100%"><thead><tr><th>Key</th><th>名称</th><th>类别</th><th>来源</th><th>尺寸</th><th>允许角色数</th><th>操作</th></tr></thead><tbody>';
+    for (const m of maps) {
+      const w = m.worldSize ? m.worldSize.width : '-';
+      const h = m.worldSize ? m.worldSize.height : '-';
+      const charCount = m.allowedCharacterIds ? m.allowedCharacterIds.length : 0;
+      const sourceTag = m._builtin
+        ? `<span style="display:inline-block;padding:2px 8px;border-radius:4px;background:rgba(56,189,248,0.15);color:#38bdf8;font-size:11px">内置${m._modified ? '·已修改' : ''}</span>`
+        : '<span style="display:inline-block;padding:2px 8px;border-radius:4px;background:rgba(34,197,94,0.15);color:#22c55e;font-size:11px">自定义</span>';
+      const editBtn = `<button class="btn btn-outline btn-sm" onclick="openEditMapDef('${esc(m.key)}')">编辑</button>`;
+      const restoreBtn = m._modified
+        ? `<button class="btn btn-outline btn-sm" onclick="restoreMapDef('${esc(m.key)}')">还原</button>`
+        : '';
+      const delBtn = m._builtin
+        ? `<button class="btn btn-danger btn-sm" onclick="disableMapDef('${esc(m.key)}')">禁用</button>`
+        : `<button class="btn btn-danger btn-sm" onclick="deleteMapDef('${esc(m.key)}')">删除</button>`;
+      html += `<tr>
+        <td><code>${esc(m.key)}</code></td>
+        <td><strong>${esc(m.name)}</strong></td>
+        <td>${esc(m.worldCategory || 'custom')}</td>
+        <td>${sourceTag}</td>
+        <td>${w} x ${h}</td>
+        <td>${charCount}</td>
+        <td>${editBtn} ${restoreBtn} ${delBtn}</td>
+      </tr>`;
+    }
+    html += '</tbody></table>';
+    el.innerHTML = html;
+  } catch (e) {
+    el.innerHTML = `<p style="color:var(--danger)">加载失败：${esc(e.message)}</p>`;
+  }
+}
+
+async function deleteMapDef(mapKey) {
+  if (!confirm(`确定删除地图定义 "${mapKey}" 吗？（此操作不可撤销）`)) return;
+  try {
+    const resp = await fetch(`/api/game/maps/${encodeURIComponent(mapKey)}/delete`, { method: 'POST' });
+    const data = await resp.json();
+    if (data.success) {
+      alert('地图定义已删除');
+      renderMapDefs();
+    } else {
+      alert('删除失败：' + (data.message || '未知错误'));
+    }
+  } catch (e) {
+    alert('请求失败：' + e.message);
+  }
+}
+
+async function disableMapDef(mapKey) {
+  if (!confirm(`确定禁用内置地图 "${mapKey}" 吗？禁用后将从地图列表中隐藏（可重新上传或还原恢复）。`)) return;
+  try {
+    const resp = await fetch(`/api/game/maps/${encodeURIComponent(mapKey)}/delete`, { method: 'POST' });
+    const data = await resp.json();
+    if (data.success) {
+      alert('内置地图已禁用');
+      renderMapDefs();
+    } else {
+      alert('禁用失败：' + (data.message || '未知错误'));
+    }
+  } catch (e) {
+    alert('请求失败：' + e.message);
+  }
+}
+
+async function restoreMapDef(mapKey) {
+  if (!confirm(`确定还原地图定义 "${mapKey}" 吗？将恢复为内置默认定义。`)) return;
+  try {
+    const resp = await fetch(`/api/game/maps/${encodeURIComponent(mapKey)}/restore`, { method: 'POST' });
+    const data = await resp.json();
+    if (data.success) {
+      alert('地图定义已还原');
+      renderMapDefs();
+    } else {
+      alert('还原失败：' + (data.message || '未知错误'));
+    }
+  } catch (e) {
+    alert('请求失败：' + e.message);
+  }
+}
+
+function openEditMapDef(mapKey) {
+  fetch('/api/game/maps/list').then(r => r.json()).then(data => {
+    const m = (data.maps || []).find(x => x.key === mapKey);
+    if (!m) { alert('未找到地图定义'); return; }
+    document.getElementById('um-worldCategory').value = m.worldCategory || 'custom';
+    document.getElementById('um-json').value = JSON.stringify(stripDefMeta(m), null, 2);
+    document.getElementById('um-title').textContent = '编辑地图定义：' + mapKey;
+    document.getElementById('modal-upload-map').classList.add('show');
+  }).catch(e => alert('加载失败：' + e.message));
+}
+
+// ═══════ 资源包上传 ═══════
+
+let pkgSelectedFile = null;
+
+function renderPkgUpload() {
+  renderPkgHistory();
+}
+
+async function renderPkgHistory() {
+  const el = document.getElementById('pkg-history');
+  el.innerHTML = '<p style="color:var(--text-secondary)">加载中...</p>';
+  try {
+    const [cr, mr] = await Promise.all([
+      fetch('/api/game/characters/list').then(r => r.json()),
+      fetch('/api/game/maps/list').then(r => r.json()),
+    ]);
+    const chars = cr.characters || [];
+    const maps = mr.maps || [];
+    if (chars.length === 0 && maps.length === 0) {
+      el.innerHTML = '<p style="color:var(--text-secondary)">暂无自定义资源包。上传 .zip 包开始导入。</p>';
+      return;
+    }
+    let html = '';
+    if (chars.length > 0) {
+      html += `<div style="margin-bottom:12px"><strong>🎭 自定义角色 (${chars.length})</strong></div>`;
+      html += '<div style="display:flex; flex-wrap:wrap; gap:6px; margin-bottom:16px">';
+      for (const c of chars) {
+        html += `<span style="padding:4px 10px; background:var(--bg); border-radius:6px; font-size:12px"><strong>${esc(c.name||c.id)}</strong> <code style="opacity:0.6">${esc(c.id)}</code></span>`;
+      }
+      html += '</div>';
+    }
+    if (maps.length > 0) {
+      html += `<div style="margin-bottom:12px"><strong>🗺️ 自定义地图 (${maps.length})</strong></div>`;
+      html += '<div style="display:flex; flex-wrap:wrap; gap:6px; margin-bottom:16px">';
+      for (const m of maps) {
+        html += `<span style="padding:4px 10px; background:var(--bg); border-radius:6px; font-size:12px"><strong>${esc(m.name||m.key)}</strong> <code style="opacity:0.6">${esc(m.key)}</code></span>`;
+      }
+      html += '</div>';
+    }
+    el.innerHTML = html;
+  } catch (e) {
+    el.innerHTML = `<p style="color:var(--danger)">加载失败：${esc(e.message)}</p>`;
+  }
+}
+
+function resetPkgUpload() {
+  pkgSelectedFile = null;
+  document.getElementById('pkg-config').style.display = 'none';
+  document.getElementById('pkg-char-fields').style.display = 'none';
+  document.getElementById('pkg-result').style.display = 'none';
+  document.getElementById('pkg-file-input').value = '';
+  document.getElementById('pkg-selected-file').textContent = '-';
+}
+
+function handlePkgDrop(e) {
+  e.preventDefault();
+  const dt = e.dataTransfer;
+  if (dt.files.length > 0) selectPkgFile(dt.files[0]);
+}
+
+function handlePkgFile(e) {
+  if (e.target.files.length > 0) selectPkgFile(e.target.files[0]);
+}
+
+async function selectPkgFile(file) {
+  if (!file) return;
+  if (!file.name.toLowerCase().endsWith('.zip')) {
+    alert('请选择 .zip 压缩包文件');
+    return;
+  }
+  pkgSelectedFile = file;
+  document.getElementById('pkg-selected-file').textContent = `${file.name} (${(file.size/1024/1024).toFixed(1)} MB)`;
+  document.getElementById('pkg-config').style.display = 'block';
+  // 默认显示角色字段（地图包会忽略这些字段）
+  document.getElementById('pkg-char-fields').style.display = 'block';
+}
+
+async function uploadPackage() {
+  if (!pkgSelectedFile) { alert('请先选择 .zip 文件'); return; }
+  const btn = document.getElementById('pkg-upload-btn');
+  btn.disabled = true;
+  btn.textContent = '⏳ 上传处理中...';
+
+  const formData = new FormData();
+  formData.append('file', pkgSelectedFile);
+  formData.append('worldCategory', document.getElementById('pkg-world').value);
+  formData.append('sect', document.getElementById('pkg-sect').value);
+  formData.append('martial', document.getElementById('pkg-martial').value);
+  formData.append('description', document.getElementById('pkg-desc').value);
+  formData.append('useAI', document.getElementById('pkg-ai').checked ? '1' : '0');
+
+  const resultEl = document.getElementById('pkg-result');
+  resultEl.style.display = 'block';
+  resultEl.innerHTML = '<div style="padding:16px; background:var(--bg-secondary); border-radius:12px; text-align:center">⏳ 正在解析并生成定义...</div>';
+
+  try {
+    const resp = await fetch('/api/game/packages/upload', { method: 'POST', body: formData });
+    const data = await resp.json();
+    if (data.success) {
+      let html = `<div style="padding:16px; background:#e8f5e9; border-radius:12px; border-left:4px solid #4caf50">`;
+      html += `<div style="font-weight:600; font-size:16px; margin-bottom:8px; color:#2e7d32">✅ 导入成功</div>`;
+      html += `<div style="font-size:14px; color:#333">类型: <strong>${data.packageType}</strong> | 角色: <strong>${data.generated.characters}</strong> | 地图: <strong>${data.generated.maps}</strong></div>`;
+      html += `<div style="font-size:13px; margin-top:8px; color:#555">已保存: 角色 ${data.saved.characters.length} 个, 地图 ${data.saved.maps.length} 个</div>`;
+      if (data.copyResults && data.copyResults.length > 0) {
+        const okCount = data.copyResults.filter(r => r.status === 'ok' || r.status === 'copied').length;
+        const errCount = data.copyResults.filter(r => r.status === 'error').length;
+        html += `<div style="font-size:12px; margin-top:4px; color:#777">资源复制: ${okCount} 项成功${errCount > 0 ? ', ' + errCount + ' 项失败' : ''}</div>`;
+      }
+      if (data.warnings && data.warnings.length > 0) {
+        html += `<div style="margin-top:8px; font-size:12px; color:#e65100"><strong>⚠️ 警告:</strong><ul style="margin:4px 0; padding-left:20px">`;
+        data.warnings.forEach(w => { html += `<li>${esc(w)}</li>`; });
+        html += '</ul></div>';
+      }
+      html += '</div>';
+      resultEl.innerHTML = html;
+      document.getElementById('pkg-config').style.display = 'none';
+      renderPkgHistory();
+    } else {
+      resultEl.innerHTML = `<div style="padding:16px; background:#ffebee; border-radius:12px; border-left:4px solid #f44336; color:#c62828">❌ 导入失败: ${esc(data.error||'未知错误')}</div>`;
+    }
+  } catch (e) {
+    resultEl.innerHTML = `<div style="padding:16px; background:#ffebee; border-radius:12px; border-left:4px solid #f44336; color:#c62828">❌ 请求失败: ${esc(e.message)}</div>`;
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '🚀 开始上传生成';
+  }
+}
+
+function openUploadMapModal() {
+  document.getElementById('um-json').value = '';
+  document.getElementById('um-title').textContent = '上传/新建地图定义';
+  document.getElementById('modal-upload-map').classList.add('show');
+}
+
+async function doUploadMap() {
+  const worldCategory = document.getElementById('um-worldCategory').value;
+  const jsonStr = document.getElementById('um-json').value.trim();
+  if (!jsonStr) { alert('请粘贴地图定义 JSON'); return; }
+  let definition;
+  try { definition = JSON.parse(jsonStr); } catch (e) { alert('JSON 解析失败：' + e.message); return; }
+  if (!definition.key) { alert('JSON 中缺少 "key" 字段'); return; }
+
+  try {
+    const resp = await fetch('/api/game/maps/upload', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ worldCategory, definition })
+    });
+    const data = await resp.json();
+    if (data.success) {
+      alert('地图定义上传成功！(需刷新前端页面生效)');
+      closeModal('modal-upload-map');
+      renderMapDefs();
+    } else {
+      alert('上传失败：' + (data.message || '未知错误'));
+    }
+  } catch (e) {
+    alert('请求失败：' + e.message);
+  }
 }
 
 // ===== 工具函数 =====

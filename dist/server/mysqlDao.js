@@ -931,6 +931,176 @@ async function listItemRespawns() {
   return query('SELECT * FROM item_respawns');
 }
 
+/* ---------------- 角色/地图定义管理（动态上传）---------------- */
+
+async function saveCharacterDefinition(worldCategory, def) {
+  if (!isMysqlEnabled() || !def || !def.id) return null;
+  const now = Date.now();
+  const definitionJson = JSON.stringify(def);
+  const existing = await query('SELECT id FROM character_definitions WHERE id = ? LIMIT 1', [def.id]);
+  if (existing && existing.length > 0) {
+    await execute(
+      `UPDATE character_definitions SET worldCategory = ?, name = ?, definition = ?, enabled = 1, updatedAt = ? WHERE id = ?`,
+      [worldCategory, def.name || '', definitionJson, now, def.id]
+    );
+  } else {
+    await execute(
+      `INSERT INTO character_definitions (id, worldCategory, name, definition, displayOrder, enabled, createdAt, updatedAt)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      [def.id, worldCategory, def.name || '', definitionJson, 999, 1, now, now]
+    );
+  }
+  return def;
+}
+
+async function listCharacterDefinitions(worldCategory = null) {
+  if (!isMysqlEnabled()) return [];
+  let sql = 'SELECT * FROM character_definitions WHERE enabled = 1';
+  const params = [];
+  if (worldCategory) { sql += ' AND worldCategory = ?'; params.push(worldCategory); }
+  sql += ' ORDER BY displayOrder ASC, createdAt ASC';
+  const rows = await query(sql, params);
+  if (!rows) return [];
+  return rows.map(row => {
+    let def = {};
+    try { def = typeof row.definition === 'string' ? JSON.parse(row.definition) : (row.definition || {}); } catch (_) {}
+    return { ...def, id: row.id, worldCategory: row.worldCategory };
+  });
+}
+
+/** 返回全部角色定义（含 enabled=0 的软删除墓碑），definition 为已解析对象 */
+async function listAllCharacterDefinitions(worldCategory = null) {
+  if (!isMysqlEnabled()) return [];
+  let sql = 'SELECT * FROM character_definitions';
+  const params = [];
+  if (worldCategory) { sql += ' WHERE worldCategory = ?'; params.push(worldCategory); }
+  sql += ' ORDER BY displayOrder ASC, createdAt ASC';
+  const rows = await query(sql, params);
+  if (!rows) return [];
+  return rows.map(row => ({
+    id: row.id,
+    worldCategory: row.worldCategory,
+    name: row.name,
+    enabled: !!row.enabled,
+    displayOrder: row.displayOrder,
+    createdAt: row.createdAt,
+    updatedAt: row.updatedAt,
+    definition: (() => {
+      try { return typeof row.definition === 'string' ? JSON.parse(row.definition) : (row.definition || {}); } catch (_) { return {}; }
+    })(),
+  }));
+}
+
+async function deleteCharacterDefinition(characterId) {
+  if (!isMysqlEnabled() || !characterId) return false;
+  const result = await execute('DELETE FROM character_definitions WHERE id = ?', [characterId]);
+  return result && result.affectedRows > 0;
+}
+
+/** 软删除（墓碑）：将内置角色禁用并持久化，重启后依然隐藏；重新上传同 id 会恢复 */
+async function disableCharacterDefinition(characterId, worldCategory = 'custom', name = '') {
+  if (!isMysqlEnabled() || !characterId) return false;
+  const now = Date.now();
+  const existing = await query('SELECT id FROM character_definitions WHERE id = ? LIMIT 1', [characterId]);
+  if (existing && existing.length > 0) {
+    const result = await execute(
+      'UPDATE character_definitions SET enabled = 0, updatedAt = ? WHERE id = ?',
+      [now, characterId]
+    );
+    return !!(result && result.affectedRows > 0);
+  }
+  const result = await execute(
+    `INSERT INTO character_definitions (id, worldCategory, name, definition, displayOrder, enabled, createdAt, updatedAt)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+    [characterId, worldCategory, name, JSON.stringify({ id: characterId }), 999, 0, now, now]
+  );
+  return !!(result && result.affectedRows > 0);
+}
+
+async function saveMapDefinition(worldCategory, def) {
+  if (!isMysqlEnabled() || !def || !def.key) return null;
+  const now = Date.now();
+  const definitionJson = JSON.stringify(def);
+  const existing = await query('SELECT id FROM map_definitions WHERE id = ? LIMIT 1', [def.key]);
+  if (existing && existing.length > 0) {
+    await execute(
+      `UPDATE map_definitions SET worldCategory = ?, name = ?, definition = ?, enabled = 1, updatedAt = ? WHERE id = ?`,
+      [worldCategory, def.name || '', definitionJson, now, def.key]
+    );
+  } else {
+    await execute(
+      `INSERT INTO map_definitions (id, worldCategory, name, definition, displayOrder, enabled, createdAt, updatedAt)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      [def.key, worldCategory, def.name || '', definitionJson, 999, 1, now, now]
+    );
+  }
+  return def;
+}
+
+async function listMapDefinitions(worldCategory = null) {
+  if (!isMysqlEnabled()) return [];
+  let sql = 'SELECT * FROM map_definitions WHERE enabled = 1';
+  const params = [];
+  if (worldCategory) { sql += ' AND worldCategory = ?'; params.push(worldCategory); }
+  sql += ' ORDER BY displayOrder ASC, createdAt ASC';
+  const rows = await query(sql, params);
+  if (!rows) return [];
+  return rows.map(row => {
+    let def = {};
+    try { def = typeof row.definition === 'string' ? JSON.parse(row.definition) : (row.definition || {}); } catch (_) {}
+    return { ...def, key: row.id, id: row.id, worldCategory: row.worldCategory };
+  });
+}
+
+/** 返回全部地图定义（含 enabled=0 的软删除墓碑），definition 为已解析对象 */
+async function listAllMapDefinitions(worldCategory = null) {
+  if (!isMysqlEnabled()) return [];
+  let sql = 'SELECT * FROM map_definitions';
+  const params = [];
+  if (worldCategory) { sql += ' WHERE worldCategory = ?'; params.push(worldCategory); }
+  sql += ' ORDER BY displayOrder ASC, createdAt ASC';
+  const rows = await query(sql, params);
+  if (!rows) return [];
+  return rows.map(row => ({
+    id: row.id,
+    worldCategory: row.worldCategory,
+    name: row.name,
+    enabled: !!row.enabled,
+    displayOrder: row.displayOrder,
+    createdAt: row.createdAt,
+    updatedAt: row.updatedAt,
+    definition: (() => {
+      try { return typeof row.definition === 'string' ? JSON.parse(row.definition) : (row.definition || {}); } catch (_) { return {}; }
+    })(),
+  }));
+}
+
+async function deleteMapDefinition(mapKey) {
+  if (!isMysqlEnabled() || !mapKey) return false;
+  const result = await execute('DELETE FROM map_definitions WHERE id = ?', [mapKey]);
+  return result && result.affectedRows > 0;
+}
+
+/** 软删除（墓碑）：将内置地图禁用并持久化，重启后依然隐藏；重新上传同 key 会恢复 */
+async function disableMapDefinition(mapKey, worldCategory = 'custom', name = '') {
+  if (!isMysqlEnabled() || !mapKey) return false;
+  const now = Date.now();
+  const existing = await query('SELECT id FROM map_definitions WHERE id = ? LIMIT 1', [mapKey]);
+  if (existing && existing.length > 0) {
+    const result = await execute(
+      'UPDATE map_definitions SET enabled = 0, updatedAt = ? WHERE id = ?',
+      [now, mapKey]
+    );
+    return !!(result && result.affectedRows > 0);
+  }
+  const result = await execute(
+    `INSERT INTO map_definitions (id, worldCategory, name, definition, displayOrder, enabled, createdAt, updatedAt)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+    [mapKey, worldCategory, name, JSON.stringify({ id: mapKey }), 999, 0, now, now]
+  );
+  return !!(result && result.affectedRows > 0);
+}
+
 /* ---------------- 批量：把内存 state.json 中的数据迁到 MySQL（冷启动一次即可） ---------------- */
 
 async function importFromState(state, options = {}) {
@@ -1307,5 +1477,16 @@ module.exports = {
   listItemRespawns,
   // migration
   importFromState,
-  loadAllFromState
+  loadAllFromState,
+  // character/map definitions
+  saveCharacterDefinition,
+  listCharacterDefinitions,
+  listAllCharacterDefinitions,
+  deleteCharacterDefinition,
+  disableCharacterDefinition,
+  saveMapDefinition,
+  listMapDefinitions,
+  listAllMapDefinitions,
+  deleteMapDefinition,
+  disableMapDefinition
 };

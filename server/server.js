@@ -2,8 +2,9 @@ const WebSocket = require('ws');
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
+const os = require('os');
 const { URL } = require('url');
-require('dotenv').config();
+require('dotenv').config({ path: path.join(__dirname, '.env') });
 const { initMysql, isMysqlEnabled } = require('./mysqlClient');
 const mysqlDao = require('./mysqlDao');
 const {
@@ -29,6 +30,9 @@ const poxiaoNodePosition = poxiaoData.nodePosition;
 const poxiaoWorldPosition = poxiaoData.worldPosition;
 const poxiaoStarterItems = poxiaoData.starterItems;
 const poxiaoMartialByCharacter = poxiaoData.martialByCharacter;
+
+const Busboy = require('busboy');
+const packageGen = require('./packageGen');
 
 const PORT = Number(process.env.PORT || 3000);
 const HTTP_ONLY = process.env.HTTP_ONLY === '1';
@@ -696,6 +700,154 @@ function worldItemsForMap(mapKey) {
     .filter(Boolean);
 }
 
+// ------- 自定义角色/地图定义管理（动态上传，可覆盖/禁用内置定义）--------
+
+// 内存中维护的自定义定义缓存
+// 覆盖内置定义时使用 _override=true；禁用内置定义时使用 _disabled=true（墓碑）
+const customCharacterDefs = {};
+const customMapDefs = {};
+
+function isBuiltinCharacter(id) {
+  return !!(characterDefinitions[id] || poxiaoCharacterDefinitions[id]);
+}
+
+function isBuiltinMap(key) {
+  return !!(mapDefinitions[key] || poxiaoMapDefinitions[key]);
+}
+
+function addCustomCharacter(worldCategory, def) {
+  if (!def || !def.id) return;
+  const builtin = isBuiltinCharacter(def.id);
+  customCharacterDefs[def.id] = {
+    ...def,
+    worldCategory,
+    _custom: !builtin,
+    _override: builtin
+  };
+  // 更新全局角色名映射
+  if (def.name) GLOBAL_CHARACTER_NAMES[def.id] = def.name;
+  // 根据 worldCategory 更新对应的 character set
+  if (worldCategory === 'xiejian' || worldCategory === 'jingyuan') {
+    if (def.name) XIEJIAN_CHARACTER_NAMES[def.id] = def.name;
+    if (!builtin) XIEJIAN_CHARACTERS.add(def.id);
+  } else if (worldCategory === 'poxiao') {
+    if (def.name) POXIAO_CHARACTER_NAMES[def.id] = def.name;
+    if (!builtin) POXIAO_CHARACTERS_SET.add(def.id);
+  }
+}
+
+function removeCustomCharacter(characterId) {
+  const def = customCharacterDefs[characterId];
+  delete customCharacterDefs[characterId];
+  if (!def) return;
+  if (isBuiltinCharacter(characterId)) {
+    // 还原内置定义：恢复内置名称映射
+    if (characterDefinitions[characterId]) {
+      XIEJIAN_CHARACTER_NAMES[characterId] = characterDefinitions[characterId].name;
+      if (characterDefinitions[characterId].name) GLOBAL_CHARACTER_NAMES[characterId] = characterDefinitions[characterId].name;
+    } else if (poxiaoCharacterDefinitions[characterId]) {
+      POXIAO_CHARACTER_NAMES[characterId] = poxiaoCharacterDefinitions[characterId].name;
+      if (poxiaoCharacterDefinitions[characterId].name) GLOBAL_CHARACTER_NAMES[characterId] = poxiaoCharacterDefinitions[characterId].name;
+    }
+    return;
+  }
+  if (def.worldCategory === 'xiejian' || def.worldCategory === 'jingyuan') {
+    XIEJIAN_CHARACTERS.delete(characterId);
+    delete XIEJIAN_CHARACTER_NAMES[characterId];
+  } else if (def.worldCategory === 'poxiao') {
+    POXIAO_CHARACTERS_SET.delete(characterId);
+    delete POXIAO_CHARACTER_NAMES[characterId];
+  }
+  delete GLOBAL_CHARACTER_NAMES[characterId];
+}
+
+/** 内存中禁用内置角色（墓碑），会覆盖同 id 的覆盖/自定义定义 */
+function disableBuiltinCharacter(characterId) {
+  const wc = characterDefinitions[characterId]
+    ? (characterDefinitions[characterId].category || 'xiejian')
+    : 'poxiao';
+  customCharacterDefs[characterId] = { id: characterId, worldCategory: wc, _disabled: true, _builtin: true };
+  return wc;
+}
+
+function isBuiltinCharacterDisabled(id) {
+  return !!(customCharacterDefs[id] && customCharacterDefs[id]._disabled);
+}
+
+function addCustomMap(worldCategory, def) {
+  if (!def || !def.key) return;
+  const builtin = isBuiltinMap(def.key);
+  customMapDefs[def.key] = {
+    ...def,
+    worldCategory,
+    _custom: !builtin,
+    _override: builtin
+  };
+  // 更新地图来源名称
+  if (def.name) MAP_SOURCE_NAMES[def.key] = def.name;
+}
+
+function removeCustomMap(mapKey) {
+  delete customMapDefs[mapKey];
+  if (mapDefinitions[mapKey]) MAP_SOURCE_NAMES[mapKey] = mapDefinitions[mapKey].name;
+  else if (poxiaoMapDefinitions[mapKey]) MAP_SOURCE_NAMES[mapKey] = poxiaoMapDefinitions[mapKey].name;
+}
+
+/** 内存中禁用内置地图（墓碑） */
+function disableBuiltinMap(mapKey) {
+  const wc = mapDefinitions[mapKey] ? 'xiejian' : 'poxiao';
+  customMapDefs[mapKey] = { key: mapKey, id: mapKey, worldCategory: wc, _disabled: true, _builtin: true };
+  return wc;
+}
+
+/** 合并内置定义与自定义定义（覆盖定义顶替内置，禁用定义隐藏内置） */
+function getMergedCharacterDefs() {
+  const result = { ...characterDefinitions, ...poxiaoCharacterDefinitions };
+  for (const [id, def] of Object.entries(customCharacterDefs)) {
+    if (def._disabled) delete result[id];
+    else result[id] = def;
+  }
+  return result;
+}
+
+function getMergedMapDefs() {
+  const result = { ...mapDefinitions, ...poxiaoMapDefinitions };
+  for (const [key, def] of Object.entries(customMapDefs)) {
+    if (def._disabled) delete result[key];
+    else result[key] = def;
+  }
+  return result;
+}
+
+// 启动时从 MySQL 加载自定义定义（含禁用墓碑）
+async function loadCustomDefinitions() {
+  if (!isMysqlEnabled()) return;
+  try {
+    const chars = await mysqlDao.listAllCharacterDefinitions();
+    for (const row of chars) {
+      if (!row.enabled) {
+        // 禁用墓碑：仅对内置角色生效，隐藏内置定义
+        if (isBuiltinCharacter(row.id)) disableBuiltinCharacter(row.id);
+        continue;
+      }
+      addCustomCharacter(row.worldCategory || 'custom', { ...row.definition, id: row.id });
+    }
+    console.log(`[custom-defs] 加载了 ${chars.length} 个自定义角色（含禁用墓碑）`);
+
+    const maps = await mysqlDao.listAllMapDefinitions();
+    for (const row of maps) {
+      if (!row.enabled) {
+        if (isBuiltinMap(row.id)) disableBuiltinMap(row.id);
+        continue;
+      }
+      addCustomMap(row.worldCategory || 'custom', { ...row.definition, key: row.id, id: row.id });
+    }
+    console.log(`[custom-defs] 加载了 ${maps.length} 个自定义地图（含禁用墓碑）`);
+  } catch (e) {
+    console.warn('[custom-defs] 加载自定义定义失败：', e?.message || e);
+  }
+}
+
 if (!HTTP_ONLY) {
   ensureWorldSeed();
   ensurePoxiaoWorldSeed();
@@ -929,6 +1081,142 @@ function notifyInventoryForAccount(accountKey) {
   if (session?.ws) sendInventory(session.ws, accountKey);
 }
 
+// ─── 资源包上传处理（multipart zip） ───
+
+function handlePackageUpload(req, res) {
+  return new Promise((resolve) => {
+    const busboy = Busboy({ headers: req.headers, limits: { fileSize: 200 * 1024 * 1024 } });
+    const fields = {};
+    let zipPath = null;
+    let tempDir = null;
+    let hasError = false;
+    let fileWriteDone = false;
+
+    busboy.on('field', (name, val) => {
+      fields[name] = val;
+    });
+
+    busboy.on('file', (fieldname, fileStream, info) => {
+      const { filename, mimeType } = info;
+      if (!filename || !/\.zip$/i.test(filename)) {
+        hasError = true;
+        fileStream.resume();
+        jsonResponse(res, 400, { error: '只接受 .zip 文件' });
+        return;
+      }
+      tempDir = path.join(os.tmpdir(), `pkg-upload-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`);
+      fs.mkdirSync(tempDir, { recursive: true });
+      zipPath = path.join(tempDir, 'upload.zip');
+      const writeStream = fs.createWriteStream(zipPath);
+      fileStream.pipe(writeStream);
+      writeStream.on('finish', () => {
+        fileWriteDone = true;
+      });
+      writeStream.on('error', (err) => {
+        hasError = true;
+        fileWriteDone = true;
+        jsonResponse(res, 500, { error: `写入文件失败: ${err.message}` });
+      });
+    });
+
+    busboy.on('finish', async () => {
+      // 等待文件写入完成
+      await new Promise((r) => {
+        const check = () => {
+          if (fileWriteDone || hasError) return r();
+          setTimeout(check, 50);
+        };
+        check();
+      });
+
+      if (hasError || !zipPath) {
+        if (!hasError) jsonResponse(res, 400, { error: '未上传文件' });
+        if (tempDir) try { fs.rmSync(tempDir, { recursive: true, force: true }); } catch (_) {}
+        resolve(true);
+        return;
+      }
+
+      // 确认文件已写入
+      if (!fs.existsSync(zipPath) || fs.statSync(zipPath).size === 0) {
+        jsonResponse(res, 400, { error: '上传文件为空' });
+        if (tempDir) try { fs.rmSync(tempDir, { recursive: true, force: true }); } catch (_) {}
+        resolve(true);
+        return;
+      }
+
+      try {
+        const worldCategory = fields.worldCategory || 'poxiao';
+        const metadata = {
+          sect: fields.sect || '',
+          martial: parseInt(fields.martial) || 5,
+          description: fields.description || '',
+        };
+        const useAI = fields.useAI === '1' || fields.useAI === 'true';
+        const apiKey = process.env.AGNES_AI_API_KEY || '';
+
+        console.log('[upload] zip size:', fs.statSync(zipPath).size, 'bytes, useAI:', useAI);
+
+        const result = await packageGen.processPackage(zipPath, worldCategory, metadata, {
+          useAI,
+          apiKey,
+        });
+
+        // 保存到 MySQL
+        const savedChars = [];
+        const savedMaps = [];
+        for (const [id, def] of Object.entries(result.characters)) {
+          await mysqlDao.saveCharacterDefinition(worldCategory, def);
+          savedChars.push(id);
+        }
+        for (const [key, def] of Object.entries(result.maps)) {
+          await mysqlDao.saveMapDefinition(worldCategory, def);
+          savedMaps.push(key);
+        }
+
+        // 更新内存（走统一入口，识别覆盖内置定义）
+        for (const [id, def] of Object.entries(result.characters)) {
+          addCustomCharacter(worldCategory, { ...def, id });
+        }
+        for (const [key, def] of Object.entries(result.maps)) {
+          addCustomMap(worldCategory, { ...def, key, id: key });
+        }
+
+        // 清理临时文件
+        if (tempDir) try { fs.rmSync(tempDir, { recursive: true, force: true }); } catch (_) {}
+
+        // 广播更新
+        broadcastAdmin({ type: 'packages_updated', packageType: result.packageType, characters: savedChars, maps: savedMaps });
+
+        jsonResponse(res, 200, {
+          success: true,
+          packageType: result.packageType,
+          generated: {
+            characters: result.characterCount,
+            maps: result.mapCount,
+          },
+          saved: { characters: savedChars, maps: savedMaps },
+          copyResults: result.copyResults,
+          warnings: result.warnings,
+          aiAnalysis: result.aiAnalysis,
+          fileTreeSummary: result.fileTreeSummary,
+        });
+      } catch (err) {
+        if (tempDir) try { fs.rmSync(tempDir, { recursive: true, force: true }); } catch (_) {}
+        jsonResponse(res, 500, { error: `处理失败: ${err.message}` });
+      }
+      resolve(true);
+    });
+
+    busboy.on('error', (err) => {
+      if (tempDir) try { fs.rmSync(tempDir, { recursive: true, force: true }); } catch (_) {}
+      jsonResponse(res, 400, { error: `解析上传数据失败: ${err.message}` });
+      resolve(true);
+    });
+
+    req.pipe(busboy);
+  });
+}
+
 async function handleApi(req, res, parsedUrl) {
   // 管理后台页面
   if (parsedUrl.pathname === '/admin' || parsedUrl.pathname === '/admin/') {
@@ -964,9 +1252,12 @@ async function handleApi(req, res, parsedUrl) {
     if (req.method === 'GET' && parsedUrl.pathname === '/api/game/bootstrap') {
       jsonResponse(res, 200, {
         resourceVersion: DEFINITIONS_VERSION,
-        characterDefinitions,
-        mapDefinitions,
+        characterDefinitions: getMergedCharacterDefs(),
+        mapDefinitions: getMergedMapDefs(),
         itemDefinitions,
+        // 额外信息：标识哪些是自定义的
+        customCharacters: Object.keys(customCharacterDefs).filter(id => customCharacterDefs[id] && customCharacterDefs[id]._custom),
+        customMaps: Object.keys(customMapDefs).filter(key => customMapDefs[key] && customMapDefs[key]._custom),
         resources: {
           resourceVersion: DEFINITIONS_VERSION,
           manifestBaseUrls: envUrlList('GAME_MANIFEST_BASE_URLS'),
@@ -1742,6 +2033,80 @@ async function handleApi(req, res, parsedUrl) {
       return true;
     }
 
+    // 管理后台：全部信件列表（含草稿/已发送，字段从 letter 子对象与顶层正确提取）
+    // 注意：直接从内存读取（启动时已从 MySQL 全量加载、写入路径同步双写），
+    // 避免实时 SELECT * 传输超大 letter JSON（曾出现 2.4MB 单封信导致 9s+ 挂起）。
+    if (req.method === 'GET' && parsedUrl.pathname === '/api/admin/letters') {
+      const status = String(parsedUrl.searchParams.get('status') || '').trim();
+      const mailboxId = String(parsedUrl.searchParams.get('mailboxId') || '').trim();
+      const limit = Math.min(parseInt(parsedUrl.searchParams.get('limit') || '500') || 500, 2000);
+      const byId = new Map(Object.entries(persistentState.letters || {}));
+      let letters = Array.from(byId.values());
+      if (status) letters = letters.filter(l => String(l.deliveryStatus || 'draft') === status);
+      if (mailboxId) letters = letters.filter(l => String(l.mailboxId || '') === mailboxId);
+      // 信箱名称映射
+      const mbNames = {};
+      for (const m of Object.values(persistentState.mailboxes || {})) mbNames[m.id] = m.name || m.id;
+      letters = letters
+        .map(l => {
+          const letter = l.letter && typeof l.letter === 'object' ? l.letter : l;
+          const sender = letter.sender || l.senderAccountKey || letter.senderAccountKey || l.sender || '';
+          const recipient = letter.recipient || l.recipientAccountKey || letter.recipientAccountKey || l.recipient || '';
+          return {
+            id: l.id,
+            mailboxId: l.mailboxId || letter.mailboxId || '',
+            mailboxName: mbNames[l.mailboxId] || l.mailboxId || '',
+            title: letter.letterTitle || letter.title || '无标题',
+            bodyText: String(letter.content || letter.bodyText || '').slice(0, 200),
+            letterType: l.letterType || letter.type || 'letter',
+            deliveryStatus: l.deliveryStatus || letter.status || 'draft',
+            sender,
+            recipient,
+            createdAt: l.createdAt || letter.createdAt || l.sentAt || letter.updatedAt || l.updatedAt || 0,
+            updatedAt: l.updatedAt || letter.updatedAt || 0,
+            sentAt: l.sentAt || null,
+            hasBody: !!(letter.content || letter.bodyText)
+          };
+        })
+        .sort((a, b) => (b.updatedAt || b.createdAt || 0) - (a.updatedAt || a.createdAt || 0))
+        .slice(0, limit);
+      jsonResponse(res, 200, { letters, count: letters.length, total: byId.size });
+      return true;
+    }
+
+    // 管理后台：单封信件详情（完整正文）
+    const letterDetailMatch = parsedUrl.pathname.match(/^\/api\/admin\/letter\/([^/]+)$/);
+    if (req.method === 'GET' && letterDetailMatch) {
+      const letterId = decodeURIComponent(letterDetailMatch[1]);
+      let rec = persistentState.letters[letterId];
+      if (!rec && isMysqlEnabled()) {
+        try { rec = await mysqlDao.loadLetterById(letterId); } catch (_) {}
+      }
+      if (!rec) { jsonResponse(res, 404, { success: false, message: '信件不存在' }); return true; }
+      const letter = rec.letter && typeof rec.letter === 'object' ? rec.letter : rec;
+      const mbNames = {};
+      for (const m of Object.values(persistentState.mailboxes || {})) mbNames[m.id] = m.name || m.id;
+      const mailboxId = rec.mailboxId || letter.mailboxId || '';
+      jsonResponse(res, 200, {
+        success: true,
+        letter: {
+          id: rec.id,
+          mailboxId,
+          mailboxName: mbNames[mailboxId] || mailboxId || '',
+          title: letter.letterTitle || letter.title || '无标题',
+          bodyText: String(letter.content || letter.bodyText || '').slice(0, 50000),
+          letterType: rec.letterType || letter.type || 'letter',
+          deliveryStatus: rec.deliveryStatus || letter.status || 'draft',
+          sender: letter.sender || rec.senderAccountKey || letter.senderAccountKey || rec.sender || '',
+          recipient: letter.recipient || rec.recipientAccountKey || letter.recipientAccountKey || rec.recipient || '',
+          createdAt: rec.createdAt || letter.createdAt || rec.sentAt || letter.updatedAt || rec.updatedAt || 0,
+          updatedAt: rec.updatedAt || letter.updatedAt || 0,
+          sentAt: rec.sentAt || null
+        }
+      });
+      return true;
+    }
+
     if (req.method === 'POST' && parsedUrl.pathname === '/api/admin/role-bind') {
       const body = await readJsonBody(req);
       const { characterId, accountKey, worldId } = body;
@@ -1926,6 +2291,243 @@ async function handleApi(req, res, parsedUrl) {
       broadcastAdmin({ type: 'mailbox_changed', mailboxId, action: 'updated', timestamp: Date.now() });
       jsonResponse(res, 200, { success: true, mailboxId, visibility });
       return true;
+    }
+
+    // ======== 角色/地图定义管理 API ========
+
+    // 上传/更新角色定义（同 id 可覆盖内置定义，同 id 被禁用则自动恢复）
+    if (req.method === 'POST' && parsedUrl.pathname === '/api/game/characters/upload') {
+      const body = await readJsonBody(req);
+      const { worldCategory, definition } = body;
+      if (!worldCategory || !definition || !definition.id) {
+        jsonResponse(res, 400, { error: 'worldCategory 和 definition（含 id）必填' });
+        return true;
+      }
+      const result = await mysqlDao.saveCharacterDefinition(worldCategory, definition);
+      if (!result) {
+        jsonResponse(res, 500, { success: false, message: '保存角色定义失败（可能 MySQL 未启用）' });
+        return true;
+      }
+      // 实时更新内存中的角色定义
+      const wasDisabled = isBuiltinCharacter(definition.id) && isBuiltinCharacterDisabled(definition.id);
+      addCustomCharacter(worldCategory, definition);
+      const isBuiltin = isBuiltinCharacter(definition.id);
+      saveState();
+      broadcastAdmin({ type: 'character_updated', characterId: definition.id, worldCategory, action: isBuiltin ? 'overridden' : 'uploaded', timestamp: Date.now() });
+      jsonResponse(res, 200, { success: true, character: definition, kind: isBuiltin ? 'override' : 'custom', isRestore: wasDisabled });
+      return true;
+    }
+
+    // 查询角色定义列表（内置 + 自定义，覆盖/禁用合并去重）
+    if (req.method === 'GET' && parsedUrl.pathname === '/api/game/characters/list') {
+      const worldCategory = parsedUrl.searchParams.get('worldCategory') || null;
+      const rows = await mysqlDao.listAllCharacterDefinitions();
+      const byId = new Map(rows.map(r => [r.id, r]));
+      const out = [];
+
+      // 内置角色：被覆盖则展示覆盖定义，被禁用则隐藏
+      const builtInCharPairs = [[characterDefinitions, 'xiejian'], [poxiaoCharacterDefinitions, 'poxiao']];
+      for (const [defs, wc] of builtInCharPairs) {
+        for (const [id, def] of Object.entries(defs)) {
+          if (worldCategory && def.category !== worldCategory) continue;
+          const row = byId.get(id);
+          if (row && !row.enabled) continue; // 已禁用
+          if (row) {
+            out.push({ ...row.definition, id: row.id, worldCategory: row.worldCategory, _builtin: true, _modified: true });
+          } else {
+            out.push({ ...def, _builtin: true, worldCategory: wc || def.category });
+          }
+        }
+      }
+
+      // 自定义角色（非内置 id）
+      for (const row of rows) {
+        if (!row.enabled) continue;
+        if (isBuiltinCharacter(row.id)) continue; // 已作为内置处理
+        if (worldCategory && row.worldCategory !== worldCategory) continue;
+        out.push({ ...row.definition, id: row.id, worldCategory: row.worldCategory, _custom: true });
+      }
+
+      jsonResponse(res, 200, { characters: out });
+      return true;
+    }
+
+    // 删除角色定义（内置 → 软删除禁用；自定义 → 硬删除）
+    const charDeleteMatch = parsedUrl.pathname.match(/^\/api\/game\/characters\/([^/]+)\/delete$/);
+    if (req.method === 'POST' && charDeleteMatch) {
+      const characterId = decodeURIComponent(charDeleteMatch[1]);
+      if (!characterId) { jsonResponse(res, 400, { error: 'missing_id' }); return true; }
+      if (isBuiltinCharacter(characterId)) {
+        const builtinDef = characterDefinitions[characterId] || poxiaoCharacterDefinitions[characterId];
+        const wc = characterDefinitions[characterId] ? (builtinDef.category || 'xiejian') : 'poxiao';
+        const result = await mysqlDao.disableCharacterDefinition(characterId, wc, builtinDef.name || characterId);
+        if (!result) {
+          jsonResponse(res, 500, { success: false, message: '禁用内置角色失败（可能 MySQL 未启用）' });
+          return true;
+        }
+        disableBuiltinCharacter(characterId);
+        saveState();
+        broadcastAdmin({ type: 'character_updated', characterId, action: 'disabled', timestamp: Date.now() });
+        jsonResponse(res, 200, { success: true, characterId, action: 'disabled', builtin: true });
+        return true;
+      }
+      const result = await mysqlDao.deleteCharacterDefinition(characterId);
+      removeCustomCharacter(characterId);
+      saveState();
+      broadcastAdmin({ type: 'character_updated', characterId, action: 'deleted', timestamp: Date.now() });
+      jsonResponse(res, 200, { success: result, characterId, action: 'deleted' });
+      return true;
+    }
+
+    // 还原角色定义（删除覆盖/禁用墓碑，恢复内置或移除自定义）
+    const charRestoreMatch = parsedUrl.pathname.match(/^\/api\/game\/characters\/([^/]+)\/restore$/);
+    if (req.method === 'POST' && charRestoreMatch) {
+      const characterId = decodeURIComponent(charRestoreMatch[1]);
+      if (!characterId) { jsonResponse(res, 400, { error: 'missing_id' }); return true; }
+      const result = await mysqlDao.deleteCharacterDefinition(characterId);
+      removeCustomCharacter(characterId);
+      saveState();
+      broadcastAdmin({ type: 'character_updated', characterId, action: 'restored', timestamp: Date.now() });
+      jsonResponse(res, 200, { success: result, characterId, action: 'restored', builtin: isBuiltinCharacter(characterId) });
+      return true;
+    }
+
+    // 上传/更新地图定义（同 key 可覆盖内置地图，同 key 被禁用则自动恢复）
+    if (req.method === 'POST' && parsedUrl.pathname === '/api/game/maps/upload') {
+      const body = await readJsonBody(req);
+      const { worldCategory, definition } = body;
+      if (!worldCategory || !definition || !definition.key) {
+        jsonResponse(res, 400, { error: 'worldCategory 和 definition（含 key）必填' });
+        return true;
+      }
+      // 确保 id 与 key 一致
+      if (!definition.id) definition.id = definition.key;
+      const result = await mysqlDao.saveMapDefinition(worldCategory, definition);
+      if (!result) {
+        jsonResponse(res, 500, { success: false, message: '保存地图定义失败（可能 MySQL 未启用）' });
+        return true;
+      }
+      addCustomMap(worldCategory, definition);
+      const isBuiltin = isBuiltinMap(definition.key);
+      saveState();
+      broadcastAdmin({ type: 'map_updated', mapKey: definition.key, worldCategory, action: isBuiltin ? 'overridden' : 'uploaded', timestamp: Date.now() });
+      jsonResponse(res, 200, { success: true, map: definition, kind: isBuiltin ? 'override' : 'custom' });
+      return true;
+    }
+
+    // 查询地图定义列表（内置 + 自定义，覆盖/禁用合并去重）
+    if (req.method === 'GET' && parsedUrl.pathname === '/api/game/maps/list') {
+      const worldCategory = parsedUrl.searchParams.get('worldCategory') || null;
+      const rows = await mysqlDao.listAllMapDefinitions();
+      const byId = new Map(rows.map(r => [r.id, r]));
+      const out = [];
+
+      // 内置地图：被覆盖则展示覆盖定义，被禁用则隐藏
+      const builtInMapPairs = [[mapDefinitions, 'xiejian'], [poxiaoMapDefinitions, 'poxiao']];
+      for (const [defs, wc] of builtInMapPairs) {
+        for (const [key, def] of Object.entries(defs)) {
+          if (worldCategory && def.category !== worldCategory) continue;
+          const row = byId.get(key);
+          if (row && !row.enabled) continue; // 已禁用
+          if (row) {
+            out.push({ ...row.definition, key: row.id, id: row.id, worldCategory: row.worldCategory, _builtin: true, _modified: true });
+          } else {
+            out.push({ ...def, _builtin: true, worldCategory: wc || def.category });
+          }
+        }
+      }
+
+      // 自定义地图（非内置 key）
+      for (const row of rows) {
+        if (!row.enabled) continue;
+        if (isBuiltinMap(row.id)) continue; // 已作为内置处理
+        if (worldCategory && row.worldCategory !== worldCategory) continue;
+        out.push({ ...row.definition, key: row.id, id: row.id, worldCategory: row.worldCategory, _custom: true });
+      }
+
+      jsonResponse(res, 200, { maps: out });
+      return true;
+    }
+
+    // 删除地图定义（内置 → 软删除禁用；自定义 → 硬删除）
+    const mapDeleteMatch = parsedUrl.pathname.match(/^\/api\/game\/maps\/([^/]+)\/delete$/);
+    if (req.method === 'POST' && mapDeleteMatch) {
+      const mapKey = decodeURIComponent(mapDeleteMatch[1]);
+      if (!mapKey) { jsonResponse(res, 400, { error: 'missing_key' }); return true; }
+      if (isBuiltinMap(mapKey)) {
+        const builtinDef = mapDefinitions[mapKey] || poxiaoMapDefinitions[mapKey];
+        const wc = mapDefinitions[mapKey] ? 'xiejian' : 'poxiao';
+        const result = await mysqlDao.disableMapDefinition(mapKey, wc, builtinDef.name || mapKey);
+        if (!result) {
+          jsonResponse(res, 500, { success: false, message: '禁用内置地图失败（可能 MySQL 未启用）' });
+          return true;
+        }
+        disableBuiltinMap(mapKey);
+        saveState();
+        broadcastAdmin({ type: 'map_updated', mapKey, action: 'disabled', timestamp: Date.now() });
+        jsonResponse(res, 200, { success: true, mapKey, action: 'disabled', builtin: true });
+        return true;
+      }
+      const result = await mysqlDao.deleteMapDefinition(mapKey);
+      removeCustomMap(mapKey);
+      saveState();
+      broadcastAdmin({ type: 'map_updated', mapKey, action: 'deleted', timestamp: Date.now() });
+      jsonResponse(res, 200, { success: result, mapKey, action: 'deleted' });
+      return true;
+    }
+
+    // 还原地图定义（删除覆盖/禁用墓碑，恢复内置或移除自定义）
+    const mapRestoreMatch = parsedUrl.pathname.match(/^\/api\/game\/maps\/([^/]+)\/restore$/);
+    if (req.method === 'POST' && mapRestoreMatch) {
+      const mapKey = decodeURIComponent(mapRestoreMatch[1]);
+      if (!mapKey) { jsonResponse(res, 400, { error: 'missing_key' }); return true; }
+      const result = await mysqlDao.deleteMapDefinition(mapKey);
+      removeCustomMap(mapKey);
+      saveState();
+      broadcastAdmin({ type: 'map_updated', mapKey, action: 'restored', timestamp: Date.now() });
+      jsonResponse(res, 200, { success: result, mapKey, action: 'restored', builtin: isBuiltinMap(mapKey) });
+      return true;
+    }
+
+    // 上传资源文件（角色帧动画/地图背景图等）
+    if (req.method === 'POST' && parsedUrl.pathname === '/api/game/assets/upload') {
+      if (!isMysqlEnabled()) {
+        jsonResponse(res, 503, { error: 'asset_upload_requires_mysql' });
+        return true;
+      }
+      const body = await readJsonBody(req);
+      const { relativePath, fileName, base64Data } = body;
+      if (!relativePath || !fileName || !base64Data) {
+        jsonResponse(res, 400, { error: 'relativePath, fileName, base64Data 必填' });
+        return true;
+      }
+      // 安全检查：禁止路径穿越
+      const safeRelPath = relativePath.replace(/\.\./g, '').replace(/\\/g, '/');
+      const safeFileName = fileName.replace(/\.\./g, '').replace(/\\/g, '/').replace(/[^a-zA-Z0-9_.\-/\u4e00-\u9fa5]/g, '_');
+      const targetDir = path.join(ROOT_DIR, safeRelPath);
+      const targetFile = path.join(targetDir, safeFileName);
+      if (!targetFile.startsWith(ROOT_DIR)) {
+        jsonResponse(res, 403, { error: '路径穿越被拒绝' });
+        return true;
+      }
+      try {
+        fs.mkdirSync(targetDir, { recursive: true });
+        const buffer = Buffer.from(base64Data, 'base64');
+        fs.writeFileSync(targetFile, buffer);
+        jsonResponse(res, 200, { success: true, path: path.join(safeRelPath, safeFileName).replace(/\\/g, '/') });
+      } catch (err) {
+        jsonResponse(res, 500, { error: `写入文件失败: ${err.message}` });
+      }
+      return true;
+    }
+
+    // 资源包上传（multipart zip 文件）
+    if (req.method === 'POST' && parsedUrl.pathname === '/api/game/packages/upload') {
+      if (!isMysqlEnabled()) {
+        jsonResponse(res, 503, { error: 'package_upload_requires_mysql' });
+        return true;
+      }
+      return await handlePackageUpload(req, res);
     }
 
     jsonResponse(res, 404, { error: 'api_not_found' });
@@ -2346,7 +2948,7 @@ if (!HTTP_ONLY) {
             }, clientId);
           }
           saveState();
-          console.log(`[${currentRoomId}] joined: ${clientId} (${room.clients.size}/${MAX_ROOM_CONNECTIONS})`);
+          console.log(`[${currentRoomId}] joined: ${clientId} (${room.clients.size}/${MAX_ROOM_CONNECTIONS}) mode=${mode} char=${initialCharacter || '-'} map=${initialMapKey || '-'}`);
           return;
         }
 
@@ -2420,6 +3022,7 @@ if (!HTTP_ONLY) {
             timestamp: Date.now()
           }, clientId);
           broadcastCharacterOccupancy(room);
+          console.log(`[${currentRoomId}] ${clientId} select_character -> ${characterId} (map=${player.mapKey}, ready=true)`);
           return;
         }
 
@@ -2457,6 +3060,7 @@ if (!HTTP_ONLY) {
             y: player.y,
             timestamp: player.lastUpdate
           }, clientId);
+          console.log(`[${currentRoomId}] ${clientId} map_change -> ${player.mapKey} (${player.x},${player.y})`);
           return;
         }
 
@@ -3154,6 +3758,9 @@ async function seedPresetUsers() {
 
         // 从 MySQL 加载所有数据到内存 persistentState（覆盖 state.json 的数据，以 MySQL 为准）
         await mysqlDao.loadAllFromState(persistentState);
+
+        // 从 MySQL 加载自定义角色/地图定义
+        await loadCustomDefinitions();
       } catch (e) {
         console.warn('[bootstrap] 数据加载异常（忽略）：', e?.message || e);
       }

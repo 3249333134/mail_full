@@ -65,6 +65,20 @@ export const RemoteResourceLoader = {
   loadItems(options) { return this._loadManifest('items.json', options); },
   loadQuests(options) { return this._loadManifest('quests.json', options); },
   resetCache() { this._cache.clear(); },
+
+  /** 获取 bootstrap 响应中服务端返回的角色/地图定义（含自定义上传的） */
+  getBootstrapCharacters() {
+    return (this._bootstrapPayload && this._bootstrapPayload.characterDefinitions) || {};
+  },
+  getBootstrapMaps() {
+    return (this._bootstrapPayload && this._bootstrapPayload.mapDefinitions) || {};
+  },
+  getCustomCharacterIds() {
+    return (this._bootstrapPayload && this._bootstrapPayload.customCharacters) || [];
+  },
+  getCustomMapKeys() {
+    return (this._bootstrapPayload && this._bootstrapPayload.customMaps) || [];
+  },
 };
 
 export function deepMerge(local, remote) {

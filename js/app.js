@@ -3646,10 +3646,21 @@ const App = {
     }
   },
 
+  // 统一获取当前游戏地图 key：优先用 MultiplayerSync.currentMapKey（与服务器一致，
+  // join/map_change/room_state 都会更新），回退到 app 本地变量。
+  // 修复：_poxiaoMapKey/_xiejianMapKey 若未初始化（room_state 未到达等），
+  // 会导致远程玩家过滤 key 不匹配而互不相见。
+  _currentGameMapKey() {
+    let syncKey = '';
+    if (typeof MultiplayerSync !== 'undefined') syncKey = MultiplayerSync.currentMapKey || '';
+    const appKey = this._isPoxiaoMailbox() ? (this._poxiaoMapKey || '') : (this._xiejianMapKey || '');
+    return syncKey || appKey || '';
+  },
+
   _refreshXiejianRemotePlayers() {
     if (!window.gameMapRenderer || typeof MultiplayerSync === 'undefined') return;
     const players = MultiplayerSync.getOnlinePlayers();
-    const currentMapKey = this._isPoxiaoMailbox() ? this._poxiaoMapKey : this._xiejianMapKey;
+    const currentMapKey = this._currentGameMapKey();
 
     for (const userId of Object.keys(window.gameMapRenderer.remotePlayers || {})) {
       const player = players[userId];
@@ -3719,7 +3730,7 @@ const App = {
       MultiplayerSync.on('update', (player) => {
         if (!window.gameMapRenderer) return;
         if (isXiejian || isPoxiao) {
-          const currentMapKey = isPoxiao ? this._poxiaoMapKey : this._xiejianMapKey;
+          const currentMapKey = this._currentGameMapKey();
           if (player.characterId && player.mapKey === currentMapKey) {
             window.gameMapRenderer.addRemotePlayer(player.userId, player.characterId, player.x, player.y);
             window.gameMapRenderer.updateRemotePlayer(player.userId, player);
@@ -3735,7 +3746,7 @@ const App = {
 
       MultiplayerSync.on('action', (data) => {
         if (!window.gameMapRenderer) return;
-        if ((isXiejian || isPoxiao) && data.mapKey !== (isPoxiao ? this._poxiaoMapKey : this._xiejianMapKey)) return;
+        if ((isXiejian || isPoxiao) && data.mapKey !== this._currentGameMapKey()) return;
         window.gameMapRenderer.playRemoteAction(data.userId, data.action);
       });
 
@@ -3766,14 +3777,14 @@ const App = {
         });
 
         MultiplayerSync.on('worldItems', (data) => {
-          const currentMapKey = isPoxiao ? this._poxiaoMapKey : this._xiejianMapKey;
+          const currentMapKey = this._currentGameMapKey();
           if (data.mapKey && data.mapKey !== currentMapKey) return;
           window.gameMapRenderer?.setWorldItems(data.items || []);
           this._updateXiejianWorldItemStatus(data.items || []);
         });
 
         MultiplayerSync.on('worldItemSpawned', (data) => {
-          const currentMapKey = isPoxiao ? this._poxiaoMapKey : this._xiejianMapKey;
+          const currentMapKey = this._currentGameMapKey();
           if (data.instance?.mapKey !== currentMapKey) return;
           window.gameMapRenderer?.addWorldItem(data.instance);
           this._showXiejianFeedback(`${data.instance.definition?.name || '物品'}已重新出现`);
@@ -4587,7 +4598,7 @@ const App = {
     const definition = item.definition;
     const equipped = Boolean(item.equippedSlot);
     const nearbyPlayers = Object.values(MultiplayerSync.getOnlinePlayers())
-      .filter(player => player.mapKey === (this._isPoxiaoMailbox() ? this._poxiaoMapKey : this._xiejianMapKey))
+      .filter(player => player.mapKey === this._currentGameMapKey())
       .filter(player => Math.hypot(
         player.x - window.gameMapRenderer.player.x,
         player.y - window.gameMapRenderer.player.y
@@ -5764,7 +5775,7 @@ const App = {
       this._chatConversationUsers.add(convTargetUserId);
     }
 
-    const currentMapKey = this._isPoxiaoMailbox() ? this._poxiaoMapKey : this._xiejianMapKey;
+    const currentMapKey = this._currentGameMapKey();
     const canShowBubble = !(this._isXiejianMailbox() || this._isPoxiaoMailbox())
       || !data.mapKey
       || data.mapKey === currentMapKey;
