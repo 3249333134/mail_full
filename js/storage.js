@@ -338,17 +338,29 @@ const STORAGE = {
     if (!window.MailService ||
         typeof MailService.isRemoteAvailable !== 'function' ||
         typeof MailService.createRemoteMailbox !== 'function') return false;
-    let ok = false;
-    try {
-      const available = await MailService.isRemoteAvailable({ force: true });
-      if (!available) return false;
-    } catch (_) { return false; }
+    // 探测失败/慢也继续尝试推送（每个请求带超时保护）；真正不可达时各请求超时失败并保留脏标记，下次重试。
+    // 注：若此处直接 return false，本地新建但云端失败的信箱将永远不同步 → 跨端口/跨设备搜不到。
+    let available = false;
+    try { available = await MailService.isRemoteAvailable({ force: true }); } catch (_) { available = false; }
 
     const ak = String(accountKey || MailService.getAccountKey() || '').trim().toLowerCase();
     if (!ak) return false;
 
-    const mailboxes = this.loadMailboxes() || [];
+    // 带超时的云端创建（远程 MySQL 较慢，放宽到 8s）
+    const createWithTimeout = (payload) => Promise.race([
+      MailService.createRemoteMailbox(payload),
+      new Promise((_, rej) => setTimeout(() => rej(new Error('flush_timeout_8s')), 8000))
+    ]);
+
+    const personalBoxes = this.loadMailboxes() || [];
+    const sharedBoxes = (typeof this.loadSharedMailboxes === 'function') ? (this.loadSharedMailboxes() || []) : [];
+    // 合并去重：个人 + 共享（分享包导入的信箱也要推云端，否则跨端口/跨设备搜不到）
+    const byIdMap = new Map();
+    personalBoxes.forEach(m => m && m.id && byIdMap.set(String(m.id), m));
+    sharedBoxes.forEach(m => m && m.id && !byIdMap.has(String(m.id)) && byIdMap.set(String(m.id), m));
+    const mailboxes = Array.from(byIdMap.values());
     let dirty = false;
+    let ok = false;
     for (const mb of mailboxes) {
       if (!mb || !mb.name) continue;
       const isDirty = mb._memberDataDirty === true || mb._remoteUpsertNeeded === true || mb._remoteSynced !== true;
@@ -388,7 +400,7 @@ const STORAGE = {
       };
 
       try {
-        const r = await MailService.createRemoteMailbox(payload);
+        const r = await createWithTimeout(payload);
         if (r && r.success && r.mailbox) {
           mb._remoteSynced = true;
           mb._memberDataDirty = false;

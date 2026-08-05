@@ -1267,6 +1267,8 @@ export class GameMapRenderer {
         }
         this.renderPlayerNameTags();
         this._drawCombatEffects();
+        // 万物送信：在途信使标记（地图追踪）
+        this._drawJourneyMarkers();
       } else {
         if (this.multiplayerMode) this._drawPlayerAura(this.player.x, this.player.y);
         this.drawCharacter(px, py);
@@ -1817,6 +1819,76 @@ export class GameMapRenderer {
 
   setSelectedTarget(userId) {
     this.selectedTargetId = userId || '';
+  }
+
+  // ===== 万物送信：在途信使地图追踪 =====
+  setJourneyMarkers(list) {
+    this.journeyMarkers = (list || []).filter(l => l && l.journey && l.journey.status === 'in-transit');
+  }
+
+  _drawJourneyMarkers() {
+    let list = this.journeyMarkers || [];
+    // 兜底：标记为空但 JourneyTracker 有在途数据时（本地缓存刚到达）直接用实时数据
+    if (!list.length && window.JourneyTracker && window.JourneyTracker.letters && window.JourneyTracker.letters.length) {
+      list = window.JourneyTracker.letters;
+    }
+    if (!list.length) return;
+    const tracker = window.JourneyTracker;
+    if (!tracker) return;
+    const ctx = this.ctx;
+    ctx.save();
+    // 在途信件按收信人 y 排序绘制（与角色同深度概念简化）
+    for (const letter of list) {
+      const j = letter.journey;
+      const carrier = (window.CARRIER_ROSTER || []).find(c => c.id === j.carrierId);
+      const pts = tracker._eventPositions(letter);
+      const done = Math.max(1, (j.events || []).length);
+      const sx = this.camera.x, sy = this.camera.y;
+      const w = this.canvas.width, h = this.canvas.height;
+
+      // 轨迹虚线（已走）
+      ctx.beginPath();
+      pts.slice(0, done).forEach((p, i) => {
+        const x = p.x - sx, y = p.y - sy;
+        if (x < -60 || y < -60 || x > w + 60 || y > h + 60) return;
+        if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+      });
+      ctx.strokeStyle = 'rgba(176,149,106,0.5)';
+      ctx.lineWidth = 1.6;
+      ctx.setLineDash([6, 5]);
+      ctx.lineDashOffset = -(this.time / 22) % 11;
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      // 事件点：已过实心 / 未过空心
+      pts.forEach((p, i) => {
+        const x = p.x - sx, y = p.y - sy;
+        if (x < -30 || y < -30 || x > w + 30 || y > h + 30) return;
+        ctx.beginPath();
+        ctx.arc(x, y, i < done ? 4 : 3, 0, Math.PI * 2);
+        if (i < done) { ctx.fillStyle = '#8a6d3b'; ctx.fill(); }
+        else { ctx.strokeStyle = 'rgba(138,109,59,0.5)'; ctx.stroke(); }
+      });
+
+      // 当前信使（emoji + 收信人小字）
+      const cur = tracker.currentPos(letter);
+      const cx = cur.x - sx, cy = cur.y - sy;
+      if (cx > -40 && cy > -40 && cx < w + 40 && cy < h + 40) {
+        const floatY = Math.sin(this.time * 0.004) * 4;
+        ctx.font = '30px serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillStyle = 'rgba(0,0,0,0.25)';
+        ctx.beginPath();
+        ctx.ellipse(cx, cy + 16, 9, 3, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillText(carrier ? carrier.emoji : '✉', cx, cy - 14 + floatY);
+        ctx.font = '11px sans-serif';
+        ctx.fillStyle = 'rgba(90,70,40,0.85)';
+        ctx.fillText(letter.recipient || '', cx, cy + 28);
+      }
+    }
+    ctx.restore();
   }
 
   showCombatHit(data) {

@@ -1,0 +1,1643 @@
+/* ============================================================
+   design-v2 —— 全站视觉升级覆盖层（纯显示，零功能影响）
+   加载顺序：在 ui-polish.css 之后最后加载，覆盖全站视图。
+   设计语言：
+     · 壳层（导航/侧栏/弹窗/手账壳/待寄/风格选择/地图/游戏）→ 精修国风
+       纸张 · 墨色 · 玫瑰主色 · 暖棕阴影 · 毛笔标题
+     · 叙事层（信件画廊/阅读器/日记/登录装饰/信封）→ 真实信件质感
+       旧纸纹理 · 朱红蜡封 · 邮戳 · 邮票 · 桌面投影 · 手写元素
+   ============================================================ */
+
+:root {
+  /* ---- 令牌修正与补充 ---- */
+  --font-hand: "Ma Shan Zheng", STXingkai, "华文行楷", cursive;   /* 修复 features.css 8 处未定义引用 */
+  --color-text: #20232b;                                          /* 修复 editor.css / main.css 未定义引用 */
+  --color-text-secondary: #687083;
+  --radius-card: 16px;
+  --radius-btn: 10px;
+  --card-accent-fallback: #8a6d3b;
+  --shadow-stamp: 0 10px 30px rgba(60, 38, 22, 0.35), 0 2px 8px rgba(60, 38, 22, 0.18);
+  --paper-ink: #4b352b;
+  --wax-red: #b03a3a;
+  --wax-red-dark: #8c2626;
+  --paper-old: #f4ead6;
+}
+
+/* ============================================================
+   Phase 0 · 通用质感工具类（供各视图复用）
+   ============================================================ */
+
+/* 旧纸纹理：暖米纸底 + 斜向纤维 + 淡斑渍 */
+.paper-texture {
+  background-color: var(--paper-old);
+  background-image:
+    repeating-linear-gradient(118deg, rgba(120, 90, 50, 0.035) 0 1px, transparent 1px 7px),
+    radial-gradient(ellipse at 18% 24%, rgba(150, 105, 60, 0.10), transparent 55%),
+    radial-gradient(ellipse at 82% 78%, rgba(130, 95, 55, 0.08), transparent 50%),
+    radial-gradient(circle at 64% 32%, rgba(255, 250, 235, 0.55), transparent 40%);
+  background-blend-mode: multiply, normal, normal, normal;
+}
+
+/* 朱红圆章 / 蜡封：外环 + 内圈 + 印章字（需配合 content 使用或内嵌文字） */
+.seal-stamp {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  color: #fff8f0;
+  font-family: var(--font-brush-kaishu);
+  font-weight: 700;
+  font-size: 1.05rem;
+  background:
+    radial-gradient(circle at 32% 30%, rgba(255, 255, 255, 0.28), transparent 42%),
+    radial-gradient(circle, var(--wax-red) 0 58%, var(--wax-red-dark) 74%, #6e1a1a 100%);
+  box-shadow:
+    inset 0 2px 4px rgba(255, 255, 255, 0.25),
+    inset 0 -3px 6px rgba(0, 0, 0, 0.25),
+    0 3px 8px rgba(120, 30, 30, 0.35);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
+}
+
+/* 圆形邮戳：双虚线圆环 + 中心戳字（配合 ::before content 使用） */
+.postmark {
+  position: absolute;
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  border: 1.5px dashed rgba(96, 76, 52, 0.55);
+  color: rgba(96, 76, 52, 0.6);
+  font-family: var(--font-pen-kai);
+  font-size: 9px;
+  letter-spacing: 0.12em;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  line-height: 1.5;
+  background: radial-gradient(circle, rgba(120, 95, 60, 0.05) 0 62%, transparent 63%);
+  transform: rotate(-12deg);
+  pointer-events: none;
+}
+.postmark::after {
+  content: '';
+  position: absolute;
+  inset: 6px;
+  border-radius: 50%;
+  border: 1px dashed rgba(96, 76, 52, 0.4);
+}
+
+/* 右上角邮票：齿孔边 + 主题色内块 */
+.stamp-sheet {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 44px;
+  height: 52px;
+  background:
+    radial-gradient(circle at 1px 1px, transparent 3px, var(--card-accent, var(--color-accent)) 3.5px) 0 0 / 8px 8px,
+    linear-gradient(160deg, var(--card-accent, var(--color-accent)), var(--card-accent-dark, var(--color-accent-dark)));
+  background-clip: padding-box;
+  padding: 5px;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.4), 0 2px 6px rgba(60, 38, 22, 0.25);
+  transform: rotate(4deg);
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(255, 255, 255, 0.9);
+  font-family: var(--font-brush-kaishu);
+  font-size: 12px;
+  letter-spacing: 0.05em;
+}
+
+/* ============================================================
+   Phase 1 · 壳层精修（国风统一）
+   ============================================================ */
+
+/* ---------- 1.1 主页侧边栏 ---------- */
+.sidebar {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.5), transparent 120px),
+    repeating-linear-gradient(0deg, rgba(120, 90, 50, 0.018) 0 1px, transparent 1px 26px),
+    #faf5ec;
+  border-right: 1px solid rgba(120, 90, 50, 0.16);
+  box-shadow: inset -1px 0 0 rgba(255, 255, 255, 0.6), 2px 0 18px rgba(60, 38, 22, 0.05);
+}
+
+.sidebar-header {
+  border-bottom: 1px dashed rgba(120, 90, 50, 0.22);
+  padding: 26px 20px 18px;
+}
+
+.sidebar-title {
+  font-family: var(--font-brush-xingkai);
+  font-weight: 400;
+  letter-spacing: 0.28em;
+  font-size: 2rem;
+  color: #7a3f4c;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.7);
+}
+
+.sidebar-subtitle {
+  letter-spacing: 0.3em;
+  color: #9a7b62;
+}
+
+/* 导航项：真实类名覆盖（修复 ui-polish 死选择器） */
+.sidebar-nav-item {
+  border-radius: 12px;
+  background: rgba(255, 253, 248, 0.55);
+  border: 1px solid transparent;
+  transition: all var(--t-base);
+}
+
+.sidebar-nav-item:hover {
+  background: rgba(255, 253, 248, 0.95);
+  border-color: rgba(201, 95, 122, 0.22);
+  transform: translateX(3px);
+}
+
+.sidebar-nav-item.active {
+  background: linear-gradient(135deg, rgba(201, 95, 122, 0.14), rgba(139, 90, 62, 0.10));
+  border-color: rgba(201, 95, 122, 0.35);
+  box-shadow: 0 3px 12px rgba(92, 64, 51, 0.10);
+}
+
+/* 选中态左侧朱红墨线 */
+.sidebar-nav-item.active::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 22%;
+  bottom: 22%;
+  width: 3px;
+  border-radius: 3px;
+  background: linear-gradient(180deg, #c95f7a, #a43f5e);
+}
+
+.sidebar-nav-item.active .sidebar-nav-name {
+  color: #8c3149;
+  font-family: var(--font-brush-kaishu);
+  font-size: 1rem;
+}
+
+/* 共享徽章微调 */
+.sidebar-nav-item .shared-badge {
+  background: rgba(201, 95, 122, 0.12);
+  color: #a43f5e;
+  border: 1px solid rgba(201, 95, 122, 0.3);
+  border-radius: 999px;
+  padding: 1px 8px;
+  font-size: 0.62rem;
+}
+
+/* 未读徽章（mailbox.js 注入的 style 保留，这里统一圆角与字重） */
+.sidebar-nav-count {
+  box-shadow: 0 2px 6px rgba(60, 38, 22, 0.25);
+  font-weight: 700;
+}
+
+.sidebar-footer,
+.sidebar-user-info {
+  border-top: 1px dashed rgba(120, 90, 50, 0.22);
+}
+
+/* ---------- 1.2 手账 journal-view（重点断层修复：棕 → 玫瑰/墨色 + 毛笔字体） ---------- */
+.journal-view-tab {
+  border-radius: 10px 10px 0 0;
+  border: 1px solid rgba(120, 90, 50, 0.22);
+  border-bottom: none;
+  background: rgba(255, 253, 248, 0.7);
+  color: #7a5038;
+  font-family: var(--font-hand);
+  letter-spacing: 0.06em;
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.6) inset;
+}
+
+.journal-view-tab:hover {
+  background: rgba(255, 253, 248, 0.95);
+  color: var(--color-accent-dark);
+}
+
+.journal-view-tab.active {
+  background: linear-gradient(160deg, #c95f7a, #a43f5e);
+  color: #fff8f0;
+  border-color: transparent;
+  box-shadow: 0 3px 10px rgba(164, 63, 94, 0.32);
+}
+
+.year-month-card {
+  border-radius: var(--radius-card);
+  border: 1px solid rgba(120, 90, 50, 0.18);
+  background:
+    radial-gradient(circle at 85% 12%, rgba(201, 95, 122, 0.07), transparent 45%),
+    linear-gradient(160deg, #fffdf8, #f7f1e6);
+  box-shadow: 0 3px 12px rgba(92, 64, 51, 0.08);
+}
+
+.year-month-card:hover {
+  border-color: rgba(201, 95, 122, 0.4);
+  box-shadow: 0 10px 26px rgba(92, 64, 51, 0.14);
+  transform: translateY(-4px);
+}
+
+.year-month-title,
+.month-title,
+.day-date {
+  color: #8c3149;
+  font-family: var(--font-hand);
+  font-weight: 400;
+}
+
+.month-title {
+  letter-spacing: 0.1em;
+}
+
+.month-nav-btn,
+.day-nav-btn {
+  border-radius: 50%;
+  border: 1px solid rgba(120, 90, 50, 0.3);
+  background: #fffdf8;
+  color: #a43f5e;
+  box-shadow: 0 2px 6px rgba(92, 64, 51, 0.08);
+}
+
+.month-nav-btn:hover,
+.day-nav-btn:hover {
+  background: linear-gradient(160deg, #c95f7a, #a43f5e);
+  color: #fff;
+  border-color: transparent;
+}
+
+.month-calendar,
+.day-toolbar {
+  border-radius: var(--radius-card);
+  border: 1px solid rgba(120, 90, 50, 0.16);
+  background: rgba(255, 253, 248, 0.92);
+  box-shadow: 0 6px 20px rgba(92, 64, 51, 0.08);
+}
+
+.month-weekday {
+  color: #a43f5e;
+}
+
+.mini-day.today {
+  background: linear-gradient(160deg, #c95f7a, #a43f5e);
+  color: #fff;
+}
+
+.mini-day.has-entry {
+  background: rgba(201, 95, 122, 0.14);
+}
+
+.mini-day.today.has-entry {
+  background: linear-gradient(160deg, #c95f7a, #d08ba0);
+}
+
+.month-day.today {
+  border-color: #c95f7a;
+  background: linear-gradient(160deg, #fff6ee, #ffe9e3);
+}
+
+.month-day.has-entry {
+  background: linear-gradient(160deg, #fffdf8, #fdeee4);
+}
+
+.day-action-btn {
+  border-radius: var(--radius-btn);
+  border: 1px solid rgba(120, 90, 50, 0.28);
+  background: #fffdf8;
+  color: #7a5038;
+  font-family: var(--font-hand);
+  letter-spacing: 0.05em;
+}
+
+.day-action-btn:hover {
+  background: #fdf4e6;
+  transform: translateY(-2px);
+}
+
+.day-action-btn.primary {
+  background: linear-gradient(160deg, #c95f7a, #a43f5e);
+  color: #fff;
+  border-color: transparent;
+  box-shadow: 0 4px 12px rgba(164, 63, 94, 0.3);
+}
+
+.day-action-btn.active {
+  background: linear-gradient(160deg, #d08ba0, #c95f7a);
+  color: #fff;
+  border-color: transparent;
+}
+
+.day-weekday {
+  color: #a06b52;
+}
+
+.month-day-preview {
+  color: #8c6a4a;
+}
+
+.templates-hint {
+  color: #8c6a4a;
+}
+
+/* ---------- 1.3 待寄信件 scheduled-view ---------- */
+.scheduled-empty {
+  background:
+    radial-gradient(ellipse at 50% 20%, rgba(201, 95, 122, 0.06), transparent 60%),
+    rgba(255, 253, 248, 0.6);
+  border: 1.5px dashed rgba(120, 90, 50, 0.28);
+  border-radius: var(--radius-card);
+  max-width: 520px;
+  margin: 60px auto;
+  padding: 60px 30px;
+  box-shadow: inset 0 0 40px rgba(120, 90, 50, 0.04);
+}
+
+.scheduled-empty-icon {
+  opacity: 0.85;
+}
+
+.scheduled-empty p {
+  font-family: var(--font-hand);
+  font-size: 1.15rem;
+  color: #8c6a4a;
+}
+
+.scheduled-item {
+  border-radius: 14px;
+  background: rgba(255, 253, 248, 0.92);
+  border: 1px solid rgba(120, 90, 50, 0.16);
+  box-shadow: 0 3px 12px rgba(92, 64, 51, 0.07);
+}
+
+.scheduled-item:hover {
+  box-shadow: 0 10px 26px rgba(92, 64, 51, 0.13);
+  transform: translateY(-2px);
+}
+
+.scheduled-item-title {
+  font-family: var(--font-brush-kaishu);
+  font-size: 1.05rem;
+}
+
+.scheduled-action-btn {
+  border-radius: var(--radius-btn);
+  border: 1px solid rgba(164, 63, 94, 0.35);
+  color: #a43f5e;
+  background: transparent;
+  transition: all var(--t-fast);
+}
+
+.scheduled-action-btn:hover {
+  background: rgba(201, 95, 122, 0.08);
+}
+
+.scheduled-action-btn.send-now {
+  background: linear-gradient(160deg, #c95f7a, #a43f5e);
+  border-color: transparent;
+  color: #fff;
+  box-shadow: 0 4px 12px rgba(164, 63, 94, 0.28);
+}
+
+.scheduled-action-btn.send-now:hover {
+  background: linear-gradient(160deg, #d4708c, #b84e6c);
+}
+
+/* ---------- 1.4 信纸风格选择 ---------- */
+.style-card {
+  border-radius: var(--radius-card);
+  border: 2px solid transparent;
+  box-shadow: 0 4px 16px rgba(92, 64, 51, 0.08);
+  transition: all var(--t-base);
+}
+
+.style-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 14px 34px rgba(92, 64, 51, 0.15);
+}
+
+.style-card.selected {
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 3px rgba(201, 95, 122, 0.18), 0 10px 26px rgba(92, 64, 51, 0.14);
+}
+
+.style-card-name {
+  font-family: var(--font-brush-kaishu);
+  font-size: 1.15rem;
+}
+
+/* ---------- 1.5 通用选项卡 / 切换按钮 ---------- */
+/* 信箱详情"信件/日记/地图"胶囊 → 国风书签组 */
+.view-switch {
+  border-radius: 12px;
+  background: rgba(255, 253, 248, 0.8);
+  border: 1px solid rgba(120, 90, 50, 0.18);
+  box-shadow: 0 2px 10px rgba(92, 64, 51, 0.06);
+}
+
+.view-btn {
+  border-radius: 10px;
+}
+
+.view-btn .view-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: rgba(255, 253, 248, 0.9);
+  border: 1px solid rgba(120, 90, 50, 0.14);
+  transition: transform var(--t-base), background var(--t-base);
+}
+
+.view-btn:hover .view-icon {
+  transform: rotate(-8deg) scale(1.06);
+  background: #fff;
+}
+
+/* 主页"卡片/地图"切换 */
+.view-toggle-group {
+  border-radius: 12px;
+  border: 1px solid rgba(120, 90, 50, 0.2);
+  background: rgba(255, 253, 248, 0.85);
+}
+
+.view-toggle-btn {
+  color: #7a5038;
+}
+
+.view-toggle-btn.active {
+  background: linear-gradient(160deg, #c95f7a, #a43f5e);
+  color: #fff;
+}
+
+/* ---------- 1.6 模态框体系统一 ---------- */
+.mailbox-modal-content,
+.modal-content,
+.recipient-picker-panel,
+.schedule-modal-content {
+  position: relative;
+  border-radius: var(--radius-card);
+  background:
+    radial-gradient(ellipse at 12% 0%, rgba(201, 95, 122, 0.06), transparent 45%),
+    #fffdf8;
+  border: 1px solid rgba(120, 90, 50, 0.2);
+  box-shadow: 0 26px 70px rgba(60, 38, 22, 0.28), 0 8px 24px rgba(60, 38, 22, 0.12);
+}
+
+/* 顶部渐变描边（复用 login-card 模式） */
+.mailbox-modal-content::before,
+.modal-content::before,
+.recipient-picker-panel::before,
+.schedule-modal-content::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  border-radius: var(--radius-card) var(--radius-card) 0 0;
+  background: linear-gradient(90deg, transparent, var(--color-accent) 22%, #c98a5a 50%, var(--color-accent) 78%, transparent);
+  pointer-events: none;
+}
+
+.modal-content {
+  border: 1px solid rgba(120, 90, 50, 0.2);
+}
+
+.modal-header {
+  background: linear-gradient(160deg, #fdf8ef, #f6ecdb);
+  border-bottom: 1px dashed rgba(120, 90, 50, 0.22);
+}
+
+.modal-header h3 {
+  color: #8c3149;
+  font-family: var(--font-hand);
+  font-weight: 400;
+  letter-spacing: 0.06em;
+}
+
+.modal-close {
+  color: #8c3149;
+}
+
+.mailbox-modal-content h3 {
+  color: #8c3149;
+  font-family: var(--font-hand);
+  font-weight: 400;
+}
+
+/* 表单控件聚焦环 */
+.form-group input,
+.form-group textarea {
+  border-radius: var(--radius-input);
+  transition: border-color var(--t-fast), box-shadow var(--t-fast);
+}
+
+.form-group input:focus,
+.form-group textarea:focus {
+  border-color: var(--color-accent);
+  box-shadow: var(--focus-ring);
+}
+
+/* 地图背景选项卡片化 */
+.map-bg-option,
+.bg-option {
+  border-radius: 12px;
+  overflow: hidden;
+  border: 2px solid transparent;
+  transition: all var(--t-base);
+  box-shadow: 0 2px 8px rgba(92, 64, 51, 0.08);
+}
+
+.map-bg-option:hover,
+.bg-option:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(92, 64, 51, 0.14);
+}
+
+.map-bg-option.active,
+.bg-option.active {
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 3px rgba(201, 95, 122, 0.18);
+}
+
+/* 加入信箱 / 新建信箱弹窗内的预览卡 */
+.join-preview-box {
+  border-radius: 12px;
+}
+
+/* ============================================================
+   Phase 2 · 叙事层：真实信件质感（核心）
+   ============================================================ */
+
+/* ---------- 2.4 登录装饰层（替换 emoji：毛笔"笺"字 + 蜡封 + 邮戳） ---------- */
+.login-decor {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  height: 76px;
+}
+
+.decor-jian {
+  font-family: var(--font-brush-xingkai);
+  font-size: 3.4rem;
+  color: #2f2a24;
+  letter-spacing: 0.05em;
+  text-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.7),
+    0 3px 8px rgba(60, 38, 22, 0.25);
+  animation: float 3s ease-in-out infinite;
+  position: relative;
+}
+
+.decor-jian::after {
+  content: '';
+  position: absolute;
+  left: -14%;
+  right: -14%;
+  bottom: -8px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(47, 42, 36, 0.35), transparent);
+}
+
+.decor-seal {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  color: #fff8f0;
+  font-family: var(--font-brush-kaishu);
+  font-weight: 700;
+  font-size: 1.1rem;
+  background:
+    radial-gradient(circle at 32% 30%, rgba(255, 255, 255, 0.3), transparent 42%),
+    radial-gradient(circle, #b03a3a 0 58%, #8c2626 74%, #6e1a1a 100%);
+  box-shadow:
+    inset 0 2px 4px rgba(255, 255, 255, 0.28),
+    inset 0 -3px 6px rgba(0, 0, 0, 0.28),
+    0 4px 10px rgba(120, 30, 30, 0.35);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
+  animation: float 3s ease-in-out infinite 0.4s;
+}
+
+.decor-postmark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  border: 1.5px dashed rgba(96, 76, 52, 0.5);
+  color: rgba(96, 76, 52, 0.6);
+  font-family: var(--font-pen-kai);
+  font-size: 9px;
+  letter-spacing: 0.12em;
+  text-align: center;
+  line-height: 1.5;
+  background: radial-gradient(circle, rgba(120, 95, 60, 0.05) 0 62%, transparent 63%);
+  transform: rotate(-12deg);
+  animation: float 3s ease-in-out infinite 0.8s;
+}
+
+/* ---------- 2.1 信件画廊卡 letter-card ---------- */
+.letter-gallery-card > .letter-card {
+  background:
+    repeating-linear-gradient(112deg, rgba(120, 90, 50, 0.05) 0 1px, transparent 1px 9px),
+    radial-gradient(ellipse at 22% 26%, rgba(150, 105, 60, 0.14), transparent 55%),
+    radial-gradient(ellipse at 80% 82%, rgba(130, 95, 55, 0.10), transparent 50%),
+    radial-gradient(circle at 60% 30%, rgba(255, 252, 242, 0.6), transparent 45%),
+    linear-gradient(180deg, #f8efdd 0%, #f2e6cd 100%);
+  border-radius: 8px;
+  border: 1px solid rgba(120, 90, 50, 0.28);
+  box-shadow:
+    0 2px 4px rgba(60, 38, 22, 0.18),
+    0 18px 40px rgba(60, 38, 22, 0.26);
+}
+
+/* 顶部封口三角：保留，加折痕暗影 */
+.letter-gallery-card > .letter-card::before {
+  background: linear-gradient(135deg,
+    var(--card-accent, #d4728c) 0%,
+    var(--card-accent-dark, #b85a75) 100%) !important;
+  filter: drop-shadow(0 3px 3px rgba(60, 38, 22, 0.35));
+}
+
+/* 点阵纹理：改浅墨斑，更"旧纸" */
+.letter-gallery-card > .letter-card::after {
+  background-image:
+    radial-gradient(circle at 12% 20%, rgba(96, 76, 52, 0.05) 1.2px, transparent 1.8px),
+    radial-gradient(circle at 88% 70%, rgba(96, 76, 52, 0.045) 1.2px, transparent 1.8px),
+    radial-gradient(circle at 50% 48%, rgba(96, 76, 52, 0.03) 2px, transparent 2.6px);
+}
+
+/* 邮票：右上角（卡片 ::after 已被纹理占用，挂在 body 上） */
+.letter-gallery-card > .letter-card > .letter-card-body::after {
+  content: '信';
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 42px;
+  height: 50px;
+  z-index: 3;
+  background:
+    radial-gradient(circle at 1px 1px, transparent 3px, var(--card-accent, #c95f7a) 3.5px) 0 0 / 8px 8px,
+    linear-gradient(160deg, var(--card-accent, #c95f7a), var(--card-accent-dark, #a43f5e));
+  background-clip: padding-box;
+  padding: 5px;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.45), 0 2px 6px rgba(60, 38, 22, 0.3);
+  transform: rotate(4deg);
+  border-radius: 2px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(255, 255, 255, 0.92);
+  font-family: var(--font-brush-kaishu);
+  font-size: 13px;
+  pointer-events: none;
+}
+
+/* 邮戳：左下角 */
+.letter-gallery-card > .letter-card > .letter-card-body::before {
+  content: '信笺·已寄';
+  position: absolute;
+  left: 10px;
+  bottom: 8px;
+  width: 66px;
+  height: 66px;
+  z-index: 3;
+  border-radius: 50%;
+  border: 1.5px dashed rgba(96, 76, 52, 0.5);
+  color: rgba(96, 76, 52, 0.55);
+  font-family: var(--font-pen-kai);
+  font-size: 8px;
+  letter-spacing: 0.1em;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  line-height: 1.6;
+  background: radial-gradient(circle, rgba(120, 95, 60, 0.05) 0 60%, transparent 61%);
+  transform: rotate(-14deg);
+  pointer-events: none;
+}
+
+/* 首字印章 → 朱红蜡封 */
+.letter-gallery-card > .letter-card .letter-card-seal {
+  background:
+    radial-gradient(circle at 32% 30%, rgba(255, 255, 255, 0.30), transparent 42%),
+    radial-gradient(circle, #b03a3a 0 58%, #8c2626 74%, #6e1a1a 100%) !important;
+  box-shadow:
+    inset 0 2px 4px rgba(255, 255, 255, 0.28),
+    inset 0 -3px 6px rgba(0, 0, 0, 0.28),
+    0 4px 10px rgba(120, 30, 30, 0.35) !important;
+  font-family: var(--font-brush-kaishu) !important;
+  letter-spacing: 0.02em;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
+}
+
+.letter-gallery-card > .letter-card .letter-card-title {
+  color: #3f2f22;
+  font-family: var(--font-brush-kaishu);
+  font-weight: 400;
+  font-size: 1.1rem;
+}
+
+.letter-gallery-card > .letter-card .letter-card-preview {
+  color: #6d5a44;
+}
+
+.letter-gallery-card > .letter-card .letter-card-meta {
+  border-top: 1px dashed rgba(96, 76, 52, 0.3);
+  color: #8a7355;
+}
+
+.letter-gallery-card > .letter-card .letter-date {
+  font-family: var(--font-hand);
+  font-size: 0.8rem;
+  letter-spacing: 0.12em;
+  color: #7a5038;
+}
+
+.letter-gallery-card > .letter-card .letter-card-author {
+  color: #8a7355;
+  border-top: 1px dashed rgba(96, 76, 52, 0.2);
+}
+
+.letter-gallery-card > .letter-card .letter-card-author.letter-author-other {
+  color: var(--card-accent, #a43f5e);
+}
+
+/* 桌面投影（hover 抬升） */
+.letter-gallery-card:hover > .letter-card {
+  box-shadow:
+    0 4px 8px rgba(60, 38, 22, 0.2),
+    0 26px 60px rgba(60, 38, 22, 0.3);
+}
+
+.letter-gallery-card.active > .letter-card {
+  box-shadow:
+    0 3px 6px rgba(60, 38, 22, 0.2),
+    0 30px 70px rgba(60, 38, 22, 0.36);
+}
+
+/* 叠放背景信封改旧纸色 */
+.letter-gallery-card::before,
+.letter-gallery-card::after {
+  background: #efe2c8 !important;
+  border-color: rgba(120, 90, 50, 0.22) !important;
+  box-shadow: 0 3px 10px rgba(60, 38, 22, 0.12) !important;
+}
+
+/* ---------- 2.2 阅读器操作条 ---------- */
+.reader-controls {
+  background:
+    linear-gradient(180deg, #fdf9f0, #f5ecd9);
+  border-top: 1px solid rgba(120, 90, 50, 0.18);
+  box-shadow: 0 -4px 16px rgba(60, 38, 22, 0.05);
+}
+
+.record-btn,
+.export-btn,
+.edit-letter-btn {
+  border-radius: var(--radius-btn);
+  border: 1px solid rgba(164, 63, 94, 0.4);
+  background: rgba(255, 253, 248, 0.85);
+  color: #a43f5e;
+  letter-spacing: 0.06em;
+  transition: all var(--t-fast);
+  box-shadow: 0 1px 3px rgba(92, 64, 51, 0.06);
+}
+
+.record-btn:hover,
+.export-btn:hover,
+.edit-letter-btn:hover {
+  background: linear-gradient(160deg, #c95f7a, #a43f5e);
+  color: #fff;
+  border-color: transparent;
+  box-shadow: 0 4px 14px rgba(164, 63, 94, 0.3);
+  transform: translateY(-1px);
+}
+
+/* 主操作（导出）更突出 */
+.export-btn {
+  background: linear-gradient(160deg, #c95f7a, #a43f5e);
+  color: #fff;
+  border-color: transparent;
+}
+
+/* ---------- 2.3 日记卡 ---------- */
+.diary-card {
+  border-radius: 12px;
+  border: 1px solid rgba(120, 90, 50, 0.2);
+  background:
+    linear-gradient(90deg, rgba(201, 95, 122, 0.05) 0 2px, transparent 2px),
+    radial-gradient(circle at 90% 10%, rgba(201, 95, 122, 0.08), transparent 42%),
+    #fffdf8;
+  box-shadow: 0 3px 12px rgba(92, 64, 51, 0.07);
+  transition: all var(--t-base);
+}
+
+/* 右下卷角 */
+.diary-card::after {
+  content: '';
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: 22px;
+  height: 22px;
+  background: linear-gradient(315deg, transparent 52%, rgba(120, 90, 50, 0.2) 53% 62%, transparent 63%);
+  border-radius: 0 0 12px 0;
+  pointer-events: none;
+}
+
+/* 顶部胶带贴纸 */
+.diary-card::before {
+  content: '';
+  position: absolute;
+  top: -7px;
+  left: 50%;
+  transform: translateX(-50%) rotate(-2deg);
+  width: 64px;
+  height: 16px;
+  background: rgba(201, 95, 122, 0.16);
+  border-left: 1px dashed rgba(201, 95, 122, 0.4);
+  border-right: 1px dashed rgba(201, 95, 122, 0.4);
+  pointer-events: none;
+}
+
+.diary-card:hover {
+  transform: translateY(-4px) rotate(0.3deg);
+  box-shadow: 0 14px 34px rgba(92, 64, 51, 0.15);
+}
+
+.diary-card h4 {
+  font-family: var(--font-brush-kaishu);
+  font-size: 1.1rem;
+  color: #5c3a2c;
+}
+
+/* ---------- 2.5 信封开启动画 ---------- */
+.envelope {
+  box-shadow: var(--shadow-stamp);
+}
+
+.envelope-flap {
+  box-shadow: 0 1px 2px rgba(60, 38, 22, 0.25);
+}
+
+.envelope-seal {
+  background: radial-gradient(circle at 32% 30%, rgba(255, 255, 255, 0.3), transparent 42%),
+    radial-gradient(circle, #b03a3a 0 58%, #8c2626 74%, #6e1a1a 100%);
+  box-shadow:
+    inset 0 2px 4px rgba(255, 255, 255, 0.25),
+    inset 0 -3px 6px rgba(0, 0, 0, 0.25),
+    0 3px 8px rgba(120, 30, 30, 0.35);
+}
+
+/* ============================================================
+   Phase 3 · 地图与游戏界面
+   ============================================================ */
+
+/* ---------- 3.1 主页 SVG 地图 ---------- */
+.map-view-container {
+  border-radius: var(--radius-card);
+  border: 1px solid rgba(120, 90, 50, 0.25);
+  box-shadow: 0 6px 24px rgba(92, 64, 51, 0.12);
+}
+
+.map-tooltip {
+  border-radius: 12px;
+  border: 1px solid rgba(120, 90, 50, 0.3);
+  background:
+    linear-gradient(160deg, #fffdf6, #f6ecd8);
+  box-shadow: 0 10px 26px rgba(60, 38, 22, 0.22);
+  padding: 12px 16px;
+}
+
+.map-tooltip h4 {
+  font-family: var(--font-brush-kaishu);
+  font-size: 1rem;
+  color: #6b4229;
+}
+
+.map-tooltip p {
+  color: #7a5a40;
+}
+
+.map-edit-btn {
+  border-radius: var(--radius-btn);
+  border: 1px solid rgba(120, 90, 50, 0.3);
+  background: rgba(255, 253, 248, 0.92);
+  color: #6b4229;
+  box-shadow: 0 3px 10px rgba(60, 38, 22, 0.12);
+  transition: all var(--t-fast);
+}
+
+.map-edit-btn:hover {
+  border-color: var(--color-accent);
+  color: var(--color-accent-dark);
+}
+
+.map-edit-btn.active {
+  background: linear-gradient(160deg, #c95f7a, #a43f5e);
+  border-color: transparent;
+  color: #fff;
+}
+
+.map-reset-btn {
+  border-radius: 50%;
+  border: 1px solid rgba(120, 90, 50, 0.25);
+  background: rgba(255, 253, 248, 0.9);
+  color: #6b4229;
+  box-shadow: 0 2px 8px rgba(60, 38, 22, 0.12);
+}
+
+/* ---------- 3.2 游戏 HUD / 行囊 / 背包（保持深色江湖语言，统一控件细节） ---------- */
+.character-selector .character-card.active {
+  box-shadow: 0 0 0 2px rgba(217, 120, 130, 0.7), 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.equipment-item {
+  border-radius: 12px;
+  transition: all var(--t-fast);
+}
+
+.equipment-item:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.25);
+}
+
+.equipment-item.equipped {
+  box-shadow: 0 0 0 2px rgba(217, 120, 130, 0.7), 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.equipped-slot {
+  border-radius: 12px;
+}
+
+/* ============================================================
+   Phase 4 · 内联样式孤岛 → 类名（CSS 侧定义）
+   ============================================================ */
+
+/* 收件人选择器条目（成员 / 接触过的人） */
+.recipient-picker-panel {
+  position: relative;
+}
+
+.recipient-picker-code-search {
+  display: flex;
+  gap: 8px;
+  margin: 4px 0 12px;
+}
+
+.recipient-picker-code-search input {
+  flex: 1;
+  min-width: 0;
+  padding: 8px 12px;
+  border: 1.5px solid #c4a574;
+  border-radius: var(--radius-input);
+  font-size: 14px;
+  font-family: inherit;
+  background: #fffdf8;
+  transition: border-color var(--t-fast), box-shadow var(--t-fast);
+}
+
+.recipient-picker-code-search input:focus {
+  outline: none;
+  border-color: var(--color-accent);
+  box-shadow: var(--focus-ring);
+}
+
+.recipient-picker-code-search button {
+  padding: 8px 16px;
+  background: linear-gradient(160deg, #c98a5a, #a87550);
+  color: #fff;
+  border: 1px solid #5c4033;
+  border-radius: var(--radius-btn);
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+  letter-spacing: 0.06em;
+  transition: all var(--t-fast);
+  white-space: nowrap;
+}
+
+.recipient-picker-code-search button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(120, 90, 50, 0.3);
+}
+
+.recipient-picker-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  padding: 11px 14px;
+  border: 1px solid rgba(120, 90, 50, 0.18);
+  border-radius: 12px;
+  background: rgba(255, 253, 248, 0.85);
+  cursor: pointer;
+  transition: all var(--t-fast);
+}
+
+.recipient-picker-item:hover {
+  border-color: rgba(201, 95, 122, 0.45);
+  background: #fffdf8;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(92, 64, 51, 0.10);
+}
+
+.recipient-picker-avatar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background: radial-gradient(circle at 32% 30%, rgba(255, 255, 255, 0.3), transparent 42%),
+    radial-gradient(circle, #b03a3a 0 58%, #8c2626 74%, #6e1a1a 100%);
+  color: #fff8f0;
+  font-family: var(--font-brush-kaishu);
+  font-weight: 700;
+  box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.25), 0 2px 6px rgba(120, 30, 30, 0.3);
+}
+
+.recipient-picker-name {
+  font-size: 0.95rem;
+  color: #4b352b;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.recipient-picker-detail {
+  font-size: 0.75rem;
+  color: #8a7355;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.recipient-picker-section-title {
+  margin: 14px 0 8px;
+  padding-top: 12px;
+  border-top: 1px dashed rgba(120, 90, 50, 0.25);
+  font-size: 0.82rem;
+  color: #8c3149;
+  letter-spacing: 0.08em;
+  font-weight: 600;
+}
+
+/* 收件人弹窗：手动输入 */
+.picker-manual-box {
+  padding: 20px;
+  text-align: center;
+  color: #8b7355;
+  background: rgba(255, 253, 248, 0.6);
+  border: 1px dashed rgba(120, 90, 50, 0.25);
+  border-radius: 12px;
+}
+
+.picker-manual-box p {
+  font-size: 13px;
+  margin-top: 8px;
+  color: #7a5a40;
+}
+
+.picker-manual-hint {
+  font-size: 13px;
+  color: #7a5a40;
+}
+
+.picker-manual-hint + .picker-manual-hint {
+  margin-top: 6px;
+}
+
+.picker-manual-input {
+  width: 200px;
+  padding: 8px 12px;
+  border: 1.5px solid #c4a574;
+  border-radius: var(--radius-input);
+  font-size: 14px;
+  font-family: inherit;
+  background: #fffdf8;
+  transition: border-color var(--t-fast), box-shadow var(--t-fast);
+}
+
+.picker-manual-input:focus {
+  outline: none;
+  border-color: var(--color-accent);
+  box-shadow: var(--focus-ring);
+}
+
+.picker-manual-btn {
+  padding: 8px 18px;
+  background: linear-gradient(160deg, #c98a5a, #a87550);
+  color: #fff;
+  border: 1px solid #5c4033;
+  border-radius: var(--radius-btn);
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+  letter-spacing: 0.06em;
+  transition: all var(--t-fast);
+}
+
+.picker-manual-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(120, 90, 50, 0.3);
+}
+
+/* 信使弹窗工具栏 */
+.carrier-toolbar-title {
+  font-size: 11px;
+  color: #8b7355;
+}
+
+.carrier-toolbar-open-btn {
+  width: 100%;
+  padding: 8px 6px;
+}
+
+.carrier-picker-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 10px;
+  padding: 12px 16px;
+  max-height: 60vh;
+  overflow-y: auto;
+}
+
+.carrier-actions-row {
+  padding: 10px 16px;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.carrier-actions-row .carrier-actions-hint {
+  font-size: 12px;
+  color: #8b7355;
+}
+
+.carrier-actions-row .carrier-transit-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: #5c4a2e;
+  cursor: pointer;
+}
+
+.carrier-actions-row .carrier-transit-label input[type="checkbox"] {
+  accent-color: #a43f5e;
+}
+
+.carrier-deliver-row {
+  padding: 8px 16px;
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  flex-wrap: wrap;
+  border-top: 1px dashed #e5d9c3;
+}
+
+.carrier-deliver-row span {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: #8b7355;
+}
+
+.carrier-deliver-input {
+  padding: 5px 8px;
+  border: 1px solid #c4a574;
+  border-radius: var(--radius-input);
+  font-size: 12px;
+  font-family: inherit;
+  background: #fffdf8;
+}
+
+/* 信使卡片 */
+.carrier-card {
+  border: 2px solid #e5d9c3;
+  border-radius: 12px;
+  padding: 12px;
+  cursor: pointer;
+  background: #fff;
+  transition: all 0.15s;
+}
+
+.carrier-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 20px rgba(92, 64, 51, 0.14);
+  border-color: #c98a5a;
+}
+
+.carrier-card.active {
+  border-color: #b8575f;
+  background: linear-gradient(160deg, #fdf6e9, #f9ecdb);
+  box-shadow: 0 0 0 2px rgba(184, 87, 95, 0.18), 0 6px 16px rgba(92, 64, 51, 0.14);
+}
+
+.carrier-emoji {
+  font-size: 30px;
+  text-align: center;
+}
+
+.carrier-name {
+  font-weight: 600;
+  text-align: center;
+  margin: 6px 0 2px;
+  font-family: var(--font-brush-kaishu);
+  font-size: 1.05rem;
+}
+
+.carrier-meta {
+  text-align: center;
+  font-size: 11px;
+  color: #8b7355;
+}
+
+.carrier-stats {
+  display: flex;
+  gap: 2px;
+  justify-content: center;
+  margin-top: 8px;
+}
+
+.carrier-stat {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  margin: 0 3px;
+}
+
+.carrier-stat-label {
+  font-size: 10px;
+  color: #8b7355;
+}
+
+.carrier-stat-bars {
+  font-size: 11px;
+  color: #b8575f;
+  letter-spacing: 1px;
+}
+
+.carrier-lore {
+  margin-top: 8px;
+  font-size: 11px;
+  color: #6b5b3e;
+  text-align: center;
+  line-height: 1.4;
+}
+
+.carrier-grid-empty {
+  padding: 30px;
+  text-align: center;
+  color: #8b7355;
+}
+
+/* 已选信使框 */
+.carrier-selected-box {
+  margin-top: 6px;
+  padding: 8px;
+  background: linear-gradient(160deg, #fdf8ef, #f6ecdb);
+  border: 1px solid #e5d9c3;
+  border-radius: 10px;
+  font-size: 12px;
+}
+
+.carrier-selected-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.carrier-selected-emoji {
+  font-size: 22px;
+}
+
+.carrier-selected-info {
+  flex: 1;
+}
+
+.carrier-selected-name {
+  font-weight: 600;
+}
+
+.carrier-selected-detail {
+  color: #8b7355;
+  font-size: 11px;
+}
+
+.carrier-clear-btn {
+  background: none;
+  border: none;
+  color: #a43f5e;
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.carrier-selected-expected {
+  margin-top: 6px;
+  font-size: 12px;
+  color: #6b5b3e;
+}
+
+/* 旅程志 / 在途面板 */
+.journey-report-body {
+  padding: 16px 20px;
+  max-height: 70vh;
+  overflow-y: auto;
+  font-size: 13px;
+  line-height: 1.7;
+  color: #4a3d28;
+}
+
+.journey-report-banner {
+  margin: 16px 4px;
+  padding: 14px 16px;
+  background: linear-gradient(160deg, #f3efe4, #ece4d2);
+  border: 1px solid #ddd2b8;
+  border-radius: 12px;
+  font-family: inherit;
+}
+
+.journey-report-banner.delivered {
+  background: linear-gradient(160deg, #fdf6e9, #f4e8d2);
+  border-color: #e5d9c3;
+}
+
+.journey-banner-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.journey-banner-emoji {
+  font-size: 30px;
+}
+
+.journey-banner-info {
+  flex: 1;
+}
+
+.journey-banner-title {
+  font-weight: 700;
+  font-size: 15px;
+  font-family: var(--font-brush-kaishu);
+}
+
+.journey-banner-sub {
+  font-size: 12px;
+  color: #8b7355;
+}
+
+.journey-banner-epilogue {
+  font-size: 13px;
+  line-height: 1.7;
+  margin: 0 0 10px;
+  color: #5c4a2e;
+}
+
+.journey-progress-track {
+  height: 8px;
+  background: #e5d9c3;
+  border-radius: 4px;
+  overflow: hidden;
+  margin-bottom: 8px;
+}
+
+.journey-progress-bar {
+  height: 100%;
+  background: linear-gradient(90deg, #c98a5a, #a87550);
+  transition: width 0.5s;
+}
+
+.journey-progress-caption {
+  font-size: 11px;
+  color: #8b7355;
+  margin-bottom: 8px;
+}
+
+.journey-progress-events {
+  max-height: 130px;
+  overflow-y: auto;
+  margin-bottom: 10px;
+}
+
+.journey-progress-event {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 5px;
+}
+
+.journey-progress-event .dot {
+  color: #c9a86a;
+  flex-shrink: 0;
+}
+
+.journey-progress-event .text {
+  font-size: 12px;
+  color: #5c4a2e;
+}
+
+.journey-accel-btn,
+.journey-report-open-btn {
+  padding: 7px 16px;
+  background: linear-gradient(160deg, #c98a5a, #a87550);
+  color: #fff;
+  border: 1px solid #5c4033;
+  border-radius: var(--radius-btn);
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all var(--t-fast);
+}
+
+.journey-accel-btn:hover,
+.journey-report-open-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(120, 90, 50, 0.3);
+}
+
+/* 旅程抽屉（地图 HUD） */
+.journey-drawer-head .journey-drawer-mini {
+  font-size: 11px;
+  color: #8b7355;
+}
+
+.journey-drawer-head .journey-drawer-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.journey-map-btn {
+  background: none;
+  border: 1px solid #c9a86a;
+  border-radius: 8px;
+  color: #8a6d3b;
+  font-size: 12px;
+  cursor: pointer;
+  padding: 4px 8px;
+  transition: all var(--t-fast);
+}
+
+.journey-map-btn:hover {
+  background: rgba(201, 168, 106, 0.15);
+}
+
+.journey-close-btn {
+  background: none;
+  border: none;
+  font-size: 18px;
+  cursor: pointer;
+  color: #8b7355;
+}
+
+.journey-close-btn:hover {
+  color: #a43f5e;
+}
+
+/* 旅程抽屉列表项 */
+.journey-drawer-empty {
+  padding: 20px;
+  text-align: center;
+  color: #8b7355;
+  font-size: 13px;
+}
+
+.journey-drawer-empty span {
+  font-size: 11px;
+}
+
+.journey-drawer-item-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.journey-drawer-emoji {
+  font-size: 22px;
+}
+
+.journey-drawer-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.journey-drawer-title {
+  font-weight: 600;
+  font-size: 13px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.journey-drawer-sub {
+  font-size: 11px;
+  color: #8b7355;
+}
+
+/* 分享导入区 */
+.share-import-section {
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 1px dashed rgba(201, 95, 122, 0.35);
+}
+
+.share-import-title {
+  font-size: 13px;
+  color: #8a6d6d;
+  margin-bottom: 8px;
+}
+
+.share-import-actions {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.share-import-actions .form-btn {
+  flex: 1;
+}
+
+.share-import-textarea {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid rgba(201, 95, 122, 0.3);
+  border-radius: var(--radius-input);
+  resize: vertical;
+  font-size: 13px;
+  line-height: 1.6;
+  box-sizing: border-box;
+  font-family: ui-monospace, Menlo, Consolas, monospace;
+  background: #fffdf8;
+  transition: border-color var(--t-fast), box-shadow var(--t-fast);
+}
+
+.share-import-textarea:focus {
+  outline: none;
+  border-color: var(--color-accent);
+  box-shadow: var(--focus-ring);
+}
+
+.share-import-btns {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.share-import-btns .form-btn {
+  flex: 1;
+}
+
+/* 装备占位图标 */
+.equip-icon-placeholder {
+  font-size: 1.1rem;
+  color: #b8a88a;
+}
+
+.equip-icon-fallback {
+  font-size: 1.2rem;
+  color: #b8a88a;
+}
+
+/* 专属徽章 */
+.shared-badge-card {
+  background: rgba(217, 119, 6, 0.15);
+  color: #d97706;
+  border-radius: 999px;
+  padding: 1px 8px;
+  font-size: 0.68rem;
+  font-weight: 600;
+  vertical-align: middle;
+}
+
+/* ============================================================
+   动效偏好：减弱（跟随全站）
+   ============================================================ */
+@media (prefers-reduced-motion: reduce) {
+  .letter-gallery-card > .letter-card,
+  .mailbox-card,
+  .diary-card,
+  .carrier-card,
+  .style-card {
+    transition-duration: 0.01ms !important;
+  }
+}

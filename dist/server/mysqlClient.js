@@ -338,6 +338,22 @@ async function ensureSchema() {
       PRIMARY KEY (\`id\`),
       KEY \`idx_world_category\` (\`worldCategory\`),
       KEY \`idx_enabled\` (\`enabled\`)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`,
+
+    // ===== 资产文件表（双端互通：所有图片/音频等资产统一入库，服务器磁盘仅作缓存） =====
+    `CREATE TABLE IF NOT EXISTS \`asset_files\` (
+      \`id\` VARCHAR(80) NOT NULL,
+      \`assetPath\` VARCHAR(500) NOT NULL,
+      \`mimeType\` VARCHAR(100) NOT NULL DEFAULT '',
+      \`size\` BIGINT NOT NULL DEFAULT 0,
+      \`sha1\` CHAR(40) NOT NULL DEFAULT '',
+      \`worldCategory\` VARCHAR(20) NOT NULL DEFAULT 'game',
+      \`data\` LONGBLOB,
+      \`createdAt\` BIGINT NOT NULL DEFAULT 0,
+      \`updatedAt\` BIGINT NOT NULL DEFAULT 0,
+      PRIMARY KEY (\`id\`),
+      UNIQUE KEY \`uk_asset_path\` (\`assetPath\`),
+      KEY \`idx_sha1\` (\`sha1\`)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`
   ];
 

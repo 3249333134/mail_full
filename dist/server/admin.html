@@ -6,113 +6,123 @@
 <title>Mail Admin Dashboard</title>
 <style>
 :root {
-  --bg: #f0f2f5;
-  --card-bg: #fff;
-  --text: #1a1a2e;
+  /* 信笺 · 管理台视觉系统 */
+  --bg: #f4f1ec;
+  --card-bg: #ffffff;
+  --text: #262b33;
   --text-secondary: #6b7280;
-  --primary: #4f46e5;
-  --primary-hover: #4338ca;
+  --primary: #b8566f;
+  --primary-hover: #9e415f;
+  --primary-soft: rgba(184, 86, 111, 0.12);
   --success: #059669;
   --warning: #d97706;
   --danger: #dc2626;
-  --border: #e5e7eb;
-  --sidebar-bg: #1e1b4b;
-  --sidebar-text: #c7d2fe;
-  --sidebar-active: #4f46e5;
-  --radius: 8px;
-  --shadow: 0 1px 3px rgba(0,0,0,.1);
+  --border: #e7e2d9;
+  --sidebar-bg: #232b3d;
+  --sidebar-text: #aeb6c8;
+  --sidebar-active: #c96a83;
+  --radius: 12px;
+  --shadow: 0 1px 2px rgba(35, 43, 61, 0.05), 0 4px 12px rgba(35, 43, 61, 0.06);
+  --shadow-md: 0 4px 12px rgba(35, 43, 61, 0.08), 0 12px 32px rgba(35, 43, 61, 0.10);
+  --shadow-lg: 0 20px 60px rgba(35, 43, 61, 0.24);
   --font-mono: 'Consolas', 'Monaco', monospace;
 }
 * { margin:0; padding:0; box-sizing:border-box; }
-body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background:var(--bg); color:var(--text); display:flex; min-height:100vh; }
-.sidebar { width:240px; background:var(--sidebar-bg); color:var(--sidebar-text); flex-shrink:0; display:flex; flex-direction:column; position:fixed; top:0; left:0; bottom:0; z-index:100; }
-.sidebar-header { padding:24px 20px 16px; border-bottom:1px solid rgba(255,255,255,.1); }
-.sidebar-header h2 { font-size:16px; font-weight:700; color:#fff; display:flex; align-items:center; gap:8px; }
-.sidebar-header .badge { font-size:10px; background:var(--primary); color:#fff; padding:2px 8px; border-radius:10px; text-transform:uppercase; }
-.sidebar-header .ws-dot { display:inline-block; width:6px; height:6px; border-radius:50%; margin-left:4px; background:var(--success); }
-.sidebar-header .ws-dot.off { background:var(--danger); }
-.sidebar-nav { flex:1; overflow-y:auto; padding:12px 0; }
-.nav-item { display:flex; align-items:center; gap:10px; padding:10px 20px; cursor:pointer; font-size:13px; transition:all .15s; border-left:3px solid transparent; color:var(--sidebar-text); }
-.nav-item:hover { background:rgba(255,255,255,.05); color:#fff; }
-.nav-item.active { background:rgba(79,70,229,.2); border-left-color:var(--sidebar-active); color:#fff; font-weight:600; }
-.nav-item .icon { width:18px; text-align:center; font-size:14px; }
-.main { margin-left:240px; flex:1; padding:24px; max-width:calc(100vw - 240px); overflow-y:auto; }
-.header { display:flex; justify-content:space-between; align-items:center; margin-bottom:24px; }
-.header h1 { font-size:22px; font-weight:700; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif; background:
+  radial-gradient(circle at 18% 0%, rgba(184,86,111,.06) 0%, transparent 42%),
+  var(--bg); color:var(--text); display:flex; min-height:100vh; }
+.sidebar { width:240px; background:linear-gradient(180deg, #28324a 0%, #1b2233 100%); color:var(--sidebar-text); flex-shrink:0; display:flex; flex-direction:column; position:fixed; top:0; left:0; bottom:0; z-index:100; box-shadow:2px 0 20px rgba(27,34,51,.16); }
+.sidebar-header { padding:26px 22px 18px; border-bottom:1px solid rgba(255,255,255,.08); }
+.sidebar-header h2 { font-size:16px; font-weight:700; color:#fff; display:flex; align-items:center; gap:10px; letter-spacing:.02em; }
+.sidebar-header .badge { font-size:10px; background:linear-gradient(135deg,var(--primary),var(--primary-hover)); color:#fff; padding:3px 10px; border-radius:999px; text-transform:uppercase; letter-spacing:.08em; box-shadow:0 2px 8px rgba(184,86,111,.4); }
+.sidebar-header .ws-dot { display:inline-block; width:7px; height:7px; border-radius:50%; margin-left:4px; background:var(--success); box-shadow:0 0 0 3px rgba(5,150,105,.18); }
+.sidebar-header .ws-dot.off { background:var(--danger); box-shadow:0 0 0 3px rgba(220,38,38,.18); }
+.sidebar-nav { flex:1; overflow-y:auto; padding:14px 10px; }
+.nav-item { display:flex; align-items:center; gap:12px; padding:11px 14px; cursor:pointer; font-size:13px; transition:all .18s ease; border-radius:10px; color:var(--sidebar-text); margin-bottom:2px; }
+.nav-item:hover { background:rgba(255,255,255,.07); color:#fff; transform:translateX(2px); }
+.nav-item.active { background:linear-gradient(90deg, rgba(201,106,131,.26), rgba(201,106,131,.08)); color:#fff; font-weight:600; box-shadow:inset 0 0 0 1px rgba(201,106,131,.25); }
+.nav-item .icon { width:20px; text-align:center; font-size:15px; }
+.main { margin-left:240px; flex:1; padding:28px 32px; max-width:calc(100vw - 240px); overflow-y:auto; }
+.header { display:flex; justify-content:space-between; align-items:center; margin-bottom:26px; }
+.header h1 { font-size:24px; font-weight:700; letter-spacing:-.01em; }
 .header .status-dot { display:inline-block; width:8px; height:8px; border-radius:50%; margin-right:6px; }
 .status-dot.online { background:var(--success); animation:pulse 2s infinite; }
 @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.5} }
-.stats-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:16px; margin-bottom:24px; }
-.stat-card { background:var(--card-bg); border-radius:var(--radius); padding:16px 20px; box-shadow:var(--shadow); }
-.stat-card .label { font-size:11px; color:var(--text-secondary); text-transform:uppercase; letter-spacing:.5px; }
-.stat-card .value { font-size:28px; font-weight:700; margin-top:4px; }
-.stat-card .value.small { font-size:18px; }
+.stats-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:16px; margin-bottom:26px; }
+.stat-card { background:var(--card-bg); border-radius:var(--radius); padding:18px 22px; box-shadow:var(--shadow); border:1px solid rgba(231,226,217,.8); position:relative; overflow:hidden; transition:transform .2s ease, box-shadow .2s ease; }
+.stat-card::before { content:''; position:absolute; left:0; top:0; bottom:0; width:3px; background:linear-gradient(180deg, var(--primary), rgba(184,86,111,.2)); }
+.stat-card:hover { transform:translateY(-3px); box-shadow:var(--shadow-md); }
+.stat-card .label { font-size:11px; color:var(--text-secondary); text-transform:uppercase; letter-spacing:.08em; font-weight:600; }
+.stat-card .value { font-size:30px; font-weight:800; margin-top:6px; letter-spacing:-.02em; }
+.stat-card .value.small { font-size:19px; }
 .panel { display:none; }
-.panel.active { display:block; }
-.card { background:var(--card-bg); border-radius:var(--radius); box-shadow:var(--shadow); margin-bottom:20px; }
-.card-header { padding:16px 20px; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; }
-.card-header h3 { font-size:15px; font-weight:600; }
-.card-body { padding:16px 20px; }
-.btn { display:inline-flex; align-items:center; gap:6px; padding:8px 16px; border-radius:6px; font-size:13px; font-weight:500; cursor:pointer; border:none; transition:all .15s; }
-.btn-primary { background:var(--primary); color:#fff; }
-.btn-primary:hover { background:var(--primary-hover); }
-.btn-success { background:var(--success); color:#fff; }
-.btn-danger { background:var(--danger); color:#fff; }
-.btn-danger:hover { background:#b91c1c; }
+.panel.active { display:block; animation:fadeIn .28s ease; }
+@keyframes fadeIn { from{opacity:0; transform:translateY(6px)} to{opacity:1; transform:none} }
+.card { background:var(--card-bg); border-radius:var(--radius); box-shadow:var(--shadow); margin-bottom:20px; border:1px solid rgba(231,226,217,.8); overflow:hidden; }
+.card-header { padding:16px 22px; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; background:linear-gradient(180deg, #fdfcfa, #fff); }
+.card-header h3 { font-size:15px; font-weight:700; }
+.card-body { padding:18px 22px; }
+.btn { display:inline-flex; align-items:center; gap:6px; padding:8px 16px; border-radius:9px; font-size:13px; font-weight:600; cursor:pointer; border:none; transition:all .16s ease; }
+.btn-primary { background:linear-gradient(135deg,var(--primary),var(--primary-hover)); color:#fff; box-shadow:0 3px 10px rgba(184,86,111,.28); }
+.btn-primary:hover { background:linear-gradient(135deg,#c4667e,var(--primary-hover)); box-shadow:0 6px 16px rgba(184,86,111,.36); transform:translateY(-1px); }
+.btn-success { background:linear-gradient(135deg,#0aa06f,#047857); color:#fff; box-shadow:0 3px 10px rgba(5,150,105,.25); }
+.btn-success:hover { box-shadow:0 6px 16px rgba(5,150,105,.32); transform:translateY(-1px); }
+.btn-danger { background:linear-gradient(135deg,#ef4444,#b91c1c); color:#fff; box-shadow:0 3px 10px rgba(220,38,38,.25); }
+.btn-danger:hover { box-shadow:0 6px 16px rgba(220,38,38,.32); transform:translateY(-1px); }
 .btn-outline { background:transparent; border:1px solid var(--border); color:var(--text); }
-.btn-outline:hover { border-color:var(--primary); color:var(--primary); }
-.btn-sm { padding:4px 10px; font-size:12px; }
-.btn-xs { padding:2px 8px; font-size:11px; }
+.btn-outline:hover { border-color:var(--primary); color:var(--primary); background:var(--primary-soft); }
+.btn-sm { padding:4px 11px; font-size:12px; border-radius:7px; }
+.btn-xs { padding:2px 9px; font-size:11px; border-radius:6px; }
 table { width:100%; border-collapse:collapse; }
-th, td { padding:10px 12px; text-align:left; font-size:13px; border-bottom:1px solid var(--border); }
-th { font-weight:600; color:var(--text-secondary); text-transform:uppercase; font-size:11px; letter-spacing:.5px; }
-tr:hover { background:rgba(79,70,229,.03); }
-.tag { display:inline-block; padding:2px 8px; border-radius:10px; font-size:11px; font-weight:500; }
+th, td { padding:11px 14px; text-align:left; font-size:13px; border-bottom:1px solid var(--border); }
+th { font-weight:600; color:var(--text-secondary); text-transform:uppercase; font-size:11px; letter-spacing:.06em; background:rgba(244,241,236,.6); }
+tr:hover td { background:rgba(184,86,111,.035); }
+.tag { display:inline-block; padding:3px 10px; border-radius:999px; font-size:11px; font-weight:600; letter-spacing:.02em; }
 .tag-green { background:#d1fae5; color:#065f46; }
 .tag-blue { background:#dbeafe; color:#1e40af; }
 .tag-yellow { background:#fef3c7; color:#92400e; }
 .tag-red { background:#fee2e2; color:#991b1b; }
 .tag-gray { background:#f3f4f6; color:#374151; }
 .tag-purple { background:#ede9fe; color:#5b21b6; }
-code { background:rgba(0,0,0,.06); padding:2px 6px; border-radius:4px; font-family:var(--font-mono); font-size:12px; }
-.empty { text-align:center; padding:40px; color:var(--text-secondary); font-size:14px; }
+code { background:rgba(35,43,61,.06); padding:2px 7px; border-radius:5px; font-family:var(--font-mono); font-size:12px; }
+.empty { text-align:center; padding:44px; color:var(--text-secondary); font-size:14px; }
 .form-group { margin-bottom:14px; }
-.form-group label { display:block; font-size:12px; font-weight:600; margin-bottom:4px; color:var(--text-secondary); }
-.form-group input, .form-group select, .form-group textarea { width:100%; padding:8px 12px; border:1px solid var(--border); border-radius:6px; font-size:13px; outline:none; transition:border-color .15s; }
-.form-group input:focus, .form-group select:focus, .form-group textarea:focus { border-color:var(--primary); }
+.form-group label { display:block; font-size:12px; font-weight:600; margin-bottom:5px; color:var(--text-secondary); }
+.form-group input, .form-group select, .form-group textarea { width:100%; padding:9px 13px; border:1px solid var(--border); border-radius:9px; font-size:13px; outline:none; transition:border-color .16s, box-shadow .16s; background:#fff; }
+.form-group input:focus, .form-group select:focus, .form-group textarea:focus { border-color:var(--primary); box-shadow:0 0 0 3px var(--primary-soft); }
 .form-row { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
-.modal-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,.4); z-index:200; justify-content:center; align-items:center; }
+.modal-overlay { display:none; position:fixed; inset:0; background:rgba(27,34,51,.5); backdrop-filter:blur(3px); z-index:200; justify-content:center; align-items:center; }
 .modal-overlay.show { display:flex; }
-.modal { background:var(--card-bg); border-radius:12px; padding:24px; width:520px; max-width:90vw; max-height:85vh; overflow-y:auto; box-shadow:0 20px 60px rgba(0,0,0,.3); }
+.modal { background:var(--card-bg); border-radius:14px; padding:26px; width:520px; max-width:90vw; max-height:85vh; overflow-y:auto; box-shadow:var(--shadow-lg); }
 .modal h3 { font-size:18px; margin-bottom:16px; }
 .modal-actions { display:flex; gap:8px; justify-content:flex-end; margin-top:20px; }
 .refresh-info { font-size:12px; color:var(--text-secondary); margin-left:12px; }
 /* 搜索过滤 */
 .search-bar { display:flex; gap:8px; margin-bottom:16px; flex-wrap:wrap; }
-.search-bar input { flex:1; min-width:200px; padding:8px 12px; border:1px solid var(--border); border-radius:6px; font-size:13px; outline:none; }
-.search-bar input:focus { border-color:var(--primary); }
-.search-bar select { padding:8px 12px; border:1px solid var(--border); border-radius:6px; font-size:13px; outline:none; }
+.search-bar input { flex:1; min-width:200px; padding:9px 13px; border:1px solid var(--border); border-radius:9px; font-size:13px; outline:none; transition:border-color .16s, box-shadow .16s; }
+.search-bar input:focus { border-color:var(--primary); box-shadow:0 0 0 3px var(--primary-soft); }
+.search-bar select { padding:9px 13px; border:1px solid var(--border); border-radius:9px; font-size:13px; outline:none; background:#fff; }
 /* 可见性切换 */
-.toggle-badge { cursor:pointer; padding:4px 10px; border-radius:10px; font-size:11px; font-weight:500; border:none; transition:all .15s; }
+.toggle-badge { cursor:pointer; padding:4px 11px; border-radius:999px; font-size:11px; font-weight:600; border:none; transition:all .16s; }
 .toggle-public { background:#d1fae5; color:#065f46; }
 .toggle-private { background:#fef3c7; color:#92400e; }
-.toggle-badge:hover { transform:scale(1.05); }
+.toggle-badge:hover { transform:scale(1.06); box-shadow:0 2px 8px rgba(35,43,61,.12); }
 /* 成员行 */
-.member-row { display:flex; align-items:center; justify-content:space-between; padding:8px 0; border-bottom:1px solid var(--border); }
+.member-row { display:flex; align-items:center; justify-content:space-between; padding:9px 0; border-bottom:1px solid var(--border); }
 .member-row:last-child { border:none; }
 .member-info { display:flex; flex-direction:column; gap:2px; }
 .member-info .name { font-weight:600; font-size:13px; }
 .member-info .detail { font-size:11px; color:var(--text-secondary); }
 /* 信件行 */
-.letter-row { display:flex; align-items:center; justify-content:space-between; padding:10px 0; border-bottom:1px solid var(--border); }
+.letter-row { display:flex; align-items:center; justify-content:space-between; padding:11px 0; border-bottom:1px solid var(--border); }
 .letter-row:last-child { border:none; }
 .letter-info { display:flex; flex-direction:column; gap:2px; }
 .letter-info .title { font-weight:500; font-size:13px; }
 .letter-info .meta { font-size:11px; color:var(--text-secondary); }
 /* 确认对话框 */
-.confirm-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,.5); z-index:300; justify-content:center; align-items:center; }
+.confirm-overlay { display:none; position:fixed; inset:0; background:rgba(27,34,51,.55); backdrop-filter:blur(3px); z-index:300; justify-content:center; align-items:center; }
 .confirm-overlay.show { display:flex; }
-.confirm-dialog { background:var(--card-bg); border-radius:12px; padding:24px; width:420px; max-width:90vw; box-shadow:0 20px 60px rgba(0,0,0,.3); }
+.confirm-dialog { background:var(--card-bg); border-radius:14px; padding:26px; width:420px; max-width:90vw; box-shadow:var(--shadow-lg); }
 .confirm-dialog h4 { font-size:16px; margin-bottom:8px; }
 .confirm-dialog .confirm-body { font-size:13px; color:var(--text-secondary); margin-bottom:20px; line-height:1.6; }
 .confirm-dialog .confirm-actions { display:flex; gap:8px; justify-content:flex-end; }
@@ -459,6 +469,82 @@ code { background:rgba(0,0,0,.06); padding:2px 6px; border-radius:4px; font-fami
   </div>
 </div>
 
+<!-- ======== 模态框: 表单化编辑角色定义 ======== -->
+<div class="modal-overlay" id="modal-edit-character">
+  <div class="modal" style="max-width:900px">
+    <h3 id="ec-title">编辑角色定义</h3>
+    <p style="font-size:12px;color:var(--text-secondary);margin-bottom:12px">
+      对已有角色（含内置）直接修改，保存后覆盖生效。高级字段（碰撞盒、渲染、装备等）请在下方“高级 JSON”中编辑。
+    </p>
+    <div class="form-row" style="display:flex;gap:10px;flex-wrap:wrap">
+      <div class="form-group" style="flex:1;min-width:120px"><label>ID（不可修改）</label><input id="ec-id" readonly></div>
+      <div class="form-group" style="flex:1;min-width:140px"><label>名称 *</label><input id="ec-name"></div>
+      <div class="form-group" style="flex:1;min-width:120px"><label>门派 sect</label><input id="ec-sect"></div>
+      <div class="form-group" style="flex:1;min-width:120px"><label>阵营 category</label>
+        <select id="ec-category">
+          <option value="jingyuan">jingyuan</option>
+          <option value="zhihui">zhihui</option>
+          <option value="ai">ai</option>
+          <option value="default">default</option>
+          <option value="other">other</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-group"><label>描述 description</label><textarea id="ec-description" rows="2"></textarea></div>
+    <div class="form-group"><label>基础属性 baseStats（JSON，可选）</label>
+      <input id="ec-stats" placeholder='{"maxHp":100,"martial":5,"attack":16,"defense":4,"speed":1}'>
+    </div>
+    <div class="form-group">
+      <label>动作 actions（可视化编辑，类型支持常用标准动作）</label>
+      <div id="ec-actions"></div>
+      <button class="btn btn-outline btn-sm" onclick="addActionRow()">+ 添加动作</button>
+      <datalist id="action-types">
+        <option value="personality"></option><option value="run"></option><option value="etiquette"></option>
+        <option value="martial"></option><option value="signature"></option><option value="idle"></option>
+        <option value="walk"></option>
+      </datalist>
+    </div>
+    <details style="margin-top:8px">
+      <summary style="cursor:pointer;font-size:13px;color:var(--text-secondary)">高级 JSON（碰撞/渲染/装备等完整定义）</summary>
+      <div class="form-group" style="margin-top:8px"><textarea id="ec-json" rows="10" style="font-family:monospace;font-size:12px"></textarea></div>
+    </details>
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="closeModal('modal-edit-character')">取消</button>
+      <button class="btn btn-primary" onclick="saveEditCharacterDef()">保存修改</button>
+    </div>
+  </div>
+</div>
+
+<!-- ======== 模态框: 表单化编辑地图定义 ======== -->
+<div class="modal-overlay" id="modal-edit-map">
+  <div class="modal" style="max-width:900px">
+    <h3 id="em-title">编辑地图定义</h3>
+    <p style="font-size:12px;color:var(--text-secondary);margin-bottom:12px">
+      对已有地图（含内置）直接修改，保存后覆盖生效。高级字段（出生点、事件、初始物品等）请在下方“高级 JSON”中编辑。
+    </p>
+    <div class="form-row" style="display:flex;gap:10px;flex-wrap:wrap">
+      <div class="form-group" style="flex:1;min-width:120px"><label>Key（不可修改）</label><input id="em-key" readonly></div>
+      <div class="form-group" style="flex:1;min-width:140px"><label>名称 *</label><input id="em-name"></div>
+      <div class="form-group" style="flex:1;min-width:100px"><label>宽度</label><input id="em-width" type="number" min="1"></div>
+      <div class="form-group" style="flex:1;min-width:100px"><label>高度</label><input id="em-height" type="number" min="1"></div>
+      <div class="form-group" style="flex:1;min-width:100px"><label>缩放 scale</label><input id="em-scale" type="number" step="0.5" min="1"></div>
+    </div>
+    <div class="form-group"><label>允许角色 allowedCharacterIds（逗号分隔）</label>
+      <input id="em-allowed" placeholder="zhou-ran, he-qingfeng">
+    </div>
+    <div class="form-group"><label>背景图 bgPath（相对 assets 目录）</label><input id="em-bgPath"></div>
+    <div class="form-group"><label>缩略图 bgThumbnailPath</label><input id="em-bgThumb"></div>
+    <details style="margin-top:8px">
+      <summary style="cursor:pointer;font-size:13px;color:var(--text-secondary)">高级 JSON（出生点/事件/物品等完整定义）</summary>
+      <div class="form-group" style="margin-top:8px"><textarea id="em-json" rows="10" style="font-family:monospace;font-size:12px"></textarea></div>
+    </details>
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="closeModal('modal-edit-map')">取消</button>
+      <button class="btn btn-primary" onclick="saveEditMapDef()">保存修改</button>
+    </div>
+  </div>
+</div>
+
 <!-- ======== 模态框: 注册账号 ======== -->
 <div class="modal-overlay" id="modal-register">
   <div class="modal">
@@ -520,6 +606,18 @@ code { background:rgba(0,0,0,.06); padding:2px 6px; border-radius:4px; font-fami
     <div class="modal-actions">
       <button class="btn btn-outline" onclick="closeModal('modal-letter')">取消</button>
       <button class="btn btn-primary" onclick="doSendLetter()">发送</button>
+    </div>
+  </div>
+</div>
+
+<!-- ======== 模态框: 信件详情 ======== -->
+<div class="modal-overlay" id="modal-letter-detail">
+  <div class="modal" style="width:640px">
+    <h3 id="ld-title">信件详情</h3>
+    <div id="ld-body" style="font-size:13px;line-height:1.7"></div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="closeModal('modal-letter-detail')">关闭</button>
+      <button class="btn btn-danger" id="ld-delete-btn" onclick="deleteLetterFromDetail()">删除这封信</button>
     </div>
   </div>
 </div>
@@ -1034,15 +1132,131 @@ async function doSaveMailbox() {
 }
 
 // ===== 信件管理 =====
-function renderLetters() {
-  const d = stateData;
-  document.getElementById('lettersTable').innerHTML = `
-    <p style="margin-bottom:12px;color:var(--text-secondary)">
-      总计 <strong>${d.letterCount}</strong> 封信件 | 
-      已发送 <span class="tag tag-green">${d.sentCount}</span> | 
-      草稿 <span class="tag tag-yellow">${d.draftCount}</span>
-    </p>
-    <div class="empty">📨 点击上方「信箱管理」→ 信箱行的信件数 → 展开查看和管理信件</div>`;
+let lettersFilterStatus = '';
+let lettersFilterMailbox = '';
+let ldCurrentLetterId = null;
+
+function fmtTime(t) {
+  if (!t) return '-';
+  const d = new Date(Number(t));
+  if (isNaN(d.getTime())) return '-';
+  const p = n => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`;
+}
+
+function letterStatusTag(status) {
+  const st = status === 'sent' ? '已发送' : status === 'draft' ? '草稿' : status || '未知';
+  const cls = status === 'sent' ? 'tag-green' : 'tag-yellow';
+  return `<span class="tag ${cls}">${st}</span>`;
+}
+
+async function renderLetters() {
+  const el = document.getElementById('lettersTable');
+  el.innerHTML = '<p style="color:var(--text-secondary)">加载中...</p>';
+  try {
+    const qs = [];
+    if (lettersFilterStatus) qs.push('status=' + encodeURIComponent(lettersFilterStatus));
+    if (lettersFilterMailbox) qs.push('mailboxId=' + encodeURIComponent(lettersFilterMailbox));
+    const data = await apiGet('/api/admin/letters' + (qs.length ? '?' + qs.join('&') : ''));
+    const letters = data.letters || [];
+
+    // 信箱下拉选项（来自 stateData，若无则用信件里的信箱）
+    const mbOptions = (stateData && stateData.mailboxes || []).map(m =>
+      `<option value="${esc(m.id)}" ${lettersFilterMailbox === m.id ? 'selected' : ''}>${esc(m.name || m.id)}</option>`
+    ).join('');
+
+    const filters = `
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:12px">
+        <button class="btn btn-sm ${!lettersFilterStatus ? 'btn-primary' : 'btn-outline'}" onclick="lettersFilterStatus='';renderLetters()">全部</button>
+        <button class="btn btn-sm ${lettersFilterStatus === 'sent' ? 'btn-primary' : 'btn-outline'}" onclick="lettersFilterStatus='sent';renderLetters()">已发送</button>
+        <button class="btn btn-sm ${lettersFilterStatus === 'draft' ? 'btn-primary' : 'btn-outline'}" onclick="lettersFilterStatus='draft';renderLetters()">草稿</button>
+        <select class="btn btn-outline btn-sm" style="padding:6px 8px;border-radius:6px;max-width:220px" onchange="lettersFilterMailbox=this.value;renderLetters()">
+          <option value="">全部信箱</option>
+          ${mbOptions}
+        </select>
+        <span style="font-size:12px;color:var(--text-secondary)">共 <strong>${data.total}</strong> 封信，当前显示 ${letters.length}</span>
+      </div>`;
+
+    if (!letters.length) {
+      el.innerHTML = filters + '<div class="empty">暂无信件数据' + (qs.length ? '（当前筛选条件下）' : '') + '</div>';
+      return;
+    }
+
+    let html = filters + '<table class="data-table" style="width:100%"><thead><tr>' +
+      '<th>标题</th><th>状态</th><th>发件人</th><th>收件人</th><th>信箱</th><th>类型</th><th>更新时间</th><th>操作</th>' +
+      '</tr></thead><tbody>';
+    for (const l of letters) {
+      const st = l.deliveryStatus === 'sent' ? '已发送' : l.deliveryStatus === 'draft' ? '草稿' : (l.deliveryStatus || '-');
+      html += `<tr>
+        <td><strong>${esc(l.title)}</strong>${l.hasBody ? '' : ' <span style="font-size:11px;color:var(--text-secondary)">(无正文)</span>'}</td>
+        <td>${letterStatusTag(l.deliveryStatus)}</td>
+        <td><code>${esc(l.sender || '-')}</code></td>
+        <td><code>${esc(l.recipient || '-')}</code></td>
+        <td>${esc(l.mailboxName || l.mailboxId || '-')}</td>
+        <td><span style="font-size:12px">${esc(l.letterType || 'letter')}</span></td>
+        <td style="font-size:12px;white-space:nowrap">${fmtTime(l.updatedAt || l.createdAt)}</td>
+        <td style="white-space:nowrap">
+          <button class="btn btn-outline btn-sm" onclick="showLetterDetail('${esc(l.id)}')">查看</button>
+          <button class="btn btn-danger btn-sm" onclick="deleteLetterById('${esc(l.id)}','${esc(l.title)}')">删除</button>
+        </td>
+      </tr>`;
+    }
+    html += '</tbody></table>';
+    el.innerHTML = html;
+  } catch (e) {
+    el.innerHTML = `<p style="color:var(--danger)">加载失败：${esc(e.message)}</p>`;
+  }
+}
+
+async function showLetterDetail(letterId) {
+  try {
+    const data = await apiGet('/api/admin/letter/' + encodeURIComponent(letterId));
+    if (!data.success || !data.letter) { alert('获取信件详情失败'); return; }
+    const l = data.letter;
+    ldCurrentLetterId = l.id;
+    document.getElementById('ld-title').textContent = '信件详情：' + l.title;
+    const bodyHtml = l.bodyText
+      ? String(l.bodyText).replace(/</g, '&lt;').replace(/\n/g, '<br>')
+      : '<span style="color:var(--text-secondary)">（无正文内容）</span>';
+    document.getElementById('ld-body').innerHTML = `
+      <table style="width:100%;font-size:13px">
+        <tr><td style="padding:4px 8px 4px 0;color:var(--text-secondary);width:90px">状态</td><td>${letterStatusTag(l.deliveryStatus)}</td></tr>
+        <tr><td style="padding:4px 8px 4px 0;color:var(--text-secondary)">信箱</td><td>${esc(l.mailboxName || l.mailboxId || '-')}</td></tr>
+        <tr><td style="padding:4px 8px 4px 0;color:var(--text-secondary)">发件人</td><td><code>${esc(l.sender || '-')}</code></td></tr>
+        <tr><td style="padding:4px 8px 4px 0;color:var(--text-secondary)">收件人</td><td><code>${esc(l.recipient || '-')}</code></td></tr>
+        <tr><td style="padding:4px 8px 4px 0;color:var(--text-secondary)">类型</td><td>${esc(l.letterType || 'letter')}</td></tr>
+        <tr><td style="padding:4px 8px 4px 0;color:var(--text-secondary)">创建</td><td>${fmtTime(l.createdAt)}</td></tr>
+        <tr><td style="padding:4px 8px 4px 0;color:var(--text-secondary)">更新</td><td>${fmtTime(l.updatedAt)}</td></tr>
+        <tr><td style="padding:4px 8px 4px 0;color:var(--text-secondary)">发送时间</td><td>${fmtTime(l.sentAt)}</td></tr>
+        <tr><td style="padding:8px 8px 4px 0;color:var(--text-secondary);vertical-align:top">正文</td>
+          <td style="padding:8px 0;border-top:1px solid var(--border)">${bodyHtml}</td></tr>
+      </table>`;
+    document.getElementById('modal-letter-detail').classList.add('show');
+  } catch (e) {
+    alert('请求失败：' + e.message);
+  }
+}
+
+async function deleteLetterFromDetail() {
+  if (!ldCurrentLetterId) return;
+  await deleteLetterById(ldCurrentLetterId, '');
+  closeModal('modal-letter-detail');
+}
+
+async function deleteLetterById(letterId, title) {
+  if (!confirm(`确定删除这封信件吗？\n🆔 ${letterId}${title ? '\n标题: ' + title : ''}\n此操作不可逆！`)) return;
+  try {
+    const resp = await fetch(API + '/api/admin/letter/' + encodeURIComponent(letterId) + '/delete', { method: 'POST' });
+    const data = await resp.json();
+    if (data.success) {
+      alert('信件已删除');
+      renderLetters();
+    } else {
+      alert('删除失败：' + (data.message || '未知错误'));
+    }
+  } catch (e) {
+    alert('请求失败：' + e.message);
+  }
 }
 
 function openLetterModal() {
@@ -1276,15 +1490,120 @@ function stripDefMeta(def) {
   return clean;
 }
 
+// 表单化编辑时记录的 worldCategory（打开弹窗时保存）
+let editCharWorldCategory = 'custom';
+let editMapWorldCategory = 'custom';
+
 function openEditCharacterDef(characterId) {
   fetch('/api/game/characters/list').then(r => r.json()).then(data => {
     const ch = (data.characters || []).find(c => c.id === characterId);
     if (!ch) { alert('未找到角色定义'); return; }
-    document.getElementById('uc-worldCategory').value = ch.worldCategory || 'custom';
-    document.getElementById('uc-json').value = JSON.stringify(stripDefMeta(ch), null, 2);
-    document.getElementById('uc-title').textContent = '编辑角色定义：' + characterId;
-    document.getElementById('modal-upload-character').classList.add('show');
+    const clean = stripDefMeta(ch);
+    editCharWorldCategory = ch.worldCategory || (ch.category === 'jingyuan' ? 'xiejian' : ch.category === 'zhihui' ? 'poxiao' : 'custom');
+    document.getElementById('ec-title').textContent = '编辑角色定义：' + characterId + (ch._builtin ? '（内置' + (ch._modified ? '·已修改' : '') + '）' : '（自定义）');
+    document.getElementById('ec-id').value = ch.id;
+    document.getElementById('ec-name').value = ch.name || '';
+    document.getElementById('ec-sect').value = ch.sect || '';
+    document.getElementById('ec-description').value = ch.description || '';
+    const catSel = document.getElementById('ec-category');
+    if (ch.category && [...catSel.options].some(o => o.value === ch.category)) catSel.value = ch.category;
+    else catSel.value = 'other';
+    document.getElementById('ec-stats').value = ch.baseStats ? JSON.stringify(ch.baseStats) : '';
+    renderActionRows(ch.actions || {});
+    document.getElementById('ec-json').value = JSON.stringify(clean, null, 2);
+    document.getElementById('modal-edit-character').classList.add('show');
   }).catch(e => alert('加载失败：' + e.message));
+}
+
+/** 渲染动作行编辑器 actions: { type: {label, frameDir, frameCount, frameInterval, loop} } */
+function renderActionRows(actions) {
+  const box = document.getElementById('ec-actions');
+  box.innerHTML = '';
+  for (const [type, cfg] of Object.entries(actions)) {
+    box.appendChild(makeActionRow(type, cfg));
+  }
+}
+
+function makeActionRow(type, cfg) {
+  cfg = cfg || {};
+  const row = document.createElement('div');
+  row.style.cssText = 'display:flex;gap:6px;align-items:center;margin-bottom:6px;flex-wrap:wrap';
+  row.innerHTML = `
+    <input class="a-type" list="action-types" placeholder="类型" value="${esc(type)}" style="width:120px">
+    <input class="a-label" placeholder="显示名" value="${esc(cfg.label || '')}" style="width:100px">
+    <input class="a-framedir" placeholder="帧目录" value="${esc(cfg.frameDir || type)}" style="width:120px">
+    <input class="a-count" type="number" min="1" placeholder="帧数" value="${cfg.frameCount || ''}" style="width:64px">
+    <input class="a-interval" type="number" min="1" placeholder="间隔ms" value="${cfg.frameInterval || ''}" style="width:76px">
+    <label style="display:flex;align-items:center;gap:2px;font-size:12px;white-space:nowrap"><input type="checkbox" class="a-loop" ${cfg.loop ? 'checked' : ''}>循环</label>
+    <button class="btn btn-danger btn-sm" onclick="this.closest('div').remove()">✕</button>
+  `;
+  return row;
+}
+
+function addActionRow() {
+  document.getElementById('ec-actions').appendChild(makeActionRow('', {}));
+}
+
+async function saveEditCharacterDef() {
+  const id = document.getElementById('ec-id').value.trim();
+  const name = document.getElementById('ec-name').value.trim();
+  if (!id || !name) { alert('ID 和名称必填'); return; }
+  if (!confirm(`保存对角色 "${name}" (${id}) 的修改？将覆盖当前定义并实时生效。`)) return;
+
+  // 基础定义：以高级 JSON 为底，再叠加表单字段
+  let def;
+  try {
+    const jsonStr = document.getElementById('ec-json').value.trim();
+    def = jsonStr ? JSON.parse(jsonStr) : {};
+  } catch (e) { alert('高级 JSON 解析失败：' + e.message); return; }
+  def.id = id;
+  def.name = name;
+  const sect = document.getElementById('ec-sect').value.trim();
+  if (sect) def.sect = sect; else delete def.sect;
+  const desc = document.getElementById('ec-description').value.trim();
+  if (desc) def.description = desc; else delete def.description;
+  def.category = document.getElementById('ec-category').value;
+
+  // baseStats
+  const statsStr = document.getElementById('ec-stats').value.trim();
+  if (statsStr) {
+    try { def.baseStats = JSON.parse(statsStr); } catch (e) { alert('baseStats JSON 解析失败：' + e.message); return; }
+  } else delete def.baseStats;
+
+  // 动作
+  const actions = {};
+  const rows = document.querySelectorAll('#ec-actions > div');
+  for (const row of rows) {
+    const type = row.querySelector('.a-type').value.trim();
+    if (!type) continue;
+    const cfg = {
+      label: row.querySelector('.a-label').value.trim() || type,
+      frameDir: row.querySelector('.a-framedir').value.trim() || type,
+      frameCount: parseInt(row.querySelector('.a-count').value) || 1,
+      frameInterval: parseInt(row.querySelector('.a-interval').value) || 200,
+      loop: row.querySelector('.a-loop').checked,
+    };
+    actions[type] = cfg;
+  }
+  def.actions = actions;
+
+  try {
+    const resp = await fetch('/api/game/characters/upload', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ worldCategory: editCharWorldCategory, definition: def })
+    });
+    const data = await resp.json();
+    if (data.success) {
+      alert('角色定义已保存！前端刷新后生效。');
+      closeModal('modal-edit-character');
+      renderCharacterDefs();
+    } else {
+      alert('保存失败：' + (data.message || '未知错误'));
+    }
+  } catch (e) {
+    alert('请求失败：' + e.message);
+  }
 }
 
 function openUploadCharacterModal() {
@@ -1416,11 +1735,65 @@ function openEditMapDef(mapKey) {
   fetch('/api/game/maps/list').then(r => r.json()).then(data => {
     const m = (data.maps || []).find(x => x.key === mapKey);
     if (!m) { alert('未找到地图定义'); return; }
-    document.getElementById('um-worldCategory').value = m.worldCategory || 'custom';
-    document.getElementById('um-json').value = JSON.stringify(stripDefMeta(m), null, 2);
-    document.getElementById('um-title').textContent = '编辑地图定义：' + mapKey;
-    document.getElementById('modal-upload-map').classList.add('show');
+    const clean = stripDefMeta(m);
+    editMapWorldCategory = m.worldCategory || (m.category === 'xiejian' ? 'xiejian' : 'poxiao');
+    document.getElementById('em-title').textContent = '编辑地图定义：' + mapKey + (m._builtin ? '（内置' + (m._modified ? '·已修改' : '') + '）' : '（自定义）');
+    document.getElementById('em-key').value = m.key;
+    document.getElementById('em-name').value = m.name || '';
+    document.getElementById('em-width').value = m.worldSize ? m.worldSize.width : '';
+    document.getElementById('em-height').value = m.worldSize ? m.worldSize.height : '';
+    document.getElementById('em-scale').value = m.worldScale || 1;
+    document.getElementById('em-allowed').value = (m.allowedCharacterIds || []).join(', ');
+    document.getElementById('em-bgPath').value = m.bgPath || '';
+    document.getElementById('em-bgThumb').value = m.bgThumbnailPath || '';
+    document.getElementById('em-json').value = JSON.stringify(clean, null, 2);
+    document.getElementById('modal-edit-map').classList.add('show');
   }).catch(e => alert('加载失败：' + e.message));
+}
+
+async function saveEditMapDef() {
+  const key = document.getElementById('em-key').value.trim();
+  const name = document.getElementById('em-name').value.trim();
+  if (!key || !name) { alert('Key 和名称必填'); return; }
+  if (!confirm(`保存对地图 "${name}" (${key}) 的修改？将覆盖当前定义并实时生效。`)) return;
+
+  let def;
+  try {
+    const jsonStr = document.getElementById('em-json').value.trim();
+    def = jsonStr ? JSON.parse(jsonStr) : {};
+  } catch (e) { alert('高级 JSON 解析失败：' + e.message); return; }
+  def.key = key;
+  def.id = key;
+  def.name = name;
+  def.worldSize = {
+    width: parseInt(document.getElementById('em-width').value) || 800,
+    height: parseInt(document.getElementById('em-height').value) || 600,
+  };
+  def.worldScale = parseFloat(document.getElementById('em-scale').value) || 1;
+  const allowed = document.getElementById('em-allowed').value.split(/[,，\s]+/).map(s => s.trim()).filter(Boolean);
+  def.allowedCharacterIds = allowed;
+  const bg = document.getElementById('em-bgPath').value.trim();
+  if (bg) def.bgPath = bg; else delete def.bgPath;
+  const thumb = document.getElementById('em-bgThumb').value.trim();
+  if (thumb) def.bgThumbnailPath = thumb; else delete def.bgThumbnailPath;
+
+  try {
+    const resp = await fetch('/api/game/maps/upload', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ worldCategory: editMapWorldCategory, definition: def })
+    });
+    const data = await resp.json();
+    if (data.success) {
+      alert('地图定义已保存！前端刷新后生效。');
+      closeModal('modal-edit-map');
+      renderMapDefs();
+    } else {
+      alert('保存失败：' + (data.message || '未知错误'));
+    }
+  } catch (e) {
+    alert('请求失败：' + e.message);
+  }
 }
 
 // ═══════ 资源包上传 ═══════

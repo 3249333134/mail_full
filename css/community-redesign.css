@@ -232,7 +232,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-
 
 /* Map is the content, not a card behind controls. */
 .gallery-main.map-mode .mailbox-map-view {
-  left: 264px;
+  left: 0;
   background: #081519;
   isolation: isolate;
 }

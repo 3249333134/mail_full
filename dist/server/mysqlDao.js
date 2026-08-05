@@ -6,6 +6,7 @@
  *  - 方法签名与原 mongoDao.js 完全一致，确保 server.js 改动最小。
  * ============================================================ */
 const bcrypt = require('bcryptjs');
+const crypto = require('crypto');
 const { isMysqlEnabled, query, execute } = require('./mysqlClient');
 
 const BCRYPT_ROUNDS = Number(process.env.BCRYPT_ROUNDS || 10);
@@ -551,6 +552,22 @@ async function loadLetters(mailboxId, accountKey) {
       if (record.deliveryStatus === 'draft') return record.senderAccountKey === acc;
       return record.senderAccountKey === acc || record.recipientAccountKey === acc;
     });
+}
+
+/** 管理后台：列出全部信件（无账号过滤，含草稿） */
+async function listAllLetters() {
+  if (!isMysqlEnabled()) return [];
+  const rows = await query('SELECT * FROM letters');
+  if (!rows) return [];
+  return rows.map(_parseLetterRow).filter(Boolean);
+}
+
+/** 管理后台：按 id 查单封信件（完整 letter JSON） */
+async function loadLetterById(id) {
+  if (!isMysqlEnabled()) return null;
+  const rows = await query('SELECT * FROM letters WHERE id = ? LIMIT 1', [String(id)]);
+  if (!rows || !rows.length) return null;
+  return _parseLetterRow(rows[0]);
 }
 
 async function markLetterRead(id, accountKey) {
@@ -1428,6 +1445,91 @@ async function loadAllFromState(persistentState) {
   }
 }
 
+/* ---------------- 资产文件（双端互通：所有图片/音频等资产统一入库 MySQL，磁盘仅作缓存） ---------------- */
+
+function sha1OfBuffer(buf) {
+  return crypto.createHash('sha1').update(buf).digest('hex');
+}
+
+/** 写入/更新单个资产（幂等：assetPath 唯一，存在即覆盖） */
+async function upsertAsset({ assetPath, mimeType, data, worldCategory = 'game' }) {
+  if (!isMysqlEnabled() || !assetPath || data == null) return null;
+  const path = String(assetPath).replace(/^\/+/, '').slice(0, 500);
+  if (!path) return null;
+  const buf = Buffer.isBuffer(data) ? data : Buffer.from(data);
+  const sha1 = sha1OfBuffer(buf);
+  const id = sha1.slice(0, 16) + '-' + Math.random().toString(36).slice(2, 8);
+  const now = Date.now();
+  await execute(
+    `INSERT INTO asset_files (id, assetPath, mimeType, size, sha1, worldCategory, data, createdAt, updatedAt)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+     ON DUPLICATE KEY UPDATE mimeType = VALUES(mimeType), size = VALUES(size), sha1 = VALUES(sha1),
+       worldCategory = VALUES(worldCategory), data = VALUES(data), updatedAt = VALUES(updatedAt)`,
+    [id, path, String(mimeType || ''), buf.length, sha1, String(worldCategory || 'game'), buf, now, now]
+  );
+  return { assetPath: path, mimeType: String(mimeType || ''), size: buf.length, sha1, worldCategory: String(worldCategory || 'game') };
+}
+
+/** 查询资产元信息（不含 data） */
+async function getAssetMeta(assetPath) {
+  if (!isMysqlEnabled() || !assetPath) return null;
+  const rows = await query(
+    'SELECT assetPath, mimeType, size, sha1, worldCategory FROM asset_files WHERE assetPath = ? LIMIT 1',
+    [String(assetPath).replace(/^\/+/, '')]
+  );
+  return (rows && rows[0]) || null;
+}
+
+/** 查询资产二进制内容 */
+async function getAssetDataByPath(assetPath) {
+  if (!isMysqlEnabled() || !assetPath) return null;
+  const rows = await query('SELECT data FROM asset_files WHERE assetPath = ? LIMIT 1', [String(assetPath).replace(/^\/+/, '')]);
+  if (!rows || !rows[0] || rows[0].data == null) return null;
+  return Buffer.isBuffer(rows[0].data) ? rows[0].data : Buffer.from(rows[0].data);
+}
+
+/** 按 sha1 查资产（去重用） */
+async function getAssetBySha1(sha1) {
+  if (!isMysqlEnabled() || !sha1) return null;
+  const rows = await query(
+    'SELECT assetPath, mimeType, size, sha1, worldCategory FROM asset_files WHERE sha1 = ? LIMIT 1',
+    [String(sha1)]
+  );
+  return (rows && rows[0]) || null;
+}
+
+/** 资产是否存在 */
+async function assetExists(assetPath) {
+  if (!isMysqlEnabled() || !assetPath) return false;
+  const rows = await query('SELECT COUNT(*) AS cnt FROM asset_files WHERE assetPath = ?', [String(assetPath).replace(/^\/+/, '')]);
+  return !!(rows && Number(rows[0].cnt) > 0);
+}
+
+/** 分页列出资产路径（用于同步/校验） */
+async function listAssetPaths({ offset = 0, limit = 100 } = {}) {
+  if (!isMysqlEnabled()) return [];
+  const lim = Math.max(1, Math.min(2000, Number(limit) || 100));
+  const off = Math.max(0, Number(offset) || 0);
+  const rows = await query(
+    `SELECT assetPath, mimeType, size, sha1, worldCategory FROM asset_files ORDER BY assetPath LIMIT ${lim} OFFSET ${off}`
+  );
+  return rows || [];
+}
+
+/** 资产总数 */
+async function countAssets() {
+  if (!isMysqlEnabled()) return 0;
+  const rows = await query('SELECT COUNT(*) AS cnt FROM asset_files');
+  return rows ? Number(rows[0].cnt) : 0;
+}
+
+/** 删除资产 */
+async function deleteAsset(assetPath) {
+  if (!isMysqlEnabled() || !assetPath) return false;
+  await execute('DELETE FROM asset_files WHERE assetPath = ?', [String(assetPath).replace(/^\/+/, '')]);
+  return true;
+}
+
 module.exports = {
   // utils
   normalizeAccountKey,
@@ -1455,6 +1557,8 @@ module.exports = {
   // letters
   saveLetter,
   loadLetters,
+  listAllLetters,
+  loadLetterById,
   markLetterRead,
   deleteLetter,
   // inventory / journal / combat
@@ -1488,5 +1592,15 @@ module.exports = {
   listMapDefinitions,
   listAllMapDefinitions,
   deleteMapDefinition,
-  disableMapDefinition
+  disableMapDefinition,
+  // asset files（双端互通资产）
+  upsertAsset,
+  getAssetMeta,
+  getAssetDataByPath,
+  getAssetBySha1,
+  assetExists,
+  listAssetPaths,
+  countAssets,
+  deleteAsset,
+  sha1OfBuffer
 };

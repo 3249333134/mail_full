@@ -6,12 +6,14 @@ function cleanBase(value) {
 function unique(values) { return [...new Set(values.filter(Boolean))]; }
 
 export const RemoteResourceLoader = {
-  manifestBaseUrls: [], assetBaseUrls: [], localManifestBaseUrl: '/assets/game/',
+  manifestBaseUrls: [], assetBaseUrls: [], assetApiBaseUrl: '', localManifestBaseUrl: '/assets/game/',
   localAssetBaseUrl: './sendbox/src/assets/', version: 'local', _cache: new Map(), _configured: false,
 
   configure(config = {}) {
     this.manifestBaseUrls = unique((config.manifestBaseUrls || []).map(cleanBase));
     this.assetBaseUrls = unique((config.assetBaseUrls || []).map(cleanBase));
+    // 双端互通：资产 API 代理源（MySQL 主存 + 磁盘缓存），优先于 CDN 与本地
+    this.assetApiBaseUrl = cleanBase(config.assetApiBaseUrl || '');
     this.localManifestBaseUrl = cleanBase(config.localManifestBaseUrl || this.localManifestBaseUrl);
     this.localAssetBaseUrl = cleanBase(config.localAssetBaseUrl || this.localAssetBaseUrl);
     this.version = String(config.resourceVersion || config.version || this.version);
@@ -19,11 +21,22 @@ export const RemoteResourceLoader = {
     return this.getConfig();
   },
 
-  getConfig() { return { manifestBaseUrls: [...this.manifestBaseUrls], assetBaseUrls: [...this.assetBaseUrls], localManifestBaseUrl: this.localManifestBaseUrl, localAssetBaseUrl: this.localAssetBaseUrl, resourceVersion: this.version }; },
+  getConfig() { return { manifestBaseUrls: [...this.manifestBaseUrls], assetBaseUrls: [...this.assetBaseUrls], assetApiBaseUrl: this.assetApiBaseUrl, localManifestBaseUrl: this.localManifestBaseUrl, localAssetBaseUrl: this.localAssetBaseUrl, resourceVersion: this.version }; },
+
+  _apiBaseUrl() {
+    // 从 MailService 拿后端绝对地址（兼容 3005/3006 及跨机器），失败时回退相对路径
+    try {
+      if (typeof window !== 'undefined' && window.MailService && typeof window.MailService.getBaseUrl === 'function') {
+        const base = String(window.MailService.getBaseUrl() || '').replace(/\/+$/, '');
+        if (base) return `${base}/api/game/bootstrap`;
+      }
+    } catch (_) {}
+    return '/api/game/bootstrap';
+  },
 
   async bootstrapConfig() {
     try {
-      const response = await fetch('/api/game/bootstrap', { cache: 'no-cache' });
+      const response = await fetch(this._apiBaseUrl(), { cache: 'no-cache', mode: 'cors' });
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
       const payload = await response.json();
       this.configure(payload.resources || payload);
@@ -57,7 +70,12 @@ export const RemoteResourceLoader = {
     const path = String(relativePath || '');
     if (/^(data:|blob:|https?:\/\/)/i.test(path)) return [path];
     const clean = path.replace(/^\.\//, '').replace(/^\//, '');
-    return unique([...this.assetBaseUrls.map(base => `${base}${clean}`), `${cleanBase(localBase)}${clean}`]);
+    // 优先级：资产 API（MySQL 主存，双端互通）→ CDN/备用 → 本地静态
+    return unique([
+      ...(this.assetApiBaseUrl ? [this.assetApiBaseUrl + clean] : []),
+      ...this.assetBaseUrls.map(base => `${base}${clean}`),
+      `${cleanBase(localBase)}${clean}`
+    ]);
   },
 
   loadCharacters(options) { return this._loadManifest('characters.json', options); },

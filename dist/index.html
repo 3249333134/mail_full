@@ -1,4 +1,4 @@
-﻿﻿﻿﻿<!DOCTYPE html>
+﻿﻿﻿﻿﻿<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8">
@@ -7,8 +7,8 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Ma+Shan+Zheng&family=Noto+Serif+SC:wght@400;500;700&family=ZCOOL+KuaiLe&family=ZCOOL+QingKe+HuangYou&family=ZCOOL+XiaoWei&family=Noto+Sans+SC:wght@400;500;700&family=Long+Cang&family=Liu+Jian+Mao+Cao&family=ZCOOL+KuaiLe&family=ZCOOL+XiaoWei&family=Ma+Shan+Zheng&family=Noto+Serif+SC&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/main.css?v=20260805d">
-  <link rel="stylesheet" href="css/community-redesign.css?v=20260803c">
+  <link rel="stylesheet" href="css/main.css?v=20260805i">
+  <link rel="stylesheet" href="css/community-redesign.css?v=20260803d">
   <link rel="stylesheet" href="css/envelopes.css?v=20260801h">
   <link rel="stylesheet" href="css/paper.css?v=20260801h">
   <link rel="stylesheet" href="css/editor.css?v=20260801h">
@@ -18,6 +18,10 @@
   <link rel="stylesheet" href="css/modules/editor-widgets-daily.css?v=20260801e">
   <link rel="stylesheet" href="css/features.css?v=20260801e">
   <link rel="stylesheet" href="css/map.css?v=20260801e">
+  <!-- UI Polish：设计升级层（纯视觉覆盖，加载在最后保证优先级） -->
+  <link rel="stylesheet" href="css/ui-polish.css?v=20260805a">
+  <!-- design-v2：全站视觉升级覆盖层（最高优先级，纯显示） -->
+  <link rel="stylesheet" href="css/design-v2.css?v=20260805a">
 </head>
 <body>
   <!--
@@ -32,9 +36,10 @@
   <div id="login-view" class="view active">
     <div class="login-container">
       <div class="login-card">
-        <div class="login-decor">
-          <div class="decor-envelope">✉️</div>
-          <div class="decor-feather">🪶</div>
+        <div class="login-decor" aria-hidden="true">
+          <div class="decor-jian">笺</div>
+          <div class="decor-seal">信</div>
+          <div class="decor-postmark">信笺·已寄</div>
         </div>
         
         <h1 class="login-title">信笺</h1>
@@ -330,6 +335,9 @@
           <button class="mail-folder-tab" type="button" role="tab" data-folder="inbox" aria-selected="false">收件</button>
           <button class="mail-folder-tab" type="button" role="tab" data-folder="sent" aria-selected="false">已发送</button>
           <button class="mail-folder-tab" type="button" role="tab" data-folder="draft" aria-selected="false">草稿</button>
+          <button class="mail-folder-tab journey-transit-tab" type="button" id="mailbox-journey-transit-btn" title="万物送信 · 在途信件追踪">
+            🚀 在途<span class="journey-transit-count" id="mailbox-journey-count" style="display:none"></span>
+          </button>
         </div>
 
         <!-- 视角切换按钮组（始终可见，支持在信件/日记/地图模式间切换） -->
@@ -483,6 +491,9 @@
               <span class="map-select-icon" aria-hidden="true">🗺</span>
               <select id="map-select" aria-label="选择地图"></select>
             </label>
+            <button class="map-control-btn journey-transit-toggle" id="journey-transit-toggle" type="button" title="在途信件追踪" aria-label="在途信件追踪" aria-expanded="false">
+              <span aria-hidden="true">✉</span><span class="online-count-badge" id="journey-transit-count">0</span>
+            </button>
           </div>
           
           <!-- 地图名称 -->
@@ -773,6 +784,11 @@
           <h3>信封样式</h3>
           <div class="envelope-style-row" id="toolbar-envelope-grid"></div>
         </div>
+        <div class="toolbar-section">
+          <h3>信使 <span class="carrier-toolbar-title">万物送信</span></h3>
+          <button class="tool-btn carrier-toolbar-open-btn" id="open-carrier-picker" title="选择送信信使">🐜 选择信使</button>
+          <div id="carrier-selected" class="carrier-selected-box" style="display:none"></div>
+        </div>
         <div class="toolbar-section envelope-large-section">
           <div class="envelope-large-preview" id="envelope-large-preview">
             <div class="meta-envelope env-vintage-stamp" id="toolbar-large-envelope">
@@ -913,12 +929,46 @@
       <header class="recipient-picker-header">
         <div>
           <h2 id="recipient-picker-title">这封信写给谁？</h2>
-          <p>请选择当前信箱中的收信人</p>
+          <p>选择当前信箱成员，或在下方搜索/联系其他信箱的人</p>
         </div>
         <button class="recipient-picker-close" id="recipient-picker-close" type="button" aria-label="关闭">×</button>
       </header>
       <div class="recipient-picker-status" id="recipient-picker-status" role="status" aria-live="polite"></div>
+      <div class="recipient-picker-code-search" id="recipient-picker-code-search">
+        <input type="text" id="recipient-picker-code-input" placeholder="输入信箱码（如 PX2026）寄到对方信箱" maxlength="16"
+          autocomplete="off" />
+        <button id="recipient-picker-code-btn" type="button">查找信箱</button>
+      </div>
       <div class="recipient-picker-list" id="recipient-picker-list"></div>
+    </section>
+  </div>
+
+  <!-- ======== 信使选择弹窗（万物送信） ======== -->
+  <div id="carrier-picker-overlay" class="recipient-picker-overlay" aria-hidden="true">
+    <section class="recipient-picker-panel" role="dialog" aria-modal="true" aria-labelledby="carrier-picker-title" style="max-width:760px">
+      <header class="recipient-picker-header">
+        <div>
+          <h2 id="carrier-picker-title">让谁替你送这封信？</h2>
+          <p>万物皆可送信——信会经历一段属于自己的旅程</p>
+        </div>
+        <button class="recipient-picker-close" id="carrier-picker-close" type="button" aria-label="关闭">×</button>
+      </header>
+      <div class="carrier-actions-row">
+        <button id="carrier-picker-random" type="button" class="picker-manual-btn">🎲 听天由命</button>
+        <span class="carrier-actions-hint">真实类 · 科幻/奇幻类 · 各信使的速度/寿命/风险不同</span>
+      </div>
+      <div class="carrier-deliver-row">
+        <label class="carrier-transit-label">
+          <input type="checkbox" id="carrier-transit-check">
+          🌙 让它慢慢走（在途送达，可随时加速）
+        </label>
+        <span>
+          定时送达（可选）
+          <input type="datetime-local" id="carrier-deliver-at" class="carrier-deliver-input">
+        </span>
+      </div>
+      <div class="recipient-picker-status" id="carrier-picker-status" role="status" aria-live="polite"></div>
+      <div class="carrier-picker-grid" id="carrier-picker-grid"></div>
     </section>
   </div>
 
@@ -941,6 +991,20 @@
       </div>
       <p class="envelope-hint">点击信封打开</p>
     </div>
+  </div>
+
+  <!-- ======== 旅程志弹窗（万物送信） ======== -->
+  <div id="journey-report-overlay" class="recipient-picker-overlay" aria-hidden="true">
+    <section class="recipient-picker-panel" role="dialog" aria-modal="true" aria-labelledby="journey-report-title" style="max-width:680px">
+      <header class="recipient-picker-header">
+        <div>
+          <h2 id="journey-report-title">📜 旅程志</h2>
+          <p>这封信的信物传记</p>
+        </div>
+        <button class="recipient-picker-close" id="journey-report-close" type="button" aria-label="关闭">×</button>
+      </header>
+      <div id="journey-report-body" class="journey-report-body"></div>
+    </section>
   </div>
 
   <!-- 阅读模式 -->
@@ -1246,18 +1310,18 @@
         <div id="join-mailbox-msg" class="join-msg-box" style="display:none;"></div>
 
         <!-- ====== 跨用户：分享内容导入 ====== -->
-        <div class="share-import-section" style="margin-top:18px;padding-top:14px;border-top:1px dashed #e8d5d5;">
-          <div class="share-import-title" style="font-size:13px;color:#8a6d6d;margin-bottom:8px;">
+        <div class="share-import-section">
+          <div class="share-import-title">
             💡 朋友不在同一台设备？复制朋友发来的 <b>XJ://...</b> 分享内容，粘贴到此即可加入
           </div>
-          <div class="share-import-actions" style="display:flex;gap:8px;margin-bottom:8px;">
-            <button type="button" class="form-btn form-btn-secondary" id="join-paste-share-btn" style="flex:1;">📥 粘贴朋友分享内容</button>
+          <div class="share-import-actions">
+            <button type="button" class="form-btn form-btn-secondary" id="join-paste-share-btn">📥 粘贴朋友分享内容</button>
           </div>
           <textarea id="join-share-textarea" rows="3"
             placeholder="或者把朋友发来的 XJ://... 分享字符串粘到这里，再点「导入」&#10;（同一局域网/跨设备跨用户均支持）"
-            style="width:100%;padding:10px 12px;border:1px solid #e0cfcf;border-radius:10px;resize:vertical;font-size:13px;line-height:1.6;box-sizing:border-box;font-family:ui-monospace, Menlo, Consolas, monospace;"></textarea>
-          <div style="display:flex;gap:8px;margin-top:8px;">
-            <button type="button" class="form-btn form-btn-primary" id="join-import-share-btn" style="flex:1;">📨 导入分享内容并加入</button>
+            class="share-import-textarea"></textarea>
+          <div class="share-import-btns">
+            <button type="button" class="form-btn form-btn-primary" id="join-import-share-btn">📨 导入分享内容并加入</button>
             <button type="button" class="form-btn form-btn-secondary" id="join-clear-share-btn">清空</button>
           </div>
         </div>
@@ -1464,22 +1528,26 @@
   </div>
 
   <script src="js/auth.js?v=20260801e"></script>
-  <script src="js/resourceManager.js?v=20260804b"></script>
-  <script src="js/storage.js?v=20260805b"></script>
+  <script src="js/resourceManager.js?v=20260804c"></script>
+  <script src="js/assetProxy.js?v=20260805b"></script>
+  <script src="js/storage.js?v=20260805c"></script>
   <script src="js/mailService.js?v=20260804h"></script>
-  <script src="js/multiplayerSync.js?v=20260804debug1"></script>
+  <script src="js/multiplayerSync.js?v=20260805b"></script>
   <script src="js/media.js?v=20260801e"></script>
   <script src="js/imageFrames.js?v=20260801e"></script>
-  <script src="js/mailbox.js?v=20260805d"></script>
+  <script src="js/mailbox.js?v=20260805i"></script>
+  <script src="js/modules/carrier-roster.js?v=20260805b"></script>
+  <script src="js/modules/journey-engine.js?v=20260805b"></script>
+  <script src="js/modules/journey-tracker.js?v=20260805a"></script>
   <script src="js/modules/mailbox-letters.js?v=20260801e"></script>
-  <script src="js/app.js?v=20260805d"></script>
-  <script src="js/modules/app-reader.js?v=20260804f"></script>
+  <script src="js/app.js?v=20260805r"></script>
+  <script src="js/modules/app-reader.js?v=20260805c"></script>
   <script src="js/modules/app-bgm.js?v=20260804a"></script>
   <script src="js/modules/app-voice.js?v=20260802c"></script>
-  <script src="js/modules/app-mailbox-modal.js?v=20260804b3"></script>
+  <script src="js/modules/app-mailbox-modal.js?v=20260804b4"></script>
   <script src="js/modules/app-diary.js?v=20260801e"></script>
   <script src="js/modules/app-features.js?v=20260801e"></script>
-  <script src="js/editor.js?v=20260804i"></script>
+  <script src="js/editor.js?v=20260805d"></script>
   <script src="js/modules/editor-widgets-year.js?v=20260801e"></script>
   <script src="js/modules/editor-widgets-month.js?v=20260801e"></script>
   <script src="js/modules/editor-widgets-week.js?v=20260801e"></script>
@@ -1487,6 +1555,6 @@
   <script src="js/journal.js?v=20260801e"></script>
   <script src="js/diary.js?v=20260801e"></script>
   <script src="js/map.js?v=20260801e"></script>
-  <script type="module" src="js/gameMapRenderer.js?v=20260805d"></script>
+  <script type="module" src="js/gameMapRenderer.js?v=20260805e"></script>
 </body>
 </html>

@@ -1040,6 +1040,23 @@ const Editor = {
       this._renderMasterAgedDecorations(canvas);
     }
 
+    // 万物送信：编辑已送达/带 journey 的信件时，预览同步呈现信物状态
+    if (this.letter && this.letter.journey && this.letter.journey.letterState && window.JourneyEngine) {
+      const hasState = Object.values(this.letter.journey.letterState).some(v => (v || 0) > 0.02);
+      if (hasState) {
+        const st = window.JourneyEngine.stateToCss(this.letter.journey.letterState);
+        const el = document.createElement('div');
+        el.className = 'letter-journey-overlay';
+        for (const [k, v] of Object.entries(st)) el.style.setProperty(k, v);
+        ['wear', 'wet', 'burn', 'bite', 'stain', 'fold', 'footprint'].forEach(k => {
+          const d = document.createElement('div');
+          d.className = 'st-' + k;
+          el.appendChild(d);
+        });
+        canvas.appendChild(el);
+      }
+    }
+
     this.renderPaperElements();
   },
 
@@ -3270,7 +3287,27 @@ Object.assign(Editor, {
 
     // 工具栏按钮
     document.querySelectorAll('.tool-btn').forEach(btn => {
+      if (btn.id === 'open-carrier-picker') return; // 信使按钮单独绑定
       btn.addEventListener('click', () => this.onToolClick(btn));
+    });
+
+    // 选择信使（万物送信）
+    const openCarrierBtn = document.getElementById('open-carrier-picker');
+    if (openCarrierBtn) {
+      openCarrierBtn.addEventListener('click', () => this.openCarrierPicker());
+    }
+    const carrierClose = document.getElementById('carrier-picker-close');
+    if (carrierClose) carrierClose.addEventListener('click', () => this.closeCarrierPicker());
+    const carrierOverlay = document.getElementById('carrier-picker-overlay');
+    if (carrierOverlay) {
+      carrierOverlay.addEventListener('click', (e) => {
+        if (e.target === carrierOverlay) this.closeCarrierPicker();
+      });
+    }
+    const carrierRandom = document.getElementById('carrier-picker-random');
+    if (carrierRandom) carrierRandom.addEventListener('click', () => {
+      const roster = window.CARRIER_ROSTER || [];
+      if (roster.length) this.selectCarrier(roster[Math.floor(Math.random() * roster.length)].id, true);
     });
 
     // 添加页面按钮
@@ -4055,6 +4092,127 @@ Object.assign(Editor, {
     }
   },
 
+  // ===== 万物送信 · 信使选择 =====
+  openCarrierPicker() {
+    const overlay = document.getElementById('carrier-picker-overlay');
+    const grid = document.getElementById('carrier-picker-grid');
+    if (!overlay || !grid) return;
+    const roster = window.CARRIER_ROSTER || [];
+    const current = this.letter.carrierId ? roster.find(c => c.id === this.letter.carrierId) : null;
+    grid.innerHTML = roster.map(c => {
+      const speed = Math.max(1, Math.round(c.baseSpeed * 5));
+      const risk = c.predationRate ? Math.round(c.predationRate * 5) : 0;
+      const life = c.lifespan === Infinity ? 5 : Math.min(5, Math.max(1, Math.round(c.lifespan / 6)));
+      const wonder = c.category === 'scifi' ? 5 : (c.specialAbilities.length ? 4 : 2);
+      const isActive = current && current.id === c.id;
+      return `
+        <div class="carrier-card ${isActive ? 'active' : ''}" data-carrier-id="${c.id}">
+          <div class="carrier-emoji">${c.emoji || '✉'}</div>
+          <div class="carrier-name">${c.name}</div>
+          <div class="carrier-meta">${c.category === 'real' ? '真实' : '科幻/奇幻'} · ${c.lore.slice(0, 18)}…</div>
+          <div class="carrier-stats">
+            ${['speed', 'life', 'risk', 'wonder'].map((k, i) => {
+              const v = [speed, life, risk, wonder][i];
+              const label = ['速', '寿', '险', '奇'][i];
+              return `<span class="carrier-stat" title="${label}">
+                <span class="carrier-stat-label">${label}</span>
+                <span class="carrier-stat-bars">${'▮'.repeat(v)}${'▯'.repeat(5 - v)}</span>
+              </span>`;
+            }).join('')}
+          </div>
+          <div class="carrier-lore">${c.lore}</div>
+        </div>`;
+    }).join('') || '<div class="carrier-grid-empty">信使库为空</div>';
+
+    grid.querySelectorAll('.carrier-card').forEach(card => {
+      card.addEventListener('click', () => this.selectCarrier(card.dataset.carrierId));
+    });
+    // 回填在途/定时选项
+    const transitCheck = document.getElementById('carrier-transit-check');
+    const deliverAtInput = document.getElementById('carrier-deliver-at');
+    if (transitCheck) transitCheck.checked = this.letter.journeyMode === 'transit';
+    if (deliverAtInput) {
+      deliverAtInput.value = this.letter.journeyDeliverAt
+        ? new Date(this.letter.journeyDeliverAt).toISOString().slice(0, 16)
+        : '';
+    }
+    overlay.classList.add('active');
+    overlay.setAttribute('aria-hidden', 'false');
+  },
+
+  closeCarrierPicker() {
+    const overlay = document.getElementById('carrier-picker-overlay');
+    if (overlay) {
+      overlay.classList.remove('active');
+      overlay.setAttribute('aria-hidden', 'true');
+    }
+  },
+
+  selectCarrier(carrierId, auto = false) {
+    const roster = window.CARRIER_ROSTER || [];
+    const carrier = roster.find(c => c.id === carrierId);
+    if (!carrier) return;
+    this.letter.carrierId = carrier.id;
+    this._renderCarrierSelected();
+    // 生成预期提示
+    const status = document.getElementById('carrier-picker-status');
+    if (status && window.JourneyEngine) {
+      status.textContent = `已选择「${carrier.name}」— ` + JourneyEngine.fuzzyTime(carrier);
+    }
+    // 更新卡片高亮
+    document.querySelectorAll('#carrier-picker-grid .carrier-card').forEach(card => {
+      card.classList.toggle('active', card.dataset.carrierId === carrierId);
+    });
+    if (auto) {
+      setTimeout(() => this.closeCarrierPicker(), 600);
+    }
+  },
+
+  _renderCarrierSelected() {
+    const roster = window.CARRIER_ROSTER || [];
+    const carrier = roster.find(c => c.id === this.letter.carrierId);
+    const box = document.getElementById('carrier-selected');
+    if (!box) return;
+    if (!carrier) {
+      box.style.display = 'none';
+      return;
+    }
+    let expected = '';
+    if (window.JourneyEngine) expected = JourneyEngine.fuzzyTime(carrier);
+    box.style.display = 'block';
+    box.innerHTML = `
+      <div class="carrier-selected-row">
+        <span class="carrier-selected-emoji">${carrier.emoji || '✉'}</span>
+        <div class="carrier-selected-info">
+          <div class="carrier-selected-name">${carrier.name}</div>
+          <div class="carrier-selected-detail">${carrier.category === 'real' ? '真实' : '科幻/奇幻'}信使</div>
+        </div>
+        <button id="carrier-clear-btn" type="button" class="carrier-clear-btn">重选</button>
+      </div>
+      ${expected ? `<div class="carrier-selected-expected">预期抵达：${expected}</div>` : ''}
+    `;
+    const clearBtn = document.getElementById('carrier-clear-btn');
+    if (clearBtn) clearBtn.addEventListener('click', () => {
+      delete this.letter.carrierId;
+      this._renderCarrierSelected();
+    });
+  },
+
+  // 读取在途/定时选项到 letter（供 send 使用）
+  _syncCarrierJourneyOptions() {
+    const transitCheck = document.getElementById('carrier-transit-check');
+    const deliverAtInput = document.getElementById('carrier-deliver-at');
+    if (transitCheck) {
+      if (transitCheck.checked) this.letter.journeyMode = 'transit';
+      else delete this.letter.journeyMode;
+    }
+    if (deliverAtInput && deliverAtInput.value) {
+      this.letter.journeyDeliverAt = new Date(deliverAtInput.value).getTime();
+    } else {
+      delete this.letter.journeyDeliverAt;
+    }
+  },
+
   async send() {
     if (!this.letter.recipientAccountKey) {
       alert('请先选择真实收信人。');
@@ -4062,6 +4220,18 @@ Object.assign(Editor, {
     }
     const sendButton = document.getElementById('send-letter-btn');
     this._serializeLetter();
+    // 读取在途/定时选项（若信使弹窗未关则先同步）
+    this._syncCarrierJourneyOptions();
+    // 万物送信：未选信使则随机指派，并生成旅程（事件链 + 旅程志）
+    if (window.JourneyEngine && window.CARRIER_ROSTER) {
+      if (!this.letter.carrierId) {
+        const roster = window.CARRIER_ROSTER;
+        this.letter.carrierId = (roster.random ? roster.random() : roster[0]).id;
+      }
+      const opts = { mode: this.letter.journeyMode === 'transit' ? 'transit' : 'instant' };
+      if (this.letter.journeyDeliverAt) opts.deliverAt = this.letter.journeyDeliverAt;
+      this.letter.journey = window.JourneyEngine.startJourney(this.letter, this.letter.carrierId, opts);
+    }
     if (sendButton) {
       sendButton.disabled = true;
       sendButton.textContent = '正在发送…';
@@ -4080,7 +4250,14 @@ Object.assign(Editor, {
         tab.classList.toggle('active', active);
         tab.setAttribute('aria-selected', active ? 'true' : 'false');
       });
-      App.navigate('mailbox', { mailboxId: this.letter.mailboxId });
+      // 跨信箱寄信：目标可能是对方个人信箱（不在当前用户可见列表），
+      // 发送后跳转若找不到会白屏 —— 回退到进入编辑器前的信箱。
+      const targetMailboxId = this.letter.mailboxId;
+      const targetVisible = (typeof MailboxManager !== 'undefined' && MailboxManager.getMailboxes
+        ? (MailboxManager.getMailboxes() || []).some(m => m && m.id === targetMailboxId)
+        : true);
+      const jumpMailboxId = targetVisible ? targetMailboxId : (App.currentMailboxId || targetMailboxId);
+      App.navigate('mailbox', { mailboxId: jumpMailboxId });
     } catch (error) {
       console.error('[Editor] Send failed:', error);
       const itemErrors = {

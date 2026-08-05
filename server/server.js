@@ -7,6 +7,7 @@ const { URL } = require('url');
 require('dotenv').config({ path: path.join(__dirname, '.env') });
 const { initMysql, isMysqlEnabled } = require('./mysqlClient');
 const mysqlDao = require('./mysqlDao');
+const assetStore = require('./assetStore');
 const {
   itemDefinitions,
   starterItems,
@@ -196,6 +197,20 @@ function loadState() {
 }
 
 let persistentState = loadState();
+
+// saveState 防抖状态（内存态实时生效，落盘延迟批量 + 退出前 flush）
+let _stateDirty = false;
+let _stateTimer = null;
+process.on('exit', () => {
+  if (_stateDirty) {
+    try {
+      fs.mkdirSync(DATA_DIR, { recursive: true });
+      const tempFile = `${STATE_FILE}.tmp`;
+      fs.writeFileSync(tempFile, JSON.stringify(persistentState, null, 2), 'utf8');
+      fs.renameSync(tempFile, STATE_FILE);
+    } catch (_) {}
+  }
+});
 
 function normalizeMailboxCode(value) {
   return String(value || '').trim().toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 12);
@@ -859,10 +874,27 @@ if (!HTTP_ONLY) {
 }
 
 function saveState() {
-  fs.mkdirSync(DATA_DIR, { recursive: true });
-  const tempFile = `${STATE_FILE}.tmp`;
-  fs.writeFileSync(tempFile, JSON.stringify(persistentState, null, 2), 'utf8');
-  fs.renameSync(tempFile, STATE_FILE);
+  // 防抖批量写：state.json 可能很大（含大信 base64），每次全量 JSON.stringify+写盘会阻塞
+  // 事件循环数百毫秒~数秒（发送/保存慢的根因之一）。内存态已实时生效，落盘延迟 2s 批量做；
+  // 进程退出前同步 flush 保证不丢。
+  _stateDirty = true;
+  if (_stateTimer) return;
+  _stateTimer = setTimeout(() => {
+    _stateTimer = null;
+    flushStateNow();
+  }, 2000);
+}
+
+function flushStateNow() {
+  _stateDirty = false;
+  try {
+    fs.mkdirSync(DATA_DIR, { recursive: true });
+    const tempFile = `${STATE_FILE}.tmp`;
+    fs.writeFileSync(tempFile, JSON.stringify(persistentState, null, 2), 'utf8');
+    fs.renameSync(tempFile, STATE_FILE);
+  } catch (e) {
+    console.warn('[state] 落盘失败（内存态不受影响）:', e?.message || e);
+  }
   // 注：各 API 调用点已做双写（内存 + MySQL），此处不再全量热同步
 }
 
@@ -872,6 +904,20 @@ function normalizeAccountKey(value) {
 
 function envUrlList(name) {
   return String(process.env[name] || '').split(',').map(value => value.trim()).filter(Boolean);
+}
+
+// 灰度开关：GAME_ASSET_API=0 时不注入资产 API 源（全链路回退本地静态加载）
+function disableAssetApi() {
+  return String(process.env.GAME_ASSET_API || '1') === '0';
+}
+
+// 资产 API 基址（双端互通：任意端口/设备前端都指向本后端）
+function apiAssetBaseUrl(req) {
+  if (disableAssetApi()) return '';
+  const host = (req && req.headers && req.headers.host) ? String(req.headers.host) : '';
+  if (!host) return '';
+  const proto = String(req.headers['x-forwarded-proto'] || 'http').split(',')[0].trim();
+  return `${proto}://${host}/api/assets/`;
 }
 
 function accountProfile(accountKey, worldId = 'mailbox-xiejian') {
@@ -1184,6 +1230,32 @@ function handlePackageUpload(req, res) {
         // 清理临时文件
         if (tempDir) try { fs.rmSync(tempDir, { recursive: true, force: true }); } catch (_) {}
 
+        // 双端互通：资源包复制到磁盘的每个资产同时入库 MySQL + 写缓存
+        try {
+          const copied = Array.isArray(result.copyResults) ? result.copyResults : [];
+          let assetCount = 0;
+          for (const c of copied) {
+            const dest = String(c.dest || c.target || c.path || '');
+            if (!dest) continue;
+            const rel = path.relative(ROOT_DIR, dest).replace(/\\/g, '/');
+            if (!rel || rel.startsWith('..')) continue;
+            let buf = null;
+            try {
+              if (c.buffer) buf = Buffer.isBuffer(c.buffer) ? c.buffer : Buffer.from(c.buffer);
+              else if (fs.existsSync(dest)) buf = fs.readFileSync(dest);
+            } catch (_) {}
+            if (!buf) continue;
+            const cat = rel.includes('poxiao') ? 'poxiao'
+              : rel.includes('xiejian') ? 'xiejian'
+              : String(worldCategory || 'game');
+            await assetStore.putAsset(rel, '', buf, cat);
+            assetCount++;
+          }
+          if (assetCount > 0) console.log(`[upload] 资源包资产已入库 ${assetCount} 个（MySQL + 缓存）`);
+        } catch (e) {
+          console.warn('[upload] 资源包资产入库失败（磁盘文件已复制）:', e?.message || e);
+        }
+
         // 广播更新
         broadcastAdmin({ type: 'packages_updated', packageType: result.packageType, characters: savedChars, maps: savedMaps });
 
@@ -1242,6 +1314,7 @@ async function handleApi(req, res, parsedUrl) {
         // 远端 CDN / 备用服务器地址（按优先级排列）
         remoteBaseUrls: envUrlList('RESOURCE_REMOTE_BASE_URLS'),
         assetBaseUrls: envUrlList('RESOURCE_REMOTE_BASE_URLS'),
+        remoteAssetApiBase: apiAssetBaseUrl(req),
         localBaseUrl: './',
         maxRetries: 3,
         enableCache: true,
@@ -1262,10 +1335,12 @@ async function handleApi(req, res, parsedUrl) {
           resourceVersion: DEFINITIONS_VERSION,
           manifestBaseUrls: envUrlList('GAME_MANIFEST_BASE_URLS'),
           assetBaseUrls: envUrlList('GAME_ASSET_BASE_URLS'),
+          // 双端互通：资产统一从本后端 /api/assets 拉取（MySQL 主存 + 磁盘缓存）
+          assetApiBaseUrl: apiAssetBaseUrl(req),
           localManifestBaseUrl: '/assets/game/',
           localAssetBaseUrl: './sendbox/src/assets/'
         },
-        features: { remoteResources: envUrlList('GAME_ASSET_BASE_URLS').length > 0, localFallback: true }
+        features: { remoteResources: envUrlList('GAME_ASSET_BASE_URLS').length > 0 || !disableAssetApi(), localFallback: true }
       });
       return true;
     }
@@ -1324,31 +1399,17 @@ async function handleApi(req, res, parsedUrl) {
     if (req.method === 'GET' && parsedUrl.pathname === '/api/mail/letters') {
       const accountKey = normalizeAccountKey(parsedUrl.searchParams.get('accountKey'));
       const mailboxId = String(parsedUrl.searchParams.get('mailboxId') || '');
-      let mongoLetters = null;
-      if (isMysqlEnabled()) {
+      // 内存优先（<1ms）：loadAllFromState 启动时已把 MySQL 全量信件载入 persistentState.letters，
+      // 运行期写入双写内存+MySQL。避免每次打开信箱都打远程 MySQL（0.3~0.5s RTT）——
+      // 那是"信箱打开/搜索/发送慢"并挤占连接池的根因之一。
+      let rawRecords = Object.values(persistentState.letters || {})
+        .filter(r => r && r.mailboxId === mailboxId);
+      // 内存为空（跨服务器写入的极端场景）→ MySQL 兜底
+      if (rawRecords.length === 0 && isMysqlEnabled()) {
         try {
-          mongoLetters = await mysqlDao.loadLetters(mailboxId, accountKey);
-        } catch (_) { mongoLetters = null; }
-      }
-      // 1) 如果 Mongo 可用且有结果 → 用 Mongo 结果格式化输出（同时合并 persistentState，保证双写不丢）
-      // 2) 否则 → 完全回退 persistentState
-      let rawRecords = [];
-      if (Array.isArray(mongoLetters) && mongoLetters.length) {
-        // 以 Mongo 为主，合并 persistentState 中更新时间更大的（可能离线写入后还没同步）
-        const byId = new Map(mongoLetters.map(r => [String(r.id), r]));
-        for (const r of Object.values(persistentState.letters || {})) {
-          if (!r || r.mailboxId !== mailboxId) continue;
-          const key = String(r.id);
-          const old = byId.get(key);
-          if (!old || ((r.letter?.updatedAt || r.updatedAt || 0) > (old.letter?.updatedAt || old.updatedAt || 0))) {
-            byId.set(key, r);
-            // 发现本地更新的 → 顺手 upsert 回 Mongo（异步不阻塞响应）
-            if (isMysqlEnabled()) mysqlDao.saveLetter(r).catch(() => {});
-          }
-        }
-        rawRecords = Array.from(byId.values()).filter(r => r.mailboxId === mailboxId);
-      } else {
-        rawRecords = Object.values(persistentState.letters).filter(r => r.mailboxId === mailboxId);
+          const mongoLetters = await mysqlDao.loadLetters(mailboxId, accountKey);
+          if (Array.isArray(mongoLetters) && mongoLetters.length) rawRecords = mongoLetters;
+        } catch (_) {}
       }
       const letters = rawRecords
         .filter(record => {
@@ -1372,8 +1433,8 @@ async function handleApi(req, res, parsedUrl) {
       jsonResponse(res, 200, {
         letters,
         unreadCount: letters.filter(letter => letter.isUnread).length,
-        remote: isMysqlEnabled() && Array.isArray(mongoLetters),
-        fromCount: (mongoLetters || []).length
+        remote: isMysqlEnabled() && rawRecords.length > 0,
+        fromCount: rawRecords.length
       });
       return true;
     }
@@ -1419,7 +1480,8 @@ async function handleApi(req, res, parsedUrl) {
       };
       persistentState.letters[id] = draftRecord;
       if (isMysqlEnabled()) {
-        try { await mysqlDao.saveLetter(draftRecord); } catch (_) {}
+        // 草稿自动保存高频，MySQL 持久化异步化避免卡顿
+        try { mysqlDao.saveLetter(draftRecord).catch(() => {}); } catch (_) {}
       }
       saveState();
       jsonResponse(res, 200, { letter: persistentState.letters[id].letter, remote: isMysqlEnabled() });
@@ -1519,7 +1581,9 @@ async function handleApi(req, res, parsedUrl) {
       }
       persistentState.letters[id] = record;
       if (isMysqlEnabled()) {
-        try { await mysqlDao.saveLetter(record); } catch (_) {}
+        // MySQL 持久化改为后台异步写（远程库 RTT 0.3~0.5s 是"发送很久"的主因之一）：
+        // 内存态已实时生效，响应不等待；读取链路内存优先，不会读到缺信。
+        mysqlDao.saveLetter(record).catch(() => {});
       }
       saveState();
       notifyInventoryForAccount(accountKey);
@@ -1567,9 +1631,10 @@ async function handleApi(req, res, parsedUrl) {
       }
       record.readAt = record.readAt || Date.now();
       if (isMysqlEnabled()) {
+        // 异步持久化（远程 MySQL RTT 0.3~0.5s，不阻塞"打开信件"响应）
         try {
-          await mysqlDao.saveLetter(record);
-          await mysqlDao.markLetterRead(id, accountKey);
+          Promise.resolve(mysqlDao.saveLetter(record)).catch(() => {});
+          Promise.resolve(mysqlDao.markLetterRead(id, accountKey)).catch(() => {});
         } catch (_) {}
       }
       saveState();
@@ -1639,20 +1704,61 @@ async function handleApi(req, res, parsedUrl) {
     if (req.method === 'GET' && parsedUrl.pathname === '/api/letters/list') {
       const accountKey = normalizeAccountKey(parsedUrl.searchParams.get('accountKey'));
       const mailboxId = String(parsedUrl.searchParams.get('mailboxId') || '');
-      let list = [];
-      if (isMysqlEnabled()) {
+      // 内存优先（<1ms），MySQL 兜底（跨服务器写入的极端场景）
+      let list = Object.values(persistentState.letters || {}).filter(r =>
+        r && r.mailboxId === mailboxId &&
+        (r.senderAccountKey === accountKey || r.recipientAccountKey === accountKey ||
+          (r.deliveryStatus === 'draft' && r.senderAccountKey === accountKey))
+      );
+      if (list.length === 0 && isMysqlEnabled()) {
         try { list = await mysqlDao.loadLetters(mailboxId, accountKey) || []; }
         catch (_) { list = []; }
       }
-      if (!Array.isArray(list) || list.length === 0) {
-        // 回退本地
-        list = Object.values(persistentState.letters || {}).filter(r =>
-          r.mailboxId === mailboxId &&
-          (r.senderAccountKey === accountKey || r.recipientAccountKey === accountKey ||
-            (r.deliveryStatus === 'draft' && r.senderAccountKey === accountKey))
-        );
-      }
       jsonResponse(res, 200, { success: true, letters: list, remote: isMysqlEnabled() && list.length > 0 });
+      return true;
+    }
+
+    // ======== 我的往来联系人（跨信箱聚合，解决"个人信箱之间无法建链"） ========
+    // 聚合服务端全部信件（内存 + MySQL）中与该账号有实际往来（sent/inbox）的人，
+    // 不依赖"当前用户可见信箱列表"——对方个人信箱即使对当前用户不可见，也能提取出来。
+    if (req.method === 'GET' && parsedUrl.pathname === '/api/letters/contacts') {
+      const accountKey = normalizeAccountKey(parsedUrl.searchParams.get('accountKey'));
+      if (!accountKey) {
+        jsonResponse(res, 400, { success: false, message: 'accountKey 必填' });
+        return true;
+      }
+      const byId = new Map();
+      // 内存态即权威：bootstrap 启动时已通过 loadAllFromState 将 MySQL 全量信件加载进 persistentState.letters
+      // （避免对远程 MySQL 实时全表查询导致的连接排队/卡顿）
+      for (const r of Object.values(persistentState.letters || {})) {
+        if (r && r.id) byId.set(String(r.id), r);
+      }
+      const contacts = new Map(); // key -> contact
+      for (const r of byId.values()) {
+        if (!r || !r.id || r.deliveryStatus === 'draft') continue; // 只算实际往来
+        const s = normalizeAccountKey(r.senderAccountKey);
+        const t = normalizeAccountKey(r.recipientAccountKey);
+        if (!s || !t || s === t) continue;
+        const ts = Number(r.sentAt || r.updatedAt || r.createdAt || 0);
+        const mbId = String(r.mailboxId || '');
+        let otherKey = null;
+        if (s === accountKey) otherKey = t;
+        else if (t === accountKey) otherKey = s;
+        if (!otherKey) continue;
+        const existing = contacts.get(otherKey);
+        if (!existing || ts > existing.lastContactAt) {
+          contacts.set(otherKey, {
+            accountKey: otherKey,
+            mailboxId: mbId,
+            mailboxName: (persistentState.mailboxes && persistentState.mailboxes[mbId]) ? (persistentState.mailboxes[mbId].name || '') : '',
+            lastContactAt: ts
+          });
+        }
+      }
+      const list = Array.from(contacts.values())
+        .sort((a, b) => (b.lastContactAt || 0) - (a.lastContactAt || 0))
+        .slice(0, 50);
+      jsonResponse(res, 200, { success: true, contacts: list, remote: isMysqlEnabled() });
       return true;
     }
 
@@ -1682,8 +1788,15 @@ async function handleApi(req, res, parsedUrl) {
       const id = String(body.id || `media-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`)
         .replace(/[^a-zA-Z0-9_-]/g, '')
         .slice(0, 120);
-      fs.writeFileSync(path.join(MEDIA_DIR, id), Buffer.from(base64, 'base64'));
+      const mediaBuf = Buffer.from(base64, 'base64');
+      fs.writeFileSync(path.join(MEDIA_DIR, id), mediaBuf);
       fs.writeFileSync(path.join(MEDIA_DIR, `${id}.json`), JSON.stringify({ mimeType }), 'utf8');
+      // 双端互通：媒体同时入库 MySQL（任意端口/设备可通过 /api/media/:id 读取）
+      try {
+        await assetStore.putAsset('media/' + id, mimeType, mediaBuf, 'user');
+      } catch (e) {
+        console.warn('[media] 入库 MySQL 失败（磁盘文件保留）:', e?.message || e);
+      }
       jsonResponse(res, 200, { id, url: `/api/media/${id}` });
       return true;
     }
@@ -1889,22 +2002,99 @@ async function handleApi(req, res, parsedUrl) {
     }
 
     // ------- 信箱号跨用户查询 & 加入（核心！） -------
+    // 每个用户的个人信箱（不存在则自动创建，幂等）
+    if (req.method === 'GET' && parsedUrl.pathname === '/api/mailbox/personal') {
+      const accountKey = normalizeAccountKey(parsedUrl.searchParams.get('accountKey'));
+      const displayName = String(parsedUrl.searchParams.get('displayName') || accountKey || '').slice(0, 40);
+      if (!accountKey) { jsonResponse(res, 400, { success: false, message: 'accountKey 必填' }); return true; }
+      const personalId = 'personal-' + accountKey;
+      if (isMysqlEnabled()) {
+        let mb = await mysqlDao.getMailboxById(personalId);
+        if (!mb) {
+          const mailboxCode = await mysqlDao.generateMailboxCode(displayName + '的信箱');
+          if (mailboxCode) {
+            const created = await mysqlDao.upsertMailboxRemote({
+              id: personalId,
+              name: `${displayName}的信箱`,
+              desc: '我的专属信箱，凭信箱码即可给我寄信',
+              icon: '📮',
+              themeColor: '#8a6d3b',
+              accent: '#8a6d3b',
+              cardAccent: '#8a6d3b',
+              mapBackground: '',
+              isCustom: true,
+              visibility: 'public',
+              mailboxCode,
+              ownerAccountKey: accountKey,
+              memberAccountKeys: [accountKey],
+              memberNames: { [accountKey]: displayName || accountKey },
+              memberCharacters: {},
+              createdAt: Date.now(),
+              updatedAt: Date.now()
+            });
+            mb = created && !created.error ? created : null;
+          }
+        }
+        if (mb) {
+          saveState();
+          broadcastAdmin({ type: 'mailbox_changed', mailboxId: personalId, action: 'created', timestamp: Date.now() });
+          jsonResponse(res, 200, { success: true, mailbox: mb, remote: true });
+        } else {
+          jsonResponse(res, 500, { success: false, message: '个人信箱创建失败' });
+        }
+      } else {
+        // 本地降级：直接 upsert 到内存 state
+        let mb = persistentState.mailboxes[personalId];
+        if (!mb) {
+          const mailboxCode = await mysqlDao.generateMailboxCode(displayName + '的信箱');
+          mb = {
+            id: personalId, name: `${displayName}的信箱`, desc: '我的专属信箱，凭信箱码即可给我寄信',
+            icon: '📮', themeColor: '#8a6d3b', accent: '#8a6d3b', cardAccent: '#8a6d3b', mapBackground: '', isCustom: true, visibility: 'public',
+            mailboxCode: mailboxCode || 'MB' + Math.random().toString(36).slice(2, 8).toUpperCase(),
+            ownerAccountKey: accountKey,
+            memberAccountKeys: [accountKey], memberNames: { [accountKey]: displayName || accountKey },
+            memberCharacters: {}, createdAt: Date.now(), updatedAt: Date.now()
+          };
+          persistentState.mailboxes[personalId] = mb;
+          saveState();
+          broadcastAdmin({ type: 'mailbox_changed', mailboxId: personalId, action: 'created', timestamp: Date.now() });
+        }
+        jsonResponse(res, 200, { success: true, mailbox: mb, remote: false });
+      }
+      return true;
+    }
+
     if (req.method === 'GET' && parsedUrl.pathname === '/api/mailbox_codes/lookup') {
       const code = String(parsedUrl.searchParams.get('code') || '').trim().toUpperCase();
       if (!code) { jsonResponse(res, 400, { success: false, message: 'code 为空' }); return true; }
+      // 内存优先（<1ms）：loadAllFromState 启动时已把 MySQL 全量 mailboxCodes/mailboxes 载入内存，
+      // 避免每次搜索都打远程 MySQL（0.3~0.5s RTT）——这是"搜索信箱很久"的根因。
+      const memoryMb = findLocalMailboxByCode(code);
+      if (memoryMb) {
+        // 异步补录 MySQL（补全 mailbox_codes 索引，不阻塞响应）
+        try {
+          mysqlDao.upsertMailboxRemote({
+            id: memoryMb.id,
+            name: memoryMb.name,
+            mailboxCode: code,
+            ownerAccountKey: memoryMb.ownerAccountKey || '',
+            memberAccountKeys: memoryMb.memberAccountKeys || [],
+            memberNames: memoryMb.memberNames || {},
+            memberCharacters: memoryMb.memberCharacters || {}
+          }).catch(() => {});
+        } catch (_) {}
+        jsonResponse(res, 200, { success: true, code, mailbox: memoryMb, remote: false });
+        return true;
+      }
+      // MySQL 兜底（内存未命中但 MySQL 有——跨服务器写入的极少数场景）
       if (isMysqlEnabled()) {
         const mb = await mysqlDao.findMailboxByCode(code);
         if (mb) {
           jsonResponse(res, 200, { success: true, code, mailbox: mb, remote: true });
-        } else {
-          jsonResponse(res, 404, { success: false, message: '该信箱号不存在（云端未找到）', code });
+          return true;
         }
-      } else {
-        const mailbox = findLocalMailboxByCode(code);
-        jsonResponse(res, mailbox ? 200 : 404, mailbox
-          ? { success: true, code, mailbox, remote: false, persistent: true }
-          : { success: false, message: '该信箱号不存在', code });
       }
+      jsonResponse(res, 404, { success: false, message: '该信箱号不存在（云端与本地均未找到）', code });
       return true;
     }
     if (req.method === 'POST' && parsedUrl.pathname === '/api/mailbox_codes/join') {
@@ -2008,22 +2198,74 @@ async function handleApi(req, res, parsedUrl) {
       return true;
     }
 
+    // ======== 资产 API（双端互通：统一从 MySQL 读资产，磁盘仅作缓存） ========
+    // GET /api/assets/<assetPath> —— 代理读取（缓存优先 → MySQL 兜底 → 404）
+    if (req.method === 'GET' && parsedUrl.pathname.startsWith('/api/assets/')) {
+      const assetPath = parsedUrl.pathname.slice('/api/assets/'.length);
+      await assetStore.serveAsset(req, res, assetPath);
+      return true;
+    }
+
+    // POST /api/assets —— 单文件上传入库（JSON: {path, mimeType, base64}，也可用 buffer 字段传二进制）
+    if (req.method === 'POST' && parsedUrl.pathname === '/api/assets') {
+      const body = await readJsonBody(req);
+      const assetPath = String(body.path || '');
+      const base64 = String(body.base64 || '');
+      const bufferField = body.buffer || body.data || null;
+      if (!assetPath) { jsonResponse(res, 400, { success: false, message: 'path 必填' }); return true; }
+      let data = null;
+      if (bufferField != null) {
+        data = Buffer.isBuffer(bufferField) ? bufferField : Buffer.from(bufferField);
+      } else if (base64) {
+        data = Buffer.from(base64, 'base64');
+      }
+      if (!data || data.length === 0) { jsonResponse(res, 400, { success: false, message: '内容为空' }); return true; }
+      const MAX_ASSET_BYTES = 30 * 1024 * 1024;
+      if (data.length > MAX_ASSET_BYTES) { jsonResponse(res, 413, { success: false, message: '单文件超过 30MB 上限' }); return true; }
+      const meta = await assetStore.putAsset(assetPath, String(body.mimeType || ''), data, String(body.worldCategory || 'game'));
+      jsonResponse(res, 200, { success: true, asset: meta });
+      return true;
+    }
+
+    // POST /api/assets/import —— 服务端本地文件导入（迁移脚本复用；localPath 相对项目根）
+    if (req.method === 'POST' && parsedUrl.pathname === '/api/assets/import') {
+      const body = await readJsonBody(req);
+      const localPath = String(body.localPath || '').replace(/^\.?\//, '');
+      if (!localPath) { jsonResponse(res, 400, { success: false, message: 'localPath 必填' }); return true; }
+      const abs = path.resolve(ROOT_DIR, localPath);
+      if (!abs.startsWith(ROOT_DIR + path.sep) && abs !== ROOT_DIR) {
+        jsonResponse(res, 403, { success: false, message: '仅允许导入项目内文件' }); return true;
+      }
+      if (!fs.existsSync(abs) || !fs.statSync(abs).isFile()) {
+        jsonResponse(res, 404, { success: false, message: '文件不存在' }); return true;
+      }
+      const buf = fs.readFileSync(abs);
+      const meta = await assetStore.putAsset(localPath, String(body.mimeType || ''), buf, String(body.worldCategory || 'game'));
+      jsonResponse(res, 200, { success: true, asset: meta });
+      return true;
+    }
+
     // ======== 现有接口（media）=======
     if (req.method === 'GET' && parsedUrl.pathname.startsWith('/api/media/')) {
       const id = decodeURIComponent(parsedUrl.pathname.slice('/api/media/'.length))
         .replace(/[^a-zA-Z0-9_-]/g, '');
       const file = path.join(MEDIA_DIR, id);
-      if (!id || !fs.existsSync(file)) {
+      if (!id) {
         res.writeHead(404);
         res.end('Not Found');
         return true;
       }
-      let mimeType = 'application/octet-stream';
-      try {
-        mimeType = JSON.parse(fs.readFileSync(`${file}.json`, 'utf8')).mimeType || mimeType;
-      } catch (_) {}
-      res.writeHead(200, { 'Content-Type': mimeType });
-      fs.createReadStream(file).pipe(res);
+      // 磁盘文件优先（兼容存量媒体）→ MySQL 兜底（双端互通：任意端口/设备可读）
+      if (fs.existsSync(file)) {
+        let mimeType = 'application/octet-stream';
+        try {
+          mimeType = JSON.parse(fs.readFileSync(`${file}.json`, 'utf8')).mimeType || mimeType;
+        } catch (_) {}
+        res.writeHead(200, { 'Content-Type': mimeType });
+        fs.createReadStream(file).pipe(res);
+        return true;
+      }
+      await assetStore.serveAsset(req, res, 'media/' + id);
       return true;
     }
 
@@ -2514,6 +2756,16 @@ async function handleApi(req, res, parsedUrl) {
         fs.mkdirSync(targetDir, { recursive: true });
         const buffer = Buffer.from(base64Data, 'base64');
         fs.writeFileSync(targetFile, buffer);
+        // 双端互通：资产同时入库 MySQL + 写磁盘缓存（worldCategory 按路径推导）
+        try {
+          const rel = path.join(safeRelPath, safeFileName).replace(/\\/g, '/');
+          const worldCategory = rel.includes('poxiao') ? 'poxiao'
+            : rel.includes('xiejian') ? 'xiejian'
+            : rel.includes('sendbox') ? 'game' : 'game';
+          await assetStore.putAsset(rel, '', buffer, worldCategory);
+        } catch (e) {
+          console.warn('[assets/upload] 入库失败（磁盘文件已保存）:', e?.message || e);
+        }
         jsonResponse(res, 200, { success: true, path: path.join(safeRelPath, safeFileName).replace(/\\/g, '/') });
       } catch (err) {
         jsonResponse(res, 500, { error: `写入文件失败: ${err.message}` });
@@ -3524,6 +3776,19 @@ if (!HTTP_ONLY) {
             content: message.content,
             senderName: message.senderName || clientId,
             characterId: message.characterId || '',
+            timestamp: Date.now()
+          }, clientId);
+          return;
+        }
+
+        // 万物送信：信件送达广播（带 journey 快照，收端本地合并）
+        if (message.type === 'mail_delivery') {
+          broadcastToRoom(currentRoomId, {
+            type: 'mail_delivery',
+            fromUserId: clientId,
+            letterId: message.letterId,
+            mailboxId: message.mailboxId,
+            journey: message.journey,
             timestamp: Date.now()
           }, clientId);
           return;

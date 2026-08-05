@@ -1424,7 +1424,7 @@ const App = {
         } else {
           return `<div class="equipped-slot">
             <div class="equipped-slot-label">${s.label}</div>
-            <div class="equipped-slot-icon" style="font-size:1.1rem;color:#b8a88a;">—</div>
+            <div class="equipped-slot-icon equip-icon-placeholder">—</div>
             <div class="equipped-slot-name empty">未装备</div>
           </div>`;
         }
@@ -1445,7 +1445,7 @@ const App = {
           const isEquipped = equippedIds.has(item.instanceId);
           const iconHtml = def.icon
             ? `<div class="equipment-item-icon"><img src="${def.icon}" alt=""></div>`
-            : `<div class="equipment-item-icon" style="font-size:1.2rem;color:#b8a88a;">📦</div>`;
+            : `<div class="equipment-item-icon equip-icon-fallback">📦</div>`;
           const typeLabel = def.categoryName || def.category || '';
           return `<div class="equipment-item${isEquipped ? ' equipped' : ''}" title="${this._escapeHtml(def.description || def.name || '')}">
             ${iconHtml}
@@ -2038,7 +2038,6 @@ const App = {
     const grid = document.getElementById('mailbox-grid');
     if (!grid) return;
     const mailboxes = MailboxManager.getMailboxes();
-
     // ==== 空信箱：显示引导 UI ====
     if (!mailboxes || mailboxes.length === 0) {
       grid.innerHTML = `
@@ -2118,6 +2117,73 @@ const App = {
         }
       });
     });
+
+    // 注入"我的信箱"专属入口卡片（异步，不阻塞列表渲染）
+    this._injectPersonalMailboxCard(grid);
+  },
+
+  // ===== 每用户个人信箱 =====
+  _personalMailboxCache: null,
+
+  async _ensurePersonalMailbox() {
+    const currentUser = AuthManager.getCurrentUser();
+    if (!currentUser || typeof MailService === 'undefined') return null;
+    const accountKey = MailService.getAccountKey(currentUser);
+    if (this._personalMailboxCache && this._personalMailboxCache.accountKey === accountKey) {
+      return this._personalMailboxCache.mb;
+    }
+    try {
+      const data = await MailService._request(
+        '/api/mailbox/personal?accountKey=' + encodeURIComponent(accountKey) +
+        '&displayName=' + encodeURIComponent(currentUser.displayName || currentUser.username || accountKey)
+      );
+      if (data.success && data.mailbox) {
+        this._personalMailboxCache = { accountKey, mb: data.mailbox };
+        return data.mailbox;
+      }
+    } catch (_) {}
+    return null;
+  },
+
+  async _injectPersonalMailboxCard(grid) {
+    if (!grid) return;
+    const currentUser = AuthManager.getCurrentUser();
+    if (!currentUser) return;
+    const mb = await this._ensurePersonalMailbox();
+    if (!mb) return;
+    // 已在列表则跳过
+    if (grid.querySelector('.personal-mailbox-card')) return;
+    const card = document.createElement('article');
+    card.className = 'mailbox-card personal-mailbox-card';
+    card.dataset.personalMailbox = '1';
+    card.dataset.mailboxId = mb.id;
+    card.innerHTML = `
+      <span class="mailbox-symbol">📮</span>
+      <h4>我的信箱 <span class="shared-badge-card">专属</span></h4>
+      <p>${(mb.desc || mb.description || '我的专属信箱，凭信箱码即可给我寄信').slice(0, 30)}</p>
+      <div class="mailbox-card-meta">
+        <span>${mb.mailboxCode ? '信箱码 ' + mb.mailboxCode : ''}</span>
+      </div>
+      ${mb.mailboxCode ? `
+        <div class="mailbox-card-code" data-code="${mb.mailboxCode}" title="点击复制信箱号">
+          <span class="code-icon">📮</span>
+          <span class="code-text">${mb.mailboxCode}</span>
+          <span class="code-copy">📋</span>
+        </div>` : ''}
+    `;
+    card.addEventListener('click', () => this.navigate('mailbox', { mailboxId: mb.id }));
+    const badge = card.querySelector('.mailbox-card-code');
+    if (badge) {
+      badge.addEventListener('click', e => {
+        e.stopPropagation();
+        const code = badge.dataset.code;
+        if (!code) return;
+        if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(code);
+        const copyIcon = badge.querySelector('.code-copy');
+        if (copyIcon) { copyIcon.textContent = '✅'; setTimeout(() => (copyIcon.textContent = '📋'), 1200); }
+      });
+    }
+    grid.prepend(card);
   },
 
   _getActiveCardIndex(cards, wrapper) {
@@ -2133,8 +2199,55 @@ const App = {
   },
 
   renderMailboxView(mailboxId, skipServerRefresh = false) {
-    const mailboxes = MailboxManager.getMailboxes();
-    const mailbox = mailboxes.find(m => m.id === mailboxId);
+    let mailboxes = MailboxManager.getMailboxes();
+    let mailbox = mailboxes.find(m => m.id === mailboxId);
+    // 跨信箱寄信后，目标可能是"对方个人信箱"（不在当前用户可见列表）——绝不能白屏。
+    // 依次回退：STORAGE 全量 → 共享信箱缓存 → 服务端拉取（异步重渲染）→ 最小对象兜底。
+    if (!mailbox) {
+      try {
+        const allLocal = [
+          ...(STORAGE.loadMailboxes ? (STORAGE.loadMailboxes() || []) : []),
+          ...(STORAGE.loadSharedMailboxes ? (STORAGE.loadSharedMailboxes() || []) : [])
+        ];
+        mailbox = allLocal.find(m => m && m.id === mailboxId) || null;
+      } catch (_) {}
+    }
+    if (!mailbox) {
+      try { mailbox = STORAGE.loadSharedMailbox ? STORAGE.loadSharedMailbox(mailboxId) : null; } catch (_) {}
+    }
+    if (!mailbox) {
+      // 服务端拉取真实信箱数据（异步，成功后重渲染）
+      try {
+        if (typeof MailService !== 'undefined' && typeof MailService.getRemoteMailbox === 'function') {
+          MailService.getRemoteMailbox(mailboxId).then(remote => {
+            if (remote && this.currentMailboxId === mailboxId) {
+              try { STORAGE.saveSharedMailbox(remote); } catch (_) {}
+              this.renderMailboxView(mailboxId, true);
+            }
+          }).catch(() => {});
+        }
+      } catch (_) {}
+      // 最小对象兜底（保证不白屏；真实数据到达后会重渲染覆盖）
+      mailbox = {
+        id: mailboxId, name: '信箱', desc: '',
+        memberAccountKeys: [], members: [], memberNames: {}, memberCharacters: {},
+        visibility: 'public', isCustom: true
+      };
+      try {
+        const letters = MailboxManager.loadMailboxLetters ? MailboxManager.loadMailboxLetters(mailboxId) : [];
+        const first = letters[0];
+        if (first) {
+          if (first.mailboxName) mailbox.name = first.mailboxName;
+          else if (first.mailbox && first.mailbox.name) mailbox.name = first.mailbox.name;
+          if (first.recipientIdentity?.identityName && first.recipientAccountKey) {
+            mailbox.memberNames[first.recipientAccountKey] = first.recipientIdentity.identityName;
+          }
+          if (first.senderIdentity?.identityName && first.senderAccountKey) {
+            mailbox.memberNames[first.senderAccountKey] = first.senderIdentity.identityName;
+          }
+        }
+      } catch (_) {}
+    }
     if (!mailbox) return;
 
     this.currentMailboxId = mailboxId;
@@ -2316,6 +2429,14 @@ const App = {
             
             if (view === 'map') {
               App.checkAndInitGameMap();
+              // 地图全屏后通知渲染器重新计算画布尺寸（容器从右栏变为全屏）
+              setTimeout(() => {
+                try { if (window.gameMapRenderer) window.gameMapRenderer.resize(); } catch (_) {}
+              }, 150);
+              // 切到地图后立即刷新在途标记（数据可能刚到本地缓存）
+              if (typeof App._refreshJourneyTransit === 'function') {
+                setTimeout(() => { try { App._refreshJourneyTransit(true); } catch (_) {} }, 400);
+              }
             }
           });
         });
@@ -2343,6 +2464,18 @@ const App = {
     this._bindMailFolderTabs();
     // 根据当前 _mailFolder 同步 UI 标签的激活态，避免切到其他页面再返回时标签错位
     this._syncMailFolderTabUI();
+    // 信箱内「在途」按钮计数刷新（万物送信）
+    if (typeof window.JourneyTracker !== 'undefined' && typeof this._refreshJourneyTransit === 'function') {
+      try { this._refreshJourneyTransit(false); } catch (_) {}
+      // 本地信件缓存是异步拉取的，稍后重刷确保在途标记/计数不因首帧空数据被清空
+      [1200, 3500].forEach(ms => {
+        setTimeout(() => {
+          try {
+            if (this.currentMailboxId === mailboxId) this._refreshJourneyTransit(false);
+          } catch (_) {}
+        }, ms);
+      });
+    }
 
     // 渲染右侧信件画廊
     const letterTrack = document.getElementById('letter-list');
@@ -2350,11 +2483,25 @@ const App = {
 
     if (letterTrack) {
       const allLetters = MailboxManager.loadMailboxLetters(mailboxId);
+      // 信件方向推导：服务端信自带 direction；本地信（无 serverLetter）按
+      // 发送/收件账号与当前用户比对判断方向，草稿按 deliveryStatus ——
+      // 否则"收件/已发送/草稿"tab 里本地信全部被过滤掉，看起来"没有分离"。
+      const inferDirection = (letter) => {
+        if (letter.direction) return letter.direction;
+        if (letter.deliveryStatus === 'draft') return 'draft';
+        const me = String(this._getCurrentAccountKey() || '').toLowerCase().trim();
+        const s = String(letter.senderAccountKey || letter.sender || letter.author?.username || '').toLowerCase().trim();
+        const r = String(letter.recipientAccountKey || letter.recipient || '').toLowerCase().trim();
+        if (me && s === me) return 'sent';
+        if (me && r === me) return 'inbox';
+        return letter.deliveryStatus === 'draft' ? 'draft' : 'inbox';
+      };
       const letters = allLetters
         .filter(letter => {
-          if (this._mailFolder === 'inbox') return letter.serverLetter && letter.direction === 'inbox';
-          if (this._mailFolder === 'sent') return letter.serverLetter && letter.direction === 'sent';
-          if (this._mailFolder === 'draft') return letter.serverLetter && letter.direction === 'draft';
+          if (this._mailFolder === 'inbox') return inferDirection(letter) === 'inbox';
+          if (this._mailFolder === 'sent') return inferDirection(letter) === 'sent';
+          if (this._mailFolder === 'draft') return inferDirection(letter) === 'draft';
+          // 时间线：服务端非草稿 + 本地信全显示（保持原行为）
           return !letter.serverLetter || letter.direction !== 'draft';
         })
         .sort((a, b) =>
@@ -2393,8 +2540,10 @@ const App = {
           const card = document.createElement('div');
           card.className = 'letter-card';
           card.dataset.id = letter.id;
-          card.style.setProperty('--card-accent', mailbox.cardAccent || mailbox.accent);
-          card.style.setProperty('--card-accent-dark', MailboxManager._darkenColor(mailbox.cardAccent || mailbox.accent, 0.2));
+          // 防御：信箱缺 accent 时兜底默认棕金色（个人信箱等）
+          const accent = mailbox.cardAccent || mailbox.accent || '#8a6d3b';
+          card.style.setProperty('--card-accent', accent);
+          card.style.setProperty('--card-accent-dark', MailboxManager._darkenColor(accent, 0.2));
 
           const dateInfo = MailboxManager._parseDate(letter.date);
           const preview = letter.subtitle || letter.letterTitle || letter.elements?.find(e => e.type === 'text')?.content?.substring(0, 50) || '';
@@ -2413,9 +2562,21 @@ const App = {
                 ? '<span class="letter-direction-badge">已发送</span>'
                 : `<span class="letter-direction-badge${letter.isUnread ? ' unread' : ''}">${letter.isUnread ? '新收信' : '已收取'}</span>`;
 
+          // 万物送信：信使/旅程徽标（有 journey 的信在信箱卡片上直接可见信使与在途/已送达状态）
+          const journeyBadge = letter.journey && letter.journey.carrierId
+            ? (() => {
+                const carrier = (window.CARRIER_ROSTER || []).find(c => c.id === letter.journey.carrierId);
+                const jStatus = letter.journey.status === 'delivered' ? '已送达' : '在途';
+                const emoji = (carrier && carrier.emoji) || '✉';
+                const cName = (carrier && carrier.name) || '信使';
+                return `<span class="letter-journey-badge${letter.journey.status === 'delivered' ? ' done' : ''}" title="万物送信 · ${cName} · ${jStatus}">${emoji} ${cName} · ${jStatus}</span>`;
+              })()
+            : '';
+
           card.innerHTML = `
             <div class="letter-card-body">
               ${badge}
+              ${journeyBadge}
               <div class="letter-card-seal">
                 ${(letter.recipient || '收').charAt(0).toUpperCase()}
               </div>
@@ -2436,7 +2597,9 @@ const App = {
             
             if (clickedIndex === activeIndex) {
               this.mailboxActiveIndex[activeKey] = activeIndex;
-              if (letter.serverLetter && letter.direction === 'draft') {
+              const dir = inferDirection(letter);
+              // 草稿（服务端或本地）打开编辑器继续编辑
+              if (dir === 'draft') {
                 Editor.letter = null;
                 this.navigate('editor', { letterId: letter.id, mailboxId });
               } else {
@@ -2567,6 +2730,18 @@ const App = {
         }
       });
     });
+
+    // 信箱视图内「🚀 在途」入口：打开万物送信在途信件面板
+    const transitBtn = document.getElementById('mailbox-journey-transit-btn');
+    if (transitBtn) {
+      transitBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        this._ensureJourneyTransitUI();
+        this._toggleJourneyTransit(true);
+        this._refreshJourneyTransit();
+      });
+    }
 
     this._folderTabsBound = true;
   },
@@ -2930,6 +3105,148 @@ const App = {
     } catch (e) {}
   },
 
+  // 收集"在其他信箱接触过的人"：从所有信箱信件往来提取，按最近联系倒序、去重
+  async _collectAcquaintances(mailboxId) {
+    const currentUser = AuthManager.getCurrentUser();
+    if (!currentUser) return [];
+    const me = typeof MailService !== 'undefined'
+      ? MailService.getAccountKey(currentUser)
+      : String(currentUser.username || '').trim().toLocaleLowerCase('en-US');
+    const meLower = String(me).toLowerCase();
+    const contacts = new Map(); // key(lower) -> contact
+
+    const addContact = (key, letter, mb) => {
+      if (!key) return;
+      const k = String(key).toLowerCase().trim();
+      if (!k || k === meLower) return;
+      const t = letter?.updatedAt || letter?.createdAt || letter?.sentAt || Date.now();
+      if (!contacts.has(k)) {
+        contacts.set(k, { accountKey: key, lastContactAt: t, mailboxId: mb?.id || '', mailboxName: mb?.name || '' });
+      } else {
+        const c = contacts.get(k);
+        if (t > c.lastContactAt) {
+          c.lastContactAt = t;
+          c.mailboxId = mb?.id || '';
+          c.mailboxName = mb?.name || '';
+        }
+      }
+    };
+
+    // 0) 服务端权威聚合（核心修复：解决"个人信箱之间无法建链"）
+    //    服务端聚合了全部信箱（含当前用户不可见的对方个人信箱）中与该账号的往来，
+    //    而本地 getMailboxes() 看不到对方个人信箱 → 之前的实现永远提取不到跨个人信箱的联系人。
+    try {
+      if (typeof MailService !== 'undefined' && MailService._request) {
+        const data = await MailService._request('/api/letters/contacts?accountKey=' + encodeURIComponent(me));
+        if (data && data.success && Array.isArray(data.contacts)) {
+          for (const c of data.contacts) {
+            if (!c || !c.accountKey) continue;
+            const k = String(c.accountKey).toLowerCase().trim();
+            if (!k || k === meLower) continue;
+            const t = Number(c.lastContactAt || 0);
+            const existing = contacts.get(k);
+            if (!existing || t > existing.lastContactAt) {
+              contacts.set(k, {
+                accountKey: c.accountKey,
+                lastContactAt: t,
+                mailboxId: c.mailboxId || '',
+                mailboxName: c.mailboxName || ''
+              });
+            }
+          }
+        }
+      }
+    } catch (_) { /* 服务端不可用 → 本地遍历兜底 */ }
+
+    // 遍历所有信箱（含远端缓存合并）
+    try {
+      const mailboxes = (MailboxManager.getMailboxes ? MailboxManager.getMailboxes() : []) || [];
+      for (const mb of mailboxes) {
+        const letters = (MailboxManager.loadMailboxLetters ? (MailboxManager.loadMailboxLetters(mb.id) || []) : []);
+        for (const l of letters) {
+          const sender = l.senderAccountKey || l.senderIdentity?.accountKey || l.senderIdentity?.identityName || l.sender || l.author?.displayName || '';
+          const recipient = l.recipientAccountKey || l.recipientIdentity?.accountKey || l.recipientIdentity?.identityName || l.recipient || '';
+          const isSent = l.direction === 'sent' || l.direction === 'draft' ||
+            (l.senderAccountKey && String(l.senderAccountKey).toLowerCase() === meLower);
+          if (isSent) addContact(recipient, l, mb);
+          else addContact(sender, l, mb);
+        }
+      }
+    } catch (_) {}
+
+    // 补扫个人信件（STORAGE.loadLetters，覆盖未注册信箱）
+    try {
+      if (typeof STORAGE !== 'undefined' && STORAGE.loadLetters) {
+        const personal = STORAGE.loadLetters() || [];
+        for (const l of personal) {
+          const sender = l.senderAccountKey || l.senderIdentity?.accountKey || l.senderIdentity?.identityName || l.sender || l.author?.displayName || '';
+          const recipient = l.recipientAccountKey || l.recipientIdentity?.accountKey || l.recipientIdentity?.identityName || l.recipient || '';
+          const isSent = l.direction === 'sent' || l.direction === 'draft' ||
+            (l.senderAccountKey && String(l.senderAccountKey).toLowerCase() === meLower);
+          if (isSent) addContact(recipient, l, null);
+          else addContact(sender, l, null);
+        }
+      }
+    } catch (_) {}
+
+    // 当前信箱已有成员 → 排除（避免与成员区重复）
+    const currentMemberKeys = new Set();
+    try {
+      const mailboxes = (MailboxManager.getMailboxes ? MailboxManager.getMailboxes() : []) || [];
+      const currentMb = mailboxes.find(m => m.id === mailboxId);
+      if (currentMb) {
+        (currentMb.memberAccountKeys || []).forEach(k => k && currentMemberKeys.add(String(k).toLowerCase()));
+        (currentMb.members || []).forEach(m => {
+          if (typeof m === 'string' && m) currentMemberKeys.add(m.toLowerCase());
+          else if (m && (m.accountKey || m.username)) currentMemberKeys.add(String(m.accountKey || m.username).toLowerCase());
+        });
+        if (currentMb.memberNames) Object.keys(currentMb.memberNames).forEach(k => currentMemberKeys.add(String(k).toLowerCase()));
+      }
+    } catch (_) {}
+
+    const allMailboxes = (MailboxManager.getMailboxes ? MailboxManager.getMailboxes() : []) || [];
+    const result = [];
+    for (const [k, c] of contacts) {
+      if (currentMemberKeys.has(k)) continue;
+      // 无效 user-* 自动键（无任何用户信息）跳过
+      if (k.startsWith('user-')) {
+        const u = this._getUserInfoById(k) || this._getUserInfoById(k.replace(/^user-/i, ''));
+        if (!u) continue;
+      }
+      const srcMb = allMailboxes.find(m => m.id === c.mailboxId);
+      let displayName = '';
+      if (srcMb?.memberNames && srcMb.memberNames[k]) displayName = srcMb.memberNames[k];
+      if (!displayName) {
+        const u = this._getUserInfoById(k) || this._getUserInfoById(k.replace(/^user-/i, ''));
+        if (u) displayName = u.displayName || u.username || '';
+      }
+      if (!displayName) displayName = k;
+      let characterName = '';
+      if (srcMb?.memberCharacters && srcMb.memberCharacters[k]) {
+        const raw = srcMb.memberCharacters[k];
+        characterName = this._getCharacterNameSafe(typeof raw === 'string' ? raw : (raw.characterId || raw.id || ''));
+      }
+      if (!characterName) {
+        const resolved = this._resolveMemberCharacter(k, c.mailboxId || mailboxId);
+        characterName = resolved.characterName || '';
+      }
+      const identityName = characterName || displayName;
+      result.push({
+        accountKey: c.accountKey,
+        displayName,
+        characterName,
+        identityName,
+        fullName: characterName && characterName !== displayName ? `${characterName}（${displayName}）` : identityName,
+        initial: identityName.charAt(0) || '?',
+        mailboxId: c.mailboxId,
+        mailboxName: c.mailboxName,
+        lastContactAt: c.lastContactAt
+      });
+    }
+    result.sort((a, b) => (b.lastContactAt || 0) - (a.lastContactAt || 0));
+    return result.slice(0, 12);
+  },
+
   async _openRecipientPicker(mailboxId, onSelect) {
     const overlay = document.getElementById('recipient-picker-overlay');
     const listEl = document.getElementById('recipient-picker-list');
@@ -2948,6 +3265,10 @@ const App = {
     overlay.classList.add('active');
     overlay.setAttribute('aria-hidden', 'false');
 
+    // 立即绑定信箱码搜索（不依赖下方 await —— loadMailboxesAsync 走远程 MySQL 可能数秒，
+    // 若等它完成才绑定，用户会看到搜索按钮点了没反应）
+    this._bindRecipientCodeSearch(overlay, listEl, statusEl, onSelect, mailboxId);
+
     // Sync local member data to server first
     try {
       const mbLocal = MailboxManager.getMailboxes().find(mb => mb.id === mailboxId);
@@ -2962,7 +3283,12 @@ const App = {
     let mailboxes = [];
     try {
       if (typeof STORAGE.loadMailboxesAsync === 'function') {
-        mailboxes = await STORAGE.loadMailboxesAsync({ force: true });
+        // 远程 MySQL 慢时最多等 8s，避免选择器长时间空白
+        mailboxes = await Promise.race([
+          STORAGE.loadMailboxesAsync({ force: true }),
+          new Promise(resolve => setTimeout(() => resolve(null), 8000))
+        ]);
+        if (!Array.isArray(mailboxes)) mailboxes = [];
         mailbox = mailboxes.find(mb => mb.id === mailboxId);
       }
     } catch (_) { /* fall through to local */ }
@@ -2971,7 +3297,10 @@ const App = {
     if (!mailbox || !Array.isArray(mailbox.memberAccountKeys) || mailbox.memberAccountKeys.length === 0) {
       try {
         if (typeof MailService !== 'undefined' && typeof MailService.getRemoteMailbox === 'function') {
-          const remoteMb = await MailService.getRemoteMailbox(mailboxId);
+          const remoteMb = await Promise.race([
+            MailService.getRemoteMailbox(mailboxId),
+            new Promise(resolve => setTimeout(() => resolve(null), 8000))
+          ]);
           if (remoteMb) {
             // Ensure arrays
             if (!Array.isArray(remoteMb.memberAccountKeys)) remoteMb.memberAccountKeys = [];
@@ -3197,66 +3526,61 @@ const App = {
 
     console.log('[Picker] resolvedMembers:', JSON.stringify(resolvedMembers.map(m => ({accountKey: m.accountKey, fullName: m.fullName}))));
 
-    if (resolvedMembers.length === 0) {
-      // Show a simple input mode instead
-      listEl.innerHTML = `
-        <div style="padding: 20px; text-align: center; color: #8b7355;">
+    // 收集"在其他信箱接触过的人"（个人信箱无成员时的核心选人路径）
+    const acquaintances = await this._collectAcquaintances(mailboxId);
+    const hasMembers = resolvedMembers.length > 0;
+    const hasContacts = acquaintances.length > 0;
+
+    // ---- 统一渲染：成员区 + 接触过的人区 + 空态 ----
+    let html = '';
+    if (hasMembers) {
+      html += resolvedMembers.map(m => `
+        <div class="recipient-picker-item" data-account-key="${this._escapeHtml(m.accountKey)}" data-full-name="${this._escapeHtml(m.fullName)}">
+          <div class="recipient-picker-avatar">${this._escapeHtml(m.initial)}</div>
+          <div class="recipient-picker-name">${this._escapeHtml(m.fullName)}</div>
+        </div>
+      `).join('');
+    }
+    if (hasContacts) {
+      html += `<div class="recipient-picker-section-title">📮 在其他信箱接触过的人</div>`;
+      html += acquaintances.map(acq => `
+        <div class="recipient-picker-item" data-account-key="${this._escapeHtml(acq.accountKey)}" data-mailbox-id="${this._escapeHtml(acq.mailboxId)}" data-contact="1">
+          <div class="recipient-picker-avatar">${this._escapeHtml(acq.initial)}</div>
+          <div class="recipient-picker-name">${this._escapeHtml(acq.fullName)}</div>
+          ${acq.mailboxName ? `<div class="recipient-picker-detail">来自 ${this._escapeHtml(acq.mailboxName)}</div>` : ''}
+        </div>
+      `).join('');
+    }
+    if (!hasMembers && !hasContacts) {
+      html += `
+        <div class="picker-manual-box">
           <p>当前信箱暂无其他成员。</p>
-          <p style="font-size: 13px; margin-top: 10px;">你也可以直接输入收件人名字：</p>
-          <input id="recipient-manual-input" type="text" placeholder="收件人姓名" 
-            style="width: 200px; padding: 6px 10px; border: 2px solid #c4a574; font-size: 14px; margin-top: 10px; font-family: inherit;" />
+          <p class="picker-manual-hint">
+            💡 用下方「<strong>信箱码</strong>」可搜索并寄到<strong>对方个人信箱</strong>（如 TD8YSL）：
+          </p>
+          <p class="picker-manual-hint">直接输入收件人名字的信将保存在本信箱：</p>
+          <input id="recipient-manual-input" type="text" placeholder="收件人姓名" class="picker-manual-input" />
           <div style="margin-top: 15px;">
-            <button id="recipient-manual-confirm" 
-              style="padding: 6px 16px; background: #b8956a; color: #fff; border: 2px solid #5c4033; font-weight: bold; cursor: pointer; font-family: inherit;">
+            <button id="recipient-manual-confirm" class="picker-manual-btn">
               开始写信
             </button>
           </div>
         </div>
       `;
-      const manualInput = document.getElementById('recipient-manual-input');
-      const manualConfirm = document.getElementById('recipient-manual-confirm');
-      if (manualConfirm) {
-        manualConfirm.addEventListener('click', () => {
-          const name = manualInput?.value?.trim();
-          if (name) {
-            const recipientObj = { accountKey: name, displayName: name, fullName: name };
-            if (onSelect) {
-              onSelect(recipientObj);
-            } else {
-              this._openRecipientAndNavigate(recipientObj, mailboxId);
-            }
-          }
-        });
-      }
-      if (manualInput) {
-        manualInput.addEventListener('keydown', (e) => {
-          if (e.key === 'Enter') {
-            const name = manualInput.value.trim();
-            if (name) {
-              const recipientObj = { accountKey: name, displayName: name, fullName: name };
-              if (onSelect) {
-                onSelect(recipientObj);
-              } else {
-                this._openRecipientAndNavigate(recipientObj, mailboxId);
-              }
-            }
-          }
-        });
-      }
-    } else {
-      listEl.innerHTML = resolvedMembers.map(m => {
-        return `
-          <div class="recipient-picker-item" data-account-key="${this._escapeHtml(m.accountKey)}" data-full-name="${this._escapeHtml(m.fullName)}">
-            <div class="recipient-picker-avatar">${this._escapeHtml(m.initial)}</div>
-            <div class="recipient-picker-name">${this._escapeHtml(m.fullName)}</div>
-          </div>
-        `;
-      }).join('');
+    }
+    listEl.innerHTML = html;
 
-      listEl.querySelectorAll('.recipient-picker-item').forEach(item => {
-        item.addEventListener('click', () => {
-          const ak = item.dataset.accountKey;
-          const fn = item.dataset.fullName;
+    // 成员/联系人点击
+    listEl.querySelectorAll('.recipient-picker-item').forEach(item => {
+      item.addEventListener('click', () => {
+        const ak = item.dataset.accountKey;
+        const fn = item.dataset.fullName;
+        if (item.dataset.contact) {
+          // 接触过的人：跨信箱寄信
+          const acq = acquaintances.find(a => a.accountKey === ak);
+          const rec = acq || { accountKey: ak, displayName: fn, fullName: fn };
+          this._finishRecipientPick(overlay, onSelect, rec);
+        } else {
           const member = resolvedMembers.find(m => m.accountKey === ak);
           if (onSelect) {
             onSelect(member || { accountKey: ak, displayName: fn, fullName: fn });
@@ -3265,14 +3589,227 @@ const App = {
           } else {
             this._openRecipientAndNavigate(member || { accountKey: ak, displayName: fn, fullName: fn }, mailboxId);
           }
-        });
+        }
+      });
+    });
+
+    // 空态：手动输入
+    const manualInput = document.getElementById('recipient-manual-input');
+    const manualConfirm = document.getElementById('recipient-manual-confirm');
+    if (manualConfirm) {
+      manualConfirm.addEventListener('click', () => {
+        const name = manualInput?.value?.trim();
+        if (name) {
+          const recipientObj = { accountKey: name, displayName: name, fullName: name };
+          if (onSelect) onSelect(recipientObj);
+          else this._openRecipientAndNavigate(recipientObj, mailboxId);
+        }
+      });
+    }
+    if (manualInput) {
+      manualInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          const name = manualInput.value.trim();
+          if (name) {
+            const recipientObj = { accountKey: name, displayName: name, fullName: name };
+            if (onSelect) onSelect(recipientObj);
+            else this._openRecipientAndNavigate(recipientObj, mailboxId);
+          }
+        }
       });
     }
 
     if (statusEl) {
-      statusEl.textContent = resolvedMembers.length > 0 
-        ? `请选择收信人（共 ${resolvedMembers.length} 位成员）` 
-        : '';
+      const parts = [];
+      if (hasMembers) parts.push(`${resolvedMembers.length} 位成员`);
+      if (hasContacts) parts.push(`${acquaintances.length} 位联系人`);
+      statusEl.textContent = parts.length ? `请选择收信人（${parts.join(' · ')}）` : '请选择收信人';
+    }
+  },
+
+  _escapeHtml(str) {
+    return String(str ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  },
+
+  // 收件人选择器：通过信箱码查找对方信箱 → 选择成员寄信
+  // 修复：输入规范化 / 本地兜底（解决"只在本地、未同步云端"搜不到）/ 友好错误 / 成员过滤 / 防重复绑定
+  _bindRecipientCodeSearch(overlay, listEl, statusEl, onSelect, mailboxId) {
+    const input = document.getElementById('recipient-picker-code-input');
+    const btn = document.getElementById('recipient-picker-code-btn');
+    if (!input || !btn) return;
+    // 防重复绑定：每次打开选择器只绑一次
+    if (input.dataset.codeSearchBound) return;
+    input.dataset.codeSearchBound = '1';
+
+    // 本地信箱查找（个人/共享/本地索引 + 全量扫描兜底）
+    const findLocalMailbox = (norm) => {
+      if (typeof STORAGE === 'undefined' || !STORAGE.getMailboxIdByCode) return null;
+      let localId = STORAGE.getMailboxIdByCode(norm);
+      let fromFullScan = false;
+      if (!localId) {
+        // 索引缺失兜底：全量扫描本地信箱对象的 mailboxCode/code（防止索引没写入但信箱已存在）
+        try {
+          const allLocal = [
+            ...(typeof STORAGE.loadMailboxes === 'function' ? (STORAGE.loadMailboxes() || []) : []),
+            ...(typeof STORAGE.loadSharedMailboxes === 'function' ? (STORAGE.loadSharedMailboxes() || []) : [])
+          ];
+          const hit = allLocal.find(m => m && (
+            String(m.mailboxCode || '').toUpperCase() === norm ||
+            String(m.code || '').toUpperCase() === norm
+          ));
+          if (hit) { localId = hit.id; fromFullScan = true; }
+        } catch (_) {}
+      }
+      if (!localId) return null;
+      if (fromFullScan && typeof STORAGE.saveMailboxCodeIndex === 'function') {
+        try { STORAGE.saveMailboxCodeIndex(norm, localId); } catch (_) {}
+      }
+      const mailboxes = (MailboxManager.getMailboxes ? MailboxManager.getMailboxes() : []) || [];
+      return mailboxes.find(m => m.id === localId)
+        || (typeof STORAGE.loadSharedMailbox === 'function' ? STORAGE.loadSharedMailbox(localId) : null)
+        || (typeof STORAGE.loadMailboxes === 'function' ? (STORAGE.loadMailboxes() || []).find(m => m.id === localId) : null);
+    };
+
+    const doSearch = async () => {
+      const norm = String(input.value || '').replace(/[\s\-_·.•,，。、;；]/g, '').toUpperCase();
+      if (!norm) { statusEl.textContent = '请输入信箱码'; return; }
+      statusEl.textContent = '正在查找信箱…';
+      // 云端查询带超时（远程 MySQL 响应波动较大，避免 UI 长时间停在"正在查找"）
+      const lookupRemote = async () => {
+        const data = await MailService._request('/api/mailbox_codes/lookup?code=' + encodeURIComponent(norm));
+        return (data.success && data.mailbox) ? data.mailbox : null;
+      };
+      // 1) 云端优先（超时 10s；失败/超时自动重试一次）
+      let mb = null;
+      for (let attempt = 0; attempt < 2 && !mb; attempt++) {
+        try {
+          mb = await Promise.race([
+            lookupRemote(),
+            new Promise(resolve => setTimeout(() => resolve(null), 10000))
+          ]);
+        } catch (_) { mb = null; }
+        if (!mb && attempt === 0) statusEl.textContent = '正在查找信箱…（重试中）';
+      }
+      // 2) 本地兜底（核心修复）
+      if (!mb) mb = findLocalMailbox(norm);
+      if (!mb) {
+        statusEl.textContent = '未找到该信箱号（云端与本地均未找到）';
+        return;
+      }
+
+      // 解析成员（memberNames/memberCharacters/accounts）
+      const currentUser = AuthManager.getCurrentUser();
+      const me = currentUser && typeof MailService !== 'undefined'
+        ? String(MailService.getAccountKey(currentUser) || '').toLowerCase() : '';
+      const memberKeys = new Set();
+      (mb.memberAccountKeys || []).forEach(k => k && memberKeys.add(String(k).toLowerCase()));
+      (mb.members || []).forEach(m => {
+        if (typeof m === 'string' && m) memberKeys.add(m.toLowerCase());
+        else if (m && (m.accountKey || m.username)) memberKeys.add(String(m.accountKey || m.username).toLowerCase());
+      });
+      if (mb.memberNames) Object.keys(mb.memberNames).forEach(k => memberKeys.add(String(k).toLowerCase()));
+      const memberNames = mb.memberNames || {};
+      const memberCharacters = mb.memberCharacters || {};
+      const members = Array.from(memberKeys)
+        .filter(k => {
+          if (me && k === me) return false;                    // 过滤自己
+          if (k.startsWith('user-')) {                          // 过滤无效自动键
+            const u = this._getUserInfoById(k) || this._getUserInfoById(k.replace(/^user-/i, ''));
+            return !!u;
+          }
+          return true;
+        })
+        .map(ak => {
+          let dn = memberNames[ak] || '';
+          if (!dn) {
+            try {
+              const users = JSON.parse(localStorage.getItem('xinjian_users') || '[]');
+              const u = users.find(x => String(x.username || '').toLowerCase() === ak || String(x.id || '').toLowerCase() === ak);
+              if (u) dn = u.displayName || u.username || '';
+            } catch (_) {}
+          }
+          if (!dn) dn = ak;
+          let characterName = '';
+          const chRaw = memberCharacters[ak];
+          if (chRaw) characterName = this._getCharacterNameSafe(typeof chRaw === 'string' ? chRaw : (chRaw.characterId || chRaw.id || ''));
+          const identityName = characterName || dn;
+          return {
+            accountKey: ak, displayName: dn, characterName,
+            identityName, fullName: characterName && characterName !== dn ? `${characterName}（${dn}）` : identityName,
+            initial: identityName.charAt(0) || '?', mailboxId: mb.id, mailboxName: mb.name
+          };
+        }).sort((a, b) => a.displayName.localeCompare(b.displayName, 'zh-CN'));
+
+      if (members.length === 0) {
+        statusEl.textContent = `信箱「${mb.name || norm}」暂无可见成员，可手动输入收件人姓名`;
+        listEl.innerHTML = `
+          <div class="picker-manual-box">
+            <p style="font-weight:bold;margin-bottom:4px">📮 ${this._escapeHtml(mb.name || norm)}</p>
+            <p class="picker-manual-hint">该信箱暂无可见成员</p>
+            <input id="recipient-code-manual" type="text" placeholder="输入收件人姓名" class="picker-manual-input">
+            <div style="margin-top:12px">
+              <button id="recipient-code-manual-btn" class="picker-manual-btn">开始写信</button>
+            </div>
+          </div>`;
+        const manualBtn = document.getElementById('recipient-code-manual-btn');
+        const manualInp = document.getElementById('recipient-code-manual');
+        const pickManual = () => {
+          const name = manualInp.value.trim();
+          if (!name) return;
+          const rec = { accountKey: name, displayName: name, fullName: name, mailboxId: mb.id, mailboxName: mb.name };
+          this._finishRecipientPick(overlay, onSelect, rec);
+        };
+        if (manualBtn) manualBtn.addEventListener('click', pickManual);
+        if (manualInp) manualInp.addEventListener('keydown', e => { if (e.key === 'Enter') pickManual(); });
+        return;
+      }
+
+      listEl.innerHTML = `
+        <div style="padding:10px 14px;background:#faf6ee;border-bottom:1px solid #e5d9c3;font-size:13px;color:#8b7355;">
+          📮 信箱「<strong>${this._escapeHtml(mb.name || norm)}</strong>」· 选择收件人（${members.length} 人）
+        </div>
+        ${members.map(m => `
+          <div class="recipient-picker-item" data-account-key="${this._escapeHtml(m.accountKey)}" data-mailbox-id="${this._escapeHtml(mb.id)}">
+            <div class="recipient-picker-avatar">${this._escapeHtml(m.initial)}</div>
+            <div class="recipient-picker-name">${this._escapeHtml(m.fullName)}</div>
+          </div>`).join('')}`;
+      listEl.querySelectorAll('.recipient-picker-item').forEach(item => {
+        item.addEventListener('click', () => {
+          const ak = item.dataset.accountKey;
+          const member = members.find(m => m.accountKey === ak) ||
+            { accountKey: ak, displayName: ak, fullName: ak, mailboxId: mb.id, mailboxName: mb.name };
+          this._finishRecipientPick(overlay, onSelect, member);
+        });
+      });
+      statusEl.textContent = '';
+    };
+
+    btn.addEventListener('click', doSearch);
+    input.addEventListener('keydown', e => { if (e.key === 'Enter') doSearch(); });
+  },
+
+  _getCharacterNameSafe(charId) {
+    try {
+      if (window.gameMapRenderer && window.gameMapRenderer.getCharacterInfo) {
+        return window.gameMapRenderer.getCharacterInfo(charId)?.name || '';
+      }
+      if (typeof CharacterSystem !== 'undefined' && CharacterSystem.getCharacter) {
+        return CharacterSystem.getCharacter(charId)?.name || '';
+      }
+    } catch (_) {}
+    return '';
+  },
+
+  _finishRecipientPick(overlay, onSelect, recipient) {
+    if (onSelect) {
+      onSelect(recipient);
+    } else {
+      this._openRecipientAndNavigate(recipient, recipient.mailboxId || this.currentMailboxId);
+    }
+    if (overlay) {
+      overlay.classList.remove('active');
+      overlay.setAttribute('aria-hidden', 'true');
     }
   },
 
@@ -3311,9 +3848,11 @@ const App = {
       button.className = `xiejian-entry-choice${isSelf ? ' selected' : ''}`;
       button.disabled = isOccupied;
       button.dataset.characterId = character.id;
-      const localPortrait = `../../fill/jingyuan-chibi20-delivery-20260719/${character.dir}/frames/personality/00.png`;
-      const portrait = window.GameSystems?.resolveAssetUrl?.(character.portraitPath || localPortrait)
-        || `sendbox/fill/jingyuan-chibi20-delivery-20260719/${character.dir}/frames/personality/00.png`;
+      const localPortrait = `sendbox/fill/jingyuan-chibi20-delivery-20260719/${character.dir}/frames/personality/00.png`;
+      // 统一走 GameSystems.resolveAssetUrl（资产 API 优先 → 本地兜底），保证双端从 MySQL 取帧
+      const portrait = (window.GameSystems && typeof window.GameSystems.resolveAssetUrl === 'function')
+        ? window.GameSystems.resolveAssetUrl(character.portraitPath || localPortrait)
+        : (character.portraitPath || localPortrait);
       button.setAttribute('aria-label', `${character.name}，${character.sect || '未知门派'}，武力 ${character.martial || 0}`);
       const subtitle = isOccupied ? '已被选择' : (isSelf ? '当前角色（可更换）' : (character.sect || '可选择'));
       button.innerHTML = `
@@ -3759,6 +4298,31 @@ const App = {
 
       MultiplayerSync.on('chat', (data) => {
         this._handleRemoteChat(data, currentUser, 'group', '');
+      });
+
+      // 万物送信：他端送达广播 → 本地合并 journey + 刷新
+      MultiplayerSync.on('mailDelivery', (data) => {
+        if (!data || !data.letterId || !data.journey) return;
+        try {
+          const mailboxes = MailboxManager.getMailboxes ? MailboxManager.getMailboxes() : [];
+          for (const mb of mailboxes) {
+            const letters = MailboxManager.loadMailboxLetters ? (MailboxManager.loadMailboxLetters(mb.id) || []) : [];
+            const found = letters.find(l => l.id === data.letterId);
+            if (found) {
+              found.journey = data.journey;
+              if (typeof STORAGE !== 'undefined' && STORAGE.updateLetterFields) {
+                STORAGE.updateLetterFields(found.id, { journey: data.journey });
+              }
+              break;
+            }
+          }
+        } catch (_) {}
+        // 若正在阅读该信，重渲染
+        if (this.currentView === 'reader' && this._readerLetterId === data.letterId && typeof this.renderReader === 'function') {
+          this.renderReader(data.letterId);
+        }
+        // 刷新在途列表与地图标记
+        if (this.currentView === 'map') this._refreshJourneyTransit(true);
       });
 
       MultiplayerSync.on('privateChat', (data) => {
@@ -5991,9 +6555,173 @@ const App = {
     }
   },
 
+  // ===== 万物送信：在途信件追踪（地图 HUD + 抽屉） =====
+  _ensureJourneyTransitUI() {
+    if (document.getElementById('journey-transit-panel')) return;
+    const panel = document.createElement('div');
+    panel.id = 'journey-transit-panel';
+    panel.className = 'journey-drawer-panel';
+    panel.setAttribute('aria-hidden', 'true');
+    panel.innerHTML = `
+      <header class="journey-drawer-head">
+        <strong>✉ 在途信件 <span class="journey-drawer-mini">· 万物送信</span></strong>
+        <span class="journey-drawer-actions">
+          <button id="journey-transit-open-map" type="button" title="切到地图模式查看在途信使" class="journey-map-btn">🗺 去地图</button>
+          <button id="journey-transit-close" type="button" class="journey-close-btn">×</button>
+        </span>
+      </header>
+      <div class="journey-overview-wrap" id="journey-overview-wrap">
+        <canvas id="journey-transit-overview" aria-label="在途信件总览地图"></canvas>
+        <div class="journey-overview-hint">在途总览 · 点击信使可查看信件</div>
+      </div>
+      <div class="journey-drawer-list" id="journey-transit-list"></div>`;
+    document.body.appendChild(panel);
+    const closeBtn = document.getElementById('journey-transit-close');
+    if (closeBtn) closeBtn.addEventListener('click', () => this._toggleJourneyTransit(false));
+    const openMapBtn = document.getElementById('journey-transit-open-map');
+    if (openMapBtn) {
+      openMapBtn.addEventListener('click', () => {
+        // 切到地图模式（view-switch 的 map 按钮），关闭抽屉
+        this._toggleJourneyTransit(false);
+        const mapBtn = document.querySelector('.view-btn[data-view="map"]');
+        if (mapBtn) mapBtn.click();
+        else { this.checkAndInitGameMap && this.checkAndInitGameMap(); }
+      });
+    }
+    const toggle = document.getElementById('journey-transit-toggle');
+    if (toggle) {
+      toggle.addEventListener('click', () => {
+        const open = panel.classList.contains('open');
+        this._toggleJourneyTransit(!open);
+      });
+    }
+    // 总览地图点击 → 打开对应在途信件
+    const overview = document.getElementById('journey-transit-overview');
+    if (overview) {
+      overview.addEventListener('click', (e) => {
+        const rect = overview.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+        const hit = window.JourneyTracker && window.JourneyTracker.hitTestOverview(overview, window.JourneyTracker.letters, x, y);
+        if (hit) this.navigate('reader', { letterId: hit.id, mailboxId: hit.mailboxId || this.currentMailboxId });
+      });
+    }
+  },
+
+  _toggleJourneyTransit(open) {
+    const panel = document.getElementById('journey-transit-panel');
+    const toggle = document.getElementById('journey-transit-toggle');
+    if (!panel) return;
+    if (open) {
+      this._refreshJourneyTransit();
+      panel.classList.add('open');
+      panel.setAttribute('aria-hidden', 'false');
+      if (toggle) toggle.setAttribute('aria-expanded', 'true');
+    } else {
+      panel.classList.remove('open');
+      panel.setAttribute('aria-hidden', 'true');
+      if (toggle) toggle.setAttribute('aria-expanded', 'false');
+    }
+  },
+
+  _scheduleJourneyTransitRefresh() {
+    if (this._journeyTransitTimer) return;
+    this._journeyTransitTimer = setInterval(() => {
+      if (document.visibilityState === 'hidden') return;
+      if (this.currentView === 'map') this._refreshJourneyTransit(false);
+    }, 10000);
+  },
+
+  _refreshJourneyTransit(render = true) {
+    if (typeof window.JourneyTracker === 'undefined') return;
+    const tracker = window.JourneyTracker;
+    // 地图世界范围
+    const renderer = window.gameMapRenderer;
+    const worldW = renderer?.worldSize?.w || (renderer?.maps?.[renderer.currentMapIndex]?.width) || 1000;
+    const worldH = renderer?.worldSize?.h || (renderer?.maps?.[renderer.currentMapIndex]?.height) || 500;
+    tracker.worldSize = { w: worldW, h: worldH };
+    if (renderer && renderer.getDefaultSpawnPoint) {
+      const sp = renderer.getDefaultSpawnPoint();
+      if (sp) tracker.start = { x: sp.x, y: sp.y };
+    }
+    tracker.end = { x: worldW * 0.82, y: worldH * 0.22 };
+    const letters = tracker.refresh(this.currentMailboxId);
+    // 地图标记
+    if (renderer && typeof renderer.setJourneyMarkers === 'function') {
+      renderer.setJourneyMarkers(letters);
+    }
+    // 徽章计数（地图 HUD + 信箱视图「在途」按钮）
+    const countEl = document.getElementById('journey-transit-count');
+    if (countEl) {
+      countEl.textContent = String(letters.length);
+      countEl.style.display = letters.length ? 'inline' : 'none';
+    }
+    const mailboxCountEl = document.getElementById('mailbox-journey-count');
+    if (mailboxCountEl) {
+      mailboxCountEl.textContent = `(${letters.length})`;
+      mailboxCountEl.style.display = letters.length ? 'inline' : 'none';
+    }
+    if (!render) return;
+    // 总览地图（一张图看所有在途信件）
+    const overview = document.getElementById('journey-transit-overview');
+    if (overview && tracker.letters && tracker.letters.length) {
+      overview.style.display = 'block';
+      const wrap = document.getElementById('journey-overview-wrap');
+      if (wrap) wrap.style.display = 'block';
+      requestAnimationFrame(() => tracker.renderOverview(overview, tracker.letters));
+    } else if (overview) {
+      overview.style.display = 'none';
+      const wrap = document.getElementById('journey-overview-wrap');
+      if (wrap) wrap.style.display = 'none';
+    }
+    // 抽屉列表
+    const list = document.getElementById('journey-transit-list');
+    if (!list) return;
+    if (!letters.length) {
+      list.innerHTML = '<div class="journey-drawer-empty">暂无在途信件<br><span>寄信时勾选「让它慢慢走」即可开启旅程</span></div>';
+      return;
+    }
+    list.innerHTML = letters.map(l => {
+      const j = l.journey;
+      const carrier = (window.CARRIER_ROSTER || []).find(c => c.id === j.carrierId);
+      const estimate = window.JourneyEngine ? JourneyEngine.estimate(l) : '';
+      const total = j.plannedEvents.length;
+      const done = Math.max(1, (j.events || []).length);
+      const progress = Math.round((done / total) * 100);
+      const title = l.letterTitle || l.title || '无题';
+      return `
+        <div class="journey-drawer-item" data-letter-id="${l.id}" data-mailbox-id="${l.mailboxId || ''}">
+          <div class="journey-drawer-item-row">
+            <span class="journey-drawer-emoji">${carrier?.emoji || '✉'}</span>
+            <div class="journey-drawer-text">
+              <div class="journey-drawer-title">${this._escapeHtml(title)}</div>
+              <div class="journey-drawer-sub">${estimate} · ${progress}%</div>
+            </div>
+          </div>
+          <canvas class="journey-track-mini" data-mini-letter="${l.id}"></canvas>
+        </div>`;
+    }).join('');
+    list.querySelectorAll('.journey-drawer-item').forEach(item => {
+      item.addEventListener('click', () => {
+        this.navigate('reader', { letterId: item.dataset.letterId });
+      });
+    });
+    // 渲染每个小地图
+    requestAnimationFrame(() => {
+      list.querySelectorAll('canvas[data-mini-letter]').forEach(cv => {
+        const letter = letters.find(l => l.id === cv.dataset.miniLetter);
+        if (letter) tracker.renderMiniMap(cv, letter);
+      });
+    });
+  },
+
   checkAndInitGameMap() {
     const mapContainer = document.getElementById('mailbox-map-view');
     if (!mapContainer) return;
+
+    // 万物送信：挂载在途信件追踪 UI + 定时刷新
+    this._ensureJourneyTransitUI();
+    this._scheduleJourneyTransitRefresh();
 
     const mailboxes = MailboxManager.getMailboxes();
     const currentMailbox = mailboxes.find(m => m.id === this.currentMailboxId);
@@ -6153,10 +6881,13 @@ const App = {
               btn.classList.add('active');
             }
             let subtitle = char.sect || '';
+            // 头像统一走 GameSystems.resolveAssetUrl（资产 API 优先 → 本地兜底），双端互通取帧
+            const resolvePortrait = (p) => (window.GameSystems && typeof window.GameSystems.resolveAssetUrl === 'function')
+              ? window.GameSystems.resolveAssetUrl(p) : p;
             const avatarContent = (category === 'xiejian' || category === 'poxiao')
               ? (category === 'poxiao' && char.portraitPath
-                ? `<img src="${char.portraitPath}" alt="${char.name}" draggable="false">`
-                : `<img src="sendbox/fill/jingyuan-chibi20-delivery-20260719/${char.dir}/frames/personality/00.png" alt="${char.name}" draggable="false">`)
+                ? `<img src="${resolvePortrait(char.portraitPath)}" alt="${char.name}" draggable="false">`
+                : `<img src="${resolvePortrait(`sendbox/fill/jingyuan-chibi20-delivery-20260719/${char.dir}/frames/personality/00.png`)}" alt="${char.name}" draggable="false">`)
               : char.name.charAt(0);
             btn.innerHTML = `
               <div class="char-avatar" data-char-id="${char.id}">${avatarContent}</div>

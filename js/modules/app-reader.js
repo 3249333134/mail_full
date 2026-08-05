@@ -27,6 +27,13 @@ Object.assign(App, {
     }
 
     this.currentMailboxId = letter.mailboxId;
+    // 万物送信：惰性推进在途旅程（纯函数重算，中间态不落库）
+    let journeyTransitioned = false;
+    if (letter.journey && window.JourneyEngine &&
+        letter.journey.mode === 'transit' && letter.journey.status === 'in-transit') {
+      const tickR = window.JourneyEngine.tick(letter, Date.now());
+      if (tickR.delivered) journeyTransitioned = true;
+    }
     const isShared = MailboxManager.isSharedMailbox(letter.mailboxId);
     // 优先使用 identity（含角色名），其次用 letter 上已保存的 sender/recipient，最后才是 author.username
     let senderName = letter.senderIdentity?.identityName || letter.sender || '';
@@ -113,9 +120,237 @@ Object.assign(App, {
       html += this.renderReaderItemAttachments(letter.itemAttachments);
     }
 
+    // 万物送信：在途进度 / 旅程志入口
+    if (letter.journey) {
+      const carrier = (window.CARRIER_ROSTER || []).find(c => c.id === letter.journey.carrierId);
+      const j = letter.journey;
+      const report = j.report || null;
+      const st = j.letterState || {};
+      const stateDesc = ['wear', 'wet', 'burn', 'bite', 'stain', 'fold', 'footprint']
+        .filter(k => (st[k] || 0) > 0.2)
+        .map(k => ({ wear: '边缘磨损', wet: '水渍洇开', burn: '焦痕', bite: '啃咬缺角', stain: '污渍', fold: '折痕', footprint: '脚印' }[k])).join('、');
+      if (j.status === 'in-transit' && Array.isArray(j.plannedEvents) && j.plannedEvents.length) {
+        // ===== 在途：进度面板 =====
+        const estimate = window.JourneyEngine ? JourneyEngine.estimate(letter) : '';
+        const total = j.plannedEvents.length;
+        const done = Math.min(total, Math.max(1, j.events.length));
+        const progress = Math.round((done / total) * 100);
+        const revealedEvents = (j.events || []).map((evt, i) => `
+          <div class="journey-progress-event">
+            <span class="dot">◆</span>
+            <span class="text">${this._escapeReaderHtml(evt.description || '')}</span>
+          </div>`).join('');
+        html += `
+          <div class="journey-report-banner">
+            <div class="journey-banner-head">
+              <span class="journey-banner-emoji">${carrier?.emoji || '✉'}</span>
+              <div class="journey-banner-info">
+                <div class="journey-banner-title">${carrier?.name || '未知信使'}正在赶路…</div>
+                <div class="journey-banner-sub">${estimate} · 预期${j.expectedDelivery || '未知'}</div>
+              </div>
+            </div>
+            <div class="journey-progress-track">
+              <div class="journey-progress-bar" style="width:${progress}%"></div>
+            </div>
+            <div class="journey-progress-caption">旅程进度 ${progress}% · 已发生 ${done} / ${total} 个事件</div>
+            <div class="journey-progress-events">${revealedEvents}</div>
+            <button id="accelerate-journey-btn" type="button" class="journey-accel-btn">⚡ 加速送达</button>
+          </div>`;
+      } else {
+        // ===== 已送达：旅程志入口 =====
+        html += `
+          <div class="journey-report-banner delivered">
+            <div class="journey-banner-head">
+              <span class="journey-banner-emoji">${carrier?.emoji || '✉'}</span>
+              <div class="journey-banner-info">
+                <div class="journey-banner-title">${carrier?.name || '未知信使'}送来的信</div>
+                <div class="journey-banner-sub">${report?.stats?.duration || ''} · ${report?.stats?.distance || ''} · ${report?.stats?.eventCount || 0} 个事件${stateDesc ? ' · ' + stateDesc : ''}</div>
+              </div>
+            </div>
+            <p class="journey-banner-epilogue">${this._escapeReaderHtml(report?.epilogue || '这封信完成了一段旅程。')}</p>
+            <button id="open-journey-report-btn" type="button" class="journey-report-open-btn">📜 拆开旅程志</button>
+          </div>`;
+      }
+    }
+
     content.innerHTML = html;
 
+    // 旅程志按钮
+    const reportBtn = document.getElementById('open-journey-report-btn');
+    if (reportBtn && letter.journey) {
+      reportBtn.addEventListener('click', () => this.renderJourneyReport(letter));
+    }
+
+    // 在途：加速按钮 + 5s 定时重渲染
+    const accelBtn = document.getElementById('accelerate-journey-btn');
+    if (accelBtn && letter.journey && window.JourneyEngine) {
+      accelBtn.addEventListener('click', () => {
+        window.JourneyEngine.accelerate(letter, Date.now());
+        this._persistJourneyTransition(letter);
+        this.renderReader(letter.id, letter);
+      });
+      if (!this._journeyTickTimer) {
+        this._journeyTickTimer = setInterval(() => {
+          if (document.visibilityState === 'hidden') return;
+          const r = window.JourneyEngine.tick(letter, Date.now());
+          if (r.delivered) {
+            clearInterval(this._journeyTickTimer);
+            this._journeyTickTimer = null;
+            this._persistJourneyTransition(letter);
+            this.renderReader(letter.id, letter);
+          }
+        }, 5000);
+      }
+    }
+
+    // 在途旅程刚送达：落库 + 广播（广播在多人同步步骤实现）
+    if (journeyTransitioned) {
+      this._persistJourneyTransition(letter);
+    }
+
+    // 信物状态叠加层（letterState 非零时注入首个信纸）
+    if (letter.journey && letter.journey.letterState && window.JourneyEngine) {
+      const hasState = Object.values(letter.journey.letterState).some(v => (v || 0) > 0.02);
+      if (hasState) {
+        const paperEl = content.querySelector('.reader-paper');
+        if (paperEl) this._injectJourneyOverlay(paperEl, letter.journey.letterState);
+      }
+    }
+
     this._initRecordPlayer(letterId, letter.recordDuration || 0);
+  },
+
+  // 在途 → 送达：一次性落库（本地 + 远端幂等 upsert）+ 广播
+  _persistJourneyTransition(letter) {
+    try {
+      if (typeof STORAGE !== 'undefined' && STORAGE.updateLetterFields) {
+        STORAGE.updateLetterFields(letter.id, { journey: letter.journey });
+      }
+    } catch (_) {}
+    try {
+      if (typeof MailService !== 'undefined' && typeof MailService._request === 'function') {
+        MailService._request('/api/letters/upsert', {
+          method: 'POST',
+          body: JSON.stringify({ letter })
+        }).catch(() => {});
+      }
+    } catch (_) {}
+    // 多人同步广播（可选，第 6 步启用）
+    try {
+      if (typeof MultiplayerSync !== 'undefined' && MultiplayerSync.isConnected && MultiplayerSync.isConnected()) {
+        MultiplayerSync.sendMailDelivery && MultiplayerSync.sendMailDelivery({
+          letterId: letter.id, mailboxId: letter.mailboxId, journey: letter.journey
+        });
+      }
+    } catch (_) {}
+  },
+
+  // 注入信物状态叠加层（7 层，CSS 变量驱动）
+  _injectJourneyOverlay(paperEl, letterState) {
+    if (!paperEl || !window.JourneyEngine) return;
+    const st = window.JourneyEngine.stateToCss(letterState);
+    const el = document.createElement('div');
+    el.className = 'letter-journey-overlay';
+    for (const [k, v] of Object.entries(st)) el.style.setProperty(k, v);
+    ['wear', 'wet', 'burn', 'bite', 'stain', 'fold', 'footprint'].forEach(k => {
+      const d = document.createElement('div');
+      d.className = 'st-' + k;
+      el.appendChild(d);
+    });
+    paperEl.appendChild(el);
+  },
+
+  _escapeReaderHtml(str) {
+    return String(str ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  },
+
+  // 万物送信：旅程志长卷
+  renderJourneyReport(letter) {
+    const overlay = document.getElementById('journey-report-overlay');
+    const body = document.getElementById('journey-report-body');
+    const closeBtn = document.getElementById('journey-report-close');
+    if (!overlay || !body || !letter.journey) return;
+    const journey = letter.journey;
+    const report = journey.report || {};
+    const carrier = (window.CARRIER_ROSTER || []).find(c => c.id === journey.carrierId);
+    const st = report.letterState || journey.letterState || {};
+    const chain = report.deliveryChain || [];
+    const events = report.eventTimeline || journey.events || [];
+
+    const stateBars = ['wear', 'wet', 'burn', 'bite', 'stain', 'fold', 'footprint'].map(k => {
+      const v = st[k] || 0;
+      const label = { wear: '磨损', wet: '洇湿', burn: '焦痕', bite: '啃痕', stain: '污渍', fold: '折痕', footprint: '脚印' }[k];
+      return `<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+        <span style="width:44px;color:#8b7355">${label}</span>
+        <div style="flex:1;height:8px;background:#eee2cd;border-radius:4px;overflow:hidden">
+          <div style="height:100%;width:${Math.round(v * 100)}%;background:linear-gradient(90deg,#c9a86a,#8a6d3b)"></div>
+        </div>
+        <span style="width:34px;text-align:right;color:#8b7355">${Math.round(v * 100)}%</span>
+      </div>`;
+    }).join('');
+
+    const chainHtml = chain.length ? chain.map((c, i) => `
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+        <span style="min-width:110px;font-weight:bold">${this._escapeReaderHtml(c.name || '')}</span>
+        <span style="font-size:12px;color:#8b7355;width:80px">${this._escapeReaderHtml(c.species || '')}</span>
+        <span style="font-size:11px;color:#b8956a;flex:1">${this._escapeReaderHtml(c.role || '')}${c.generation ? ' · 第' + c.generation + '代' : ''}</span>
+        ${i < chain.length - 1 ? '<span style="color:#c9a86a">→</span>' : ''}
+      </div>`).join('') : '<div style="color:#8b7355">无传递链</div>';
+
+    const eventsHtml = events.map((evt, i) => `
+      <div style="display:flex;gap:10px;margin-bottom:8px">
+        <div style="display:flex;flex-direction:column;align-items:center">
+          <span style="width:10px;height:10px;border-radius:50%;background:${this._evtColor(evt.type)};flex-shrink:0;margin-top:4px"></span>
+          ${i < events.length - 1 ? '<span style="width:2px;flex:1;background:#e5d9c3"></span>' : ''}
+        </div>
+        <div style="flex:1;padding-bottom:4px">
+          <div style="font-size:11px;color:#b8956a">${this._evtLabel(evt.type)} · 旅程第 ${Math.max(1, Math.round((evt.time || i) / 1000) + 1)} 段</div>
+          <div>${this._escapeReaderHtml(evt.description || '')}</div>
+        </div>
+      </div>`).join('') || '<div style="color:#8b7355">无事件记录</div>';
+
+    const stats = report.stats || {};
+    body.innerHTML = `
+      <div style="text-align:center;margin-bottom:16px">
+        <div style="font-size:44px">${carrier?.emoji || '✉'}</div>
+        <div style="font-size:17px;font-weight:bold;margin-top:6px">${carrier?.name || '未知信使'} · ${journey.expectedDelivery || ''}</div>
+        <div style="font-size:12px;color:#8b7355;margin-top:4px">${this._escapeReaderHtml(report.epilogue || '')}</div>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:16px">
+        ${[['历时', stats.duration || '-'], ['传递链', stats.speciesCount + ' 种载体'], ['代际', stats.generations + ' 代'], ['路程', stats.distance || '-'], ['事件', stats.eventCount + ' 个'], ['信使', carrier?.name || '-']].map(([k, v]) => `
+          <div style="background:#faf6ee;border:1px solid #eee2cd;border-radius:8px;padding:8px 10px">
+            <div style="font-size:11px;color:#8b7355">${k}</div>
+            <div style="font-weight:bold">${this._escapeReaderHtml(v)}</div>
+          </div>`).join('')}
+      </div>
+      <h4 style="margin:12px 0 8px;color:#5c4a2e">传递链 · 族谱</h4>
+      <div style="background:#fff;border:1px solid #eee2cd;border-radius:8px;padding:12px">${chainHtml}</div>
+      <h4 style="margin:16px 0 8px;color:#5c4a2e">事件年表</h4>
+      <div>${eventsHtml}</div>
+      <h4 style="margin:16px 0 8px;color:#5c4a2e">信物状态</h4>
+      <div style="background:#fff;border:1px solid #eee2cd;border-radius:8px;padding:12px">${stateBars}</div>
+      <div style="text-align:center;margin-top:16px;font-size:11px;color:#b8956a">—— 万物送信 · 这封信的传记 ——</div>
+    `;
+    overlay.classList.add('active');
+    overlay.setAttribute('aria-hidden', 'false');
+    if (closeBtn) closeBtn.addEventListener('click', () => {
+      overlay.classList.remove('active');
+      overlay.setAttribute('aria-hidden', 'true');
+    });
+    overlay.addEventListener('click', (e) => {
+      if (e.target === overlay) {
+        overlay.classList.remove('active');
+        overlay.setAttribute('aria-hidden', 'true');
+      }
+    });
+  },
+
+  _evtColor(type) {
+    return { departure: '#8a6d3b', transfer: '#b5543c', lineage: '#7a9e6b', environment: '#5a8fb0', encounter: '#a47fc4', serendipity: '#e0a83c', delivery: '#c9762e' }[type] || '#8a6d3b';
+  },
+
+  _evtLabel(type) {
+    return { departure: '启程', transfer: '传递', lineage: '代际', environment: '环境', encounter: '相遇', serendipity: '奇遇', delivery: '送达' }[type] || type;
   },
 
   renderReaderHeader(letter, style) {

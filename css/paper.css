@@ -3532,3 +3532,104 @@
   .mailbox-list { padding: 20px; }
   .letter-list { padding: 20px; }
 }
+/* ========================================
+   万物送信 · 信物状态叠加层（journey letterState → CSS 变量驱动）
+   ======================================== */
+.letter-journey-overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  mix-blend-mode: multiply;
+  z-index: 4;
+  overflow: hidden;
+  border-radius: inherit;
+}
+.letter-journey-overlay > div {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  transition: opacity 0.4s ease;
+}
+/* 磨损：边缘渐变磨损纹理 */
+.letter-journey-overlay .st-wear { opacity: var(--st-wear, 0); }
+.letter-journey-overlay .st-wear::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    repeating-linear-gradient(0deg, rgba(120, 90, 40, 0.28) 0 2px, transparent 2px 7px),
+    repeating-linear-gradient(90deg, rgba(120, 90, 40, 0.18) 0 1px, transparent 1px 5px);
+  -webkit-mask-image: radial-gradient(ellipse at center, transparent 40%, #000 78%);
+  mask-image: radial-gradient(ellipse at center, transparent 40%, #000 78%);
+}
+/* 水渍：径向扩散洇开 */
+.letter-journey-overlay .st-wet { opacity: var(--st-wet, 0); }
+.letter-journey-overlay .st-wet::after {
+  content: "";
+  position: absolute;
+  left: 18%; top: 12%; width: 45%; height: 38%;
+  border-radius: 60% 40% 55% 45%;
+  background: radial-gradient(ellipse at 40% 35%, rgba(96, 120, 150, 0.5), rgba(96, 120, 150, 0.15) 55%, transparent 75%);
+  filter: blur(3px);
+  transform: rotate(-12deg);
+  box-shadow: 0 0 30px rgba(96, 120, 150, 0.3);
+}
+/* 焦痕：边缘焦黑 */
+.letter-journey-overlay .st-burn { opacity: var(--st-burn, 0); }
+.letter-journey-overlay .st-burn::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at 82% 8%, rgba(40, 25, 10, 0.85) 0 6%, transparent 9%),
+    radial-gradient(circle at 12% 88%, rgba(40, 25, 10, 0.7) 0 4%, transparent 7%),
+    radial-gradient(circle at 90% 92%, rgba(40, 25, 10, 0.6) 0 5%, transparent 8%);
+  -webkit-mask-image: radial-gradient(circle at center, transparent 60%, #000);
+  mask-image: radial-gradient(circle at center, transparent 60%, #000);
+}
+/* 啃痕：边缘缺口 */
+.letter-journey-overlay .st-bite { opacity: var(--st-bite, 0); }
+.letter-journey-overlay .st-bite::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: repeating-conic-gradient(from 0deg at 8% 92%, transparent 0 8deg, rgba(90, 60, 30, 0.7) 8deg 12deg, transparent 12deg 22deg);
+  opacity: 0.9;
+}
+/* 污渍 */
+.letter-journey-overlay .st-stain { opacity: var(--st-stain, 0); }
+.letter-journey-overlay .st-stain::after {
+  content: "";
+  position: absolute;
+  left: 55%; top: 60%; width: 30%; height: 22%;
+  border-radius: 50% 45% 55% 40%;
+  background: radial-gradient(ellipse, rgba(110, 85, 50, 0.4), rgba(110, 85, 50, 0.08) 60%, transparent 80%);
+  filter: blur(2px);
+}
+/* 折痕 */
+.letter-journey-overlay .st-fold { opacity: var(--st-fold, 0); }
+.letter-journey-overlay .st-fold::after {
+  content: "";
+  position: absolute;
+  left: -5%; right: -5%; top: 50%;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(80, 60, 35, 0.55), transparent);
+  transform: rotate(-2deg);
+  box-shadow: 0 1px 3px rgba(80, 60, 35, 0.25);
+}
+/* 脚印：小脚印点 */
+.letter-journey-overlay .st-footprint { opacity: var(--st-footprint, 0); }
+.letter-journey-overlay .st-footprint::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image:
+    radial-gradient(ellipse 3px 2px at 20% 30%, rgba(60, 45, 25, 0.6), transparent 70%),
+    radial-gradient(ellipse 3px 2px at 24% 32%, rgba(60, 45, 25, 0.6), transparent 70%),
+    radial-gradient(ellipse 3px 2px at 60% 70%, rgba(60, 45, 25, 0.6), transparent 70%),
+    radial-gradient(ellipse 3px 2px at 64% 72%, rgba(60, 45, 25, 0.6), transparent 70%),
+    radial-gradient(ellipse 3px 2px at 85% 20%, rgba(60, 45, 25, 0.6), transparent 70%);
+  background-size: 40px 34px;
+  background-repeat: repeat;
+  opacity: 0.8;
+}

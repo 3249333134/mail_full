@@ -762,7 +762,7 @@ Object.assign(MailboxManager, {
             ${mb.name}
             ${mb.isShared ? '<span class="shared-badge">共享</span>' : ''}
           </span>
-          ${count > 0 ? `<span class="sidebar-nav-count" style="background:${mb.cardAccent || mb.accent}">${count}</span>` : ''}
+          ${count > 0 ? `<span class="sidebar-nav-count">${count}</span>` : ''}
         </div>
       `;
 
@@ -867,6 +867,22 @@ Object.assign(MailboxManager, {
       card.className = 'letter-card';
       const previewText = this._extractPreview(letter);
 
+      // 万物送信：在途旅程惰性推进 + 徽章
+      let journeyBadge = '';
+      if (letter.journey && window.JourneyEngine) {
+        const j = letter.journey;
+        if (j.mode === 'transit' && j.status === 'in-transit') {
+          window.JourneyEngine.tick(letter, Date.now());
+        }
+        if (j.status === 'in-transit') {
+          const carrier = (window.CARRIER_ROSTER || []).find(c => c.id === j.carrierId);
+          journeyBadge = `<div class="letter-journey-badge in-transit" title="${j.expectedDelivery || ''}">${carrier?.emoji || '✉'} 在途 · ${j.expectedDelivery || '旅途中'}</div>`;
+        } else if (j.report) {
+          const carrier = (window.CARRIER_ROSTER || []).find(c => c.id === j.carrierId);
+          journeyBadge = `<div class="letter-journey-badge delivered" title="查看旅程志">✅ ${carrier?.emoji || ''} 已送达 · 📜 旅程志</div>`;
+        }
+      }
+
       const initial = (letter.recipient || '?').charAt(0);
 
       card.innerHTML = `
@@ -875,6 +891,7 @@ Object.assign(MailboxManager, {
           <div class="letter-recipient">致 ${letter.recipient || '未知的人'}</div>
           <div class="letter-date">${letter.date || (letter.createdAt ? new Date(letter.createdAt).toLocaleDateString('zh-CN') : '')}</div>
           <div class="letter-preview">${previewText || '（空白的信）'}</div>
+          ${journeyBadge}
         </div>
       `;
 
@@ -898,6 +915,10 @@ Object.assign(MailboxManager, {
   },
 
   _darkenColor(hex, amount) {
+    // 防御：缺失/非法颜色时兜底默认棕金色
+    if (!hex || typeof hex !== 'string') hex = '#8a6d3b';
+    const clean = hex.replace('#', '');
+    if (!/^[0-9a-fA-F]{3}$|^[0-9a-fA-F]{6}$/.test(clean)) hex = '#8a6d3b';
     const num = parseInt(hex.replace('#', ''), 16);
     const r = Math.max(0, (num >> 16) - Math.floor(255 * amount));
     const g = Math.max(0, ((num >> 8) & 0x00FF) - Math.floor(255 * amount));
@@ -1759,8 +1780,10 @@ Object.assign(MailboxManager, {
     for (const mb of merged.values()) {
       const id = String(mb.id);
       if (presetIds.has(id)) continue; // 默认信箱不迁移（它们在老用户端保留本地即可）
-      if (!forceAll && mb._remoteUpsertNeeded !== true && mb.mailboxCode) {
-        // 已有 mailboxCode 且没标记为待同步：轻量跳过（避免无谓 upsert）
+      if (!forceAll && mb._remoteUpsertNeeded !== true && mb._remoteSynced === true) {
+        // 已确认云端同步过且没标记为待同步：轻量跳过（避免无谓 upsert）。
+        // 注意：不能再用 mailboxCode 判断 —— 本地新建但云端失败的信箱（_remoteSynced 缺失/false）
+        // 必须推送，否则跨端口/跨设备永远搜不到。
         continue;
       }
       queue.push(id);
@@ -1817,14 +1840,14 @@ Object.assign(MailboxManager, {
         mergedRmb.memberAccountKeys = mergedMembers;
         mergedRmb.members = mergedMembers; // 同时保留老字段名兼容
       }
-      const newValue = { ...base, ...mergedRmb, _remoteUpsertNeeded: false };
+      const newValue = { ...base, ...mergedRmb, _remoteUpsertNeeded: false, _remoteSynced: true };
       // 检测是否有实质性变化，避免无谓写回
       if (!localById.has(id) || JSON.stringify(base) !== JSON.stringify(newValue)) changed = true;
       localById.set(id, newValue);
       if (rmb.mailboxCode && typeof STORAGE.saveMailboxCodeIndex === 'function') {
         STORAGE.saveMailboxCodeIndex(rmb.mailboxCode, id);
       }
-      try { STORAGE.saveSharedMailbox({ ...mergedRmb, _remoteUpsertNeeded: false }); } catch (_) {}
+      try { STORAGE.saveSharedMailbox({ ...mergedRmb, _remoteUpsertNeeded: false, _remoteSynced: true }); } catch (_) {}
     });
     const merged = Array.from(localById.values());
     STORAGE.saveMailboxes(merged);

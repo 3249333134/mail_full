@@ -347,9 +347,10 @@ Object.assign(App, {
               if (this._mailboxFormData.id) payload.id = this._mailboxFormData.id;
               if (existingCode) { payload.mailboxCode = existingCode; payload.code = existingCode; }
               try {
+                // 远程 MySQL 响应较慢，超时放宽到 8s，避免正常创建被误判为失败（失败会导致信箱只在本地、跨端口/跨设备搜不到）
                 const r = await Promise.race([
                   MailService.createRemoteMailbox(payload),
-                  new Promise((_, rej) => setTimeout(() => rej(new Error('timeout_4s')), 4000))
+                  new Promise((_, rej) => setTimeout(() => rej(new Error('timeout_8s')), 8000))
                 ]);
                 if (r && r.success && r.mailbox) {
                   remoteResult = r.mailbox;
@@ -378,9 +379,11 @@ Object.assign(App, {
               }
               if (remoteResult.id) mailboxes[idx].id = remoteResult.id;
               mailboxes[idx]._remoteUpsertNeeded = false;
+              mailboxes[idx]._remoteSynced = true;
             } else if (remoteAvailable && !remoteOk) {
               // 云端可用但失败了：标记待补同步
               mailboxes[idx]._remoteUpsertNeeded = true;
+              mailboxes[idx]._remoteSynced = false;
             }
             // 若信箱号仍不存在就补一个（老信箱升级 / 极端情况远端没返回）
             if (!mailboxes[idx].mailboxCode) {
@@ -416,7 +419,9 @@ Object.assign(App, {
             code: newCode,
             cardAccent: this._mailboxFormData.accent,
             isCustom: true,
-            _remoteUpsertNeeded: (remoteAvailable && !remoteOk) ? true : false
+            // 云端未成功 → 必须标记待同步，后续 flush/sync 会补推（否则信箱只在本地，跨端口/跨设备永远搜不到）
+            _remoteUpsertNeeded: !remoteOk,
+            _remoteSynced: !!remoteOk
           };
           mailboxes.push(newMailbox);
           this._mailboxFormData.id = newId;

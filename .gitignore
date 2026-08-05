@@ -34,3 +34,16 @@ AppData/
 
 # Manual test data (contains runtime logs)
 server/.manual-test-data/
+
+# Server asset cache (large generated cache, not source)
+server/assets-cache/
+
+# Debug / throwaway scripts
+jt-*.js
+chain-test.js
+front-chain-test.js
+link-test.js
+px-test.js
+
+# Windows reserved device artifact
+nul

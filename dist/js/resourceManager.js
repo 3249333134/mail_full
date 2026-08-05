@@ -41,6 +41,8 @@
     config: {
       // 优先使用的远端资源服务器（CDN）地址，按优先级排列
       remoteBaseUrls: [],
+      // 双端互通：资产 API 代理源（MySQL 主存，优先于 CDN）
+      remoteAssetApiBase: '',
       // 本地相对路径基础（兜底）
       localBaseUrl: './',
       // 缓存版本，变动则失效所有旧缓存
@@ -62,6 +64,9 @@
       this.config = { ...this.config, ...cfg };
       if (Array.isArray(cfg.remoteBaseUrls)) {
         this.config.remoteBaseUrls = unique(cfg.remoteBaseUrls.map(cleanBase));
+      }
+      if (cfg.remoteAssetApiBase) {
+        this.config.remoteAssetApiBase = cleanBase(cfg.remoteAssetApiBase);
       }
       if (cfg.localBaseUrl) {
         this.config.localBaseUrl = cleanBase(cfg.localBaseUrl);
@@ -88,6 +93,7 @@
     _getPublicConfig() {
       return {
         remoteBaseUrls: [...this.config.remoteBaseUrls],
+        remoteAssetApiBase: this.config.remoteAssetApiBase,
         localBaseUrl: this.config.localBaseUrl,
         cacheVersion: this.config.cacheVersion,
         maxRetries: this.config.maxRetries,
@@ -96,16 +102,25 @@
     },
 
     /**
-     * 从服务器 bootstrap 拉取资源配置（远端 CDN 地址、版本号等）
+     * 从服务器 bootstrap 拉取资源配置（远端 CDN 地址、版本号、资产 API 源等）
      */
     async bootstrap() {
       try {
-        const res = await fetch('/api/resources/bootstrap', { cache: 'no-cache' });
+        // 绝对 API 地址（兼容 3005/3006 与跨机器；失败回退相对路径）
+        let url = '/api/resources/bootstrap';
+        try {
+          if (typeof window !== 'undefined' && window.MailService && typeof window.MailService.getBaseUrl === 'function') {
+            const base = String(window.MailService.getBaseUrl() || '').replace(/\/+$/, '');
+            if (base) url = `${base}/api/resources/bootstrap`;
+          }
+        } catch (_) {}
+        const res = await fetch(url, { cache: 'no-cache', mode: 'cors' });
         if (res.ok) {
           const data = await res.json().catch(() => ({}));
           if (data && typeof data === 'object') {
             this.configure({
               remoteBaseUrls: data.remoteBaseUrls || data.assetBaseUrls || [],
+              remoteAssetApiBase: data.remoteAssetApiBase || '',
               cacheVersion: data.cacheVersion || data.resourceVersion || DEFAULT_CACHE_VERSION,
             });
           }
@@ -208,9 +223,11 @@
       const p = String(relativePath || '');
       if (/^(data:|blob:|https?:\/\/)/i.test(p)) return [p];
       const clean = p.replace(/^\.\//, '').replace(/^\//, '');
+      // 资产 API 源（MySQL 主存，双端互通）→ CDN → 本地
+      const api = this.config.remoteAssetApiBase ? [this.config.remoteAssetApiBase + clean] : [];
       const remotes = this.config.remoteBaseUrls.map((b) => b + clean);
       const local = cleanBase(this.config.localBaseUrl) + clean;
-      return unique([...remotes, local]);
+      return unique([...api, ...remotes, local]);
     },
 
     /* -------- 核心加载 -------- */
