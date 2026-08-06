@@ -253,6 +253,18 @@ const MultiplayerSync = {
     });
   },
 
+  // 万物送信：广播信件送达（journey 快照）
+  sendMailDelivery({ letterId, mailboxId, journey }) {
+    if (!this._wsConnected || !letterId) return;
+    this._wsSend({
+      type: 'mail_delivery',
+      letterId,
+      mailboxId: mailboxId || this._wsRoomId || '',
+      journey,
+      timestamp: Date.now()
+    });
+  },
+
   broadcastChat(content, messageId) {
     if (!this.currentUser || !String(content || '').trim()) return;
     
@@ -547,6 +559,12 @@ const MultiplayerSync = {
     if (message.type === 'world_items') {
       this.worldItems = message.items || [];
       this._emit('worldItems', message);
+      return;
+    }
+
+    // 万物送信：信件送达广播（带 journey 快照，本地合并）
+    if (message.type === 'mail_delivery') {
+      this._emit('mailDelivery', message);
       return;
     }
 

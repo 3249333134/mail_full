@@ -612,28 +612,39 @@ const App = {
           ? await MailService.isRemoteAvailable()
           : false;
         if (remoteOk && window.MailboxManager) {
-          // Step 1: 先把本地尚未上云的信箱/信件推到云端（老用户首次上云尤其重要）
-          if (typeof MailboxManager.upsertAllLocalMailboxesToRemote === 'function') {
-            try { await MailboxManager.upsertAllLocalMailboxesToRemote({ silent: true }); }
-            catch (e) { console.warn('[sync] 本地信箱上云失败:', e?.message || e); }
-          }
-          if (typeof MailboxManager.upsertAllLocalLettersToRemote === 'function') {
-            try { await MailboxManager.upsertAllLocalLettersToRemote({ silent: true }); }
-            catch (e) { console.warn('[sync] 本地信件上云失败:', e?.message || e); }
-          }
-          // Step 2: 把云端信箱和信件下拉合并到本地（另一台设备创建的内容需要拉回来）
-          if (typeof MailboxManager.loadRemoteMailboxesAndMergeLocal === 'function') {
-            try { await MailboxManager.loadRemoteMailboxesAndMergeLocal(user); }
-            catch (e) { console.warn('[sync] 下拉远端信箱失败:', e?.message || e); }
-          }
-          // Step 3: 对每个已有信箱，拉取远端信件合并（保证另一台设备写的信能看到）
+          // Step 1+2 并行：本地上云推送 + 云端下拉合并（相互无数据依赖，可同时进行）
+          await Promise.all([
+            (async () => {
+              // Step 1a: 先把本地尚未上云的信箱推到云端
+              if (typeof MailboxManager.upsertAllLocalMailboxesToRemote === 'function') {
+                try { await MailboxManager.upsertAllLocalMailboxesToRemote({ silent: true }); }
+                catch (e) { console.warn('[sync] 本地信箱上云失败:', e?.message || e); }
+              }
+            })(),
+            (async () => {
+              // Step 1b: 把本地尚未上云的信件推到云端
+              if (typeof MailboxManager.upsertAllLocalLettersToRemote === 'function') {
+                try { await MailboxManager.upsertAllLocalLettersToRemote({ silent: true }); }
+                catch (e) { console.warn('[sync] 本地信件上云失败:', e?.message || e); }
+              }
+            })(),
+            (async () => {
+              // Step 2: 把云端信箱和信件下拉合并到本地（另一台设备创建的内容需要拉回来）
+              if (typeof MailboxManager.loadRemoteMailboxesAndMergeLocal === 'function') {
+                try { await MailboxManager.loadRemoteMailboxesAndMergeLocal(user); }
+                catch (e) { console.warn('[sync] 下拉远端信箱失败:', e?.message || e); }
+              }
+            })()
+          ]);
+          // Step 3: 对所有信箱并行拉取远端信件合并（保证另一台设备写的信能看到）
           try {
             const boxes = MailboxManager.getMailboxes ? MailboxManager.getMailboxes() : [];
             if (Array.isArray(boxes) && typeof MailboxManager.loadRemoteLettersAndMergeLocal === 'function') {
-              for (const mb of boxes) {
-                if (!mb || !mb.id) continue;
-                try { await MailboxManager.loadRemoteLettersAndMergeLocal(mb.id); } catch (_) {}
-              }
+              await Promise.all(
+                boxes
+                  .filter(mb => mb && mb.id)
+                  .map(mb => MailboxManager.loadRemoteLettersAndMergeLocal(mb.id).catch(() => {}))
+              );
             }
           } catch (_) {}
           // Step 4: 清除远端缓存 + 触发 UI 重渲染，保证当前页面立刻显示云端内容
@@ -3945,7 +3956,7 @@ const App = {
     this._mailPollTimer = setInterval(() => {
       if (document.hidden || this.currentView !== 'mailbox' || !this.currentMailboxId) return;
       this._refreshMailboxMail(this.currentMailboxId);
-    }, 3000);
+    }, 8000);
     if (!this._mailFocusBound) {
       this._mailFocusBound = true;
       window.addEventListener('focus', () => {

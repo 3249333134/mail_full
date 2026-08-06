@@ -24,6 +24,11 @@
   color: #5c2a3a;
 }
 
+/* 阻止 overscroll 冒泡到 html/body，消除顶部橡皮筋空隙 */
+html, body {
+  overscroll-behavior: none;
+}
+
 /* 键盘焦点可见性（WCAG AA）：所有可交互元素统一玫瑰焦点环 */
 a:focus-visible,
 button:focus-visible,

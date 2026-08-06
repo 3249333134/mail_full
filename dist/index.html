@@ -1,4 +1,4 @@
-﻿﻿﻿﻿﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8">
@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Ma+Shan+Zheng&family=Noto+Serif+SC:wght@400;500;700&family=ZCOOL+KuaiLe&family=ZCOOL+QingKe+HuangYou&family=ZCOOL+XiaoWei&family=Noto+Sans+SC:wght@400;500;700&family=Long+Cang&family=Liu+Jian+Mao+Cao&family=ZCOOL+KuaiLe&family=ZCOOL+XiaoWei&family=Ma+Shan+Zheng&family=Noto+Serif+SC&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/main.css?v=20260805i">
+  <link rel="stylesheet" href="css/main.css?v=20260805j">
   <link rel="stylesheet" href="css/community-redesign.css?v=20260803d">
   <link rel="stylesheet" href="css/envelopes.css?v=20260801h">
   <link rel="stylesheet" href="css/paper.css?v=20260801h">
@@ -1530,21 +1530,21 @@
   <script src="js/auth.js?v=20260801e"></script>
   <script src="js/resourceManager.js?v=20260804c"></script>
   <script src="js/assetProxy.js?v=20260805b"></script>
-  <script src="js/storage.js?v=20260805c"></script>
-  <script src="js/mailService.js?v=20260804h"></script>
-  <script src="js/multiplayerSync.js?v=20260805b"></script>
+  <script src="js/storage.js?v=20260806a"></script>
+  <script src="js/mailService.js?v=20260806a"></script>
+  <script src="js/multiplayerSync.js?v=20260806a"></script>
   <script src="js/media.js?v=20260801e"></script>
   <script src="js/imageFrames.js?v=20260801e"></script>
-  <script src="js/mailbox.js?v=20260805i"></script>
+  <script src="js/mailbox.js?v=20260806a"></script>
   <script src="js/modules/carrier-roster.js?v=20260805b"></script>
   <script src="js/modules/journey-engine.js?v=20260805b"></script>
   <script src="js/modules/journey-tracker.js?v=20260805a"></script>
   <script src="js/modules/mailbox-letters.js?v=20260801e"></script>
-  <script src="js/app.js?v=20260805r"></script>
+  <script src="js/app.js?v=20260806a"></script>
   <script src="js/modules/app-reader.js?v=20260805c"></script>
   <script src="js/modules/app-bgm.js?v=20260804a"></script>
   <script src="js/modules/app-voice.js?v=20260802c"></script>
-  <script src="js/modules/app-mailbox-modal.js?v=20260804b4"></script>
+  <script src="js/modules/app-mailbox-modal.js?v=20260806a"></script>
   <script src="js/modules/app-diary.js?v=20260801e"></script>
   <script src="js/modules/app-features.js?v=20260801e"></script>
   <script src="js/editor.js?v=20260805d"></script>
@@ -1556,5 +1556,59 @@
   <script src="js/diary.js?v=20260801e"></script>
   <script src="js/map.js?v=20260801e"></script>
   <script type="module" src="js/gameMapRenderer.js?v=20260805e"></script>
+  <!-- Overscroll 橡皮筋防护：多层阻断 wheel/touchmove 在非滚动容器上冒泡到根层 -->
+  <script>
+    (function(){
+      // 强制 html / body 根层不可滚动 + 抑制橡皮筋
+      var rootStyle = document.createElement('style');
+      rootStyle.textContent = 'html,body{overflow:hidden!important;overscroll-behavior:none!important;}' +
+        '.home-layout,.mailbox-layout{overflow:hidden!important;overscroll-behavior:contain!important;min-height:0!important;}' +
+        '.view{min-height:0!important;}' +
+        '#editor-view.active,#reader-view.active{overflow:hidden!important;}' +
+        '#editor-view .editor-layout,#reader-view .reader-content{overflow-y:auto!important;overflow-x:hidden!important;overscroll-behavior:contain!important;-webkit-overflow-scrolling:touch!important;}';
+      document.head.appendChild(rootStyle);
+
+      var scrollables = '.gallery-main,.sidebar-nav,.toolbar,.editor-layout,.paper-area,.property-panel,.editor-body,.reader-content,.reader-body,.journal-main,.journal-year-view,.journal-month-view,.journal-day-view,.journal-templates-view,.diary-body,.chat-history-list,.chat-messages,.mailbox-scroll,.login-container,.map-container,.mp-panel-body,.equipment-modal-body,.viewer-body,.chat-messages-inner';
+      var isScrollableTarget = function(target) {
+        if (!(target instanceof Element)) return false;
+        // 必须是可滚动容器（自身可滚动，或在其内部）
+        var el = target.closest(scrollables);
+        if (!el) return false;
+        // 判断该容器是否真的还有剩余滚动空间
+        var canScroll = el.scrollHeight > el.clientHeight + 2;
+        if (!canScroll) return false;
+        return true;
+      };
+
+      // wheel 事件：在捕获阶段拦截根级滚动
+      var preventWheel = function(e) {
+        if (isScrollableTarget(e.target)) return;
+        e.preventDefault();
+      };
+      // touchmove：阻止橡皮筋
+      var preventTouch = function(e) {
+        if (isScrollableTarget(e.target)) return;
+        e.preventDefault();
+      };
+      document.addEventListener('wheel', preventWheel, { passive: false, capture: true });
+      document.addEventListener('touchmove', preventTouch, { passive: false, capture: true });
+
+      // 动态监测 body 是否意外溢出（防止其他样式或 JS 造成溢出后产生空隙）
+      var guard = function() {
+        var b = document.body, h = document.documentElement;
+        if (b.scrollHeight > b.clientHeight + 2) {
+          b.style.overflow = 'hidden';
+          b.style.height = '100%';
+        }
+        if (h.scrollHeight > h.clientHeight + 2) {
+          h.style.overflow = 'hidden';
+          h.style.height = '100%';
+        }
+      };
+      window.addEventListener('resize', guard);
+      setInterval(guard, 800);
+      window.addEventListener('load', guard);
+    })();
+  </script>
 </body>
 </html>

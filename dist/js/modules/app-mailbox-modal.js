@@ -793,60 +793,56 @@ Object.assign(App, {
       this._showJoinMsg(joinResult?.message || '加入失败，请稍后再试', 'error');
       return;
     }
-    // 刷新远端信箱列表缓存（下次 render 立刻出现）
-    if (typeof STORAGE.clearRemoteMailboxCache === 'function') STORAGE.clearRemoteMailboxCache();
-
+    // ========== 关键：先关闭弹窗并跳转，提升响应速度 ==========
     const finalMailboxId = joinResult.mailbox?.id || mailboxId;
     const confirmBtn = document.getElementById('join-mailbox-confirm-btn');
     if (confirmBtn) { confirmBtn.textContent = '🎉 加入成功！'; }
     this._showJoinMsg(joinResult.message || '加入成功！正在同步远端信件…', 'success');
 
-    // ========== 关键：加入成功后立即拉取该信箱的远端信件合并到本地 ==========
-    const self = this;
-    const lettersPullPromise = (async () => {
-      try {
-        if (window.MailboxManager && typeof MailboxManager.loadRemoteLettersAndMergeLocal === 'function') {
-          await MailboxManager.loadRemoteLettersAndMergeLocal(finalMailboxId);
-        }
-      } catch (_) {}
-      try {
-        if (window.MailService && typeof MailService.refreshMailboxCache === 'function') {
-          await MailService.refreshMailboxCache(finalMailboxId);
-        }
-      } catch (_) {}
-      // 关键：强制从远端重新拉取信箱列表，确保刚加入的信箱在当前端口立即可见
-      try {
-        if (typeof STORAGE !== 'undefined' && typeof STORAGE.forceReloadMailboxesFromRemote === 'function') {
-          await STORAGE.forceReloadMailboxesFromRemote(accountKey);
-        }
-      } catch (_) {}
+    document.getElementById('mailbox-modal')?.classList.remove('active');
+    const codeInput = document.getElementById('join-mailbox-code-input');
+    if (codeInput) codeInput.value = '';
+    const preview = document.getElementById('join-mailbox-preview');
+    if (preview) preview.style.display = 'none';
+    const msgBox1 = document.getElementById('join-mailbox-msg-box');
+    if (msgBox1) msgBox1.style.display = 'none';
+    const msgBox2 = document.getElementById('join-mailbox-msg');
+    if (msgBox2) msgBox2.style.display = 'none';
+    if (confirmBtn) confirmBtn.disabled = true;
+    this._joinPendingMailboxId = null;
+    this._joinPendingMailboxCode = null;
+
+    const sidebarNav = document.getElementById('mailbox-sidebar-nav') || document.getElementById('sidebar-nav');
+    if (sidebarNav) MailboxManager.renderSidebarNav(sidebarNav, finalMailboxId);
+    if (typeof App === 'object' && App && typeof App.renderMailboxList === 'function') {
+      try { App.renderMailboxList(); } catch (_) {}
+    }
+    this.navigate('mailbox', { mailboxId: finalMailboxId });
+
+    // ========== 后台并行同步远端数据（不阻塞弹窗关闭与跳转） ==========
+    (async () => {
+      await Promise.all([
+        (async () => {
+          if (window.MailboxManager && typeof MailboxManager.loadRemoteLettersAndMergeLocal === 'function') {
+            try { await MailboxManager.loadRemoteLettersAndMergeLocal(finalMailboxId); } catch (_) {}
+          }
+        })(),
+        (async () => {
+          if (window.MailService && typeof MailService.refreshMailboxCache === 'function') {
+            try { await MailService.refreshMailboxCache(finalMailboxId); } catch (_) {}
+          }
+        })(),
+        (async () => {
+          // 强制从远端重新拉取信箱列表，确保刚加入的信箱在当前端口立即可见
+          if (typeof STORAGE !== 'undefined' && typeof STORAGE.forceReloadMailboxesFromRemote === 'function') {
+            try { await STORAGE.forceReloadMailboxesFromRemote(accountKey); } catch (_) {}
+          }
+        })()
+      ]);
       try {
         window.dispatchEvent(new CustomEvent('mailboxes:synced', { detail: { source: 'joinConfirm' } }));
       } catch (_) {}
     })();
-
-    // 等待所有远端数据同步完成后再关闭弹窗和跳转
-    Promise.resolve(lettersPullPromise).finally(() => {
-      document.getElementById('mailbox-modal')?.classList.remove('active');
-      const codeInput = document.getElementById('join-mailbox-code-input');
-      if (codeInput) codeInput.value = '';
-      const preview = document.getElementById('join-mailbox-preview');
-      if (preview) preview.style.display = 'none';
-      const msgBox1 = document.getElementById('join-mailbox-msg-box');
-      if (msgBox1) msgBox1.style.display = 'none';
-      const msgBox2 = document.getElementById('join-mailbox-msg');
-      if (msgBox2) msgBox2.style.display = 'none';
-      if (confirmBtn) confirmBtn.disabled = true;
-      this._joinPendingMailboxId = null;
-      this._joinPendingMailboxCode = null;
-
-      const sidebarNav = document.getElementById('mailbox-sidebar-nav') || document.getElementById('sidebar-nav');
-      if (sidebarNav) MailboxManager.renderSidebarNav(sidebarNav, finalMailboxId);
-      if (typeof App === 'object' && App && typeof App.renderMailboxList === 'function') {
-        try { App.renderMailboxList(); } catch (_) {}
-      }
-      this.navigate('mailbox', { mailboxId: finalMailboxId });
-    });
   },
 
   _showJoinMsg(text, type = 'info') {

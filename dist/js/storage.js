@@ -16,7 +16,7 @@ const STORAGE = {
   // 远端优先 + 本地缓存
   _remoteMailboxCache: [],
   _remoteMailboxCacheAt: 0,
-  REMOTE_MAILBOX_TTL_MS: 30 * 1000,
+  REMOTE_MAILBOX_TTL_MS: 60 * 1000,
 
   db: null,
 

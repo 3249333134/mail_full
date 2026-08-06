@@ -39,23 +39,37 @@ window.MailService = MailService = {
   },
 
   async _request(path, options = {}) {
-    const response = await fetch(`${this.getBaseUrl()}${path}`, {
-      ...options,
-      headers: {
-        'Content-Type': 'application/json',
-        ...(options.headers || {})
-      }
-    });
-    let data = {};
+    const ctrl = new AbortController();
+    const t = setTimeout(() => ctrl.abort(), 10000);
     try {
-      data = await response.json();
-    } catch (_) {}
-    if (!response.ok) {
-      const error = new Error(data.error || `http_${response.status}`);
-      error.code = data.error || `http_${response.status}`;
-      throw error;
+      const response = await fetch(`${this.getBaseUrl()}${path}`, {
+        ...options,
+        signal: options.signal || ctrl.signal,
+        headers: {
+          'Content-Type': 'application/json',
+          ...(options.headers || {})
+        }
+      });
+      let data = {};
+      try {
+        data = await response.json();
+      } catch (_) {}
+      if (!response.ok) {
+        const error = new Error(data.error || `http_${response.status}`);
+        error.code = data.error || `http_${response.status}`;
+        throw error;
+      }
+      return data;
+    } catch (e) {
+      if (e.name === 'AbortError') {
+        const error = new Error('timeout');
+        error.code = 'timeout';
+        throw error;
+      }
+      throw e;
+    } finally {
+      clearTimeout(t);
     }
-    return data;
   },
 
   async syncAccount(user = AuthManager.getCurrentUser()) {
@@ -282,6 +296,18 @@ window.MailService = MailService = {
     if (!force && this._remoteEnabled !== null && (now - this._remoteEnabledAt) < this.REMOTE_PROBE_TTL_MS) {
       return !!this._remoteEnabled;
     }
+    // 复用进行中的探测请求，避免并发重复探测
+    if (this._probePromise) return this._probePromise;
+    this._probePromise = this._doProbeRemote(force);
+    try {
+      return await this._probePromise;
+    } finally {
+      this._probePromise = null;
+    }
+  },
+
+  async _doProbeRemote(force) {
+    const now = Date.now();
     try {
       const ctrl = new AbortController();
       const t = setTimeout(() => ctrl.abort(), 4000);

@@ -23,6 +23,18 @@
   --paper-old: #f4ead6;
 }
 
+/* 同步 html 根背景色，防止 overscroll 露出白底 */
+html {
+  background: var(--color-bg, #f2efe8);
+}
+
+/* view-header 毛玻璃：与 sticky 头部背景一致，盖住顶部边缘 */
+.view-header,
+.gallery-main > .gallery-header {
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
 /* ============================================================
    Phase 0 · 通用质感工具类（供各视图复用）
    ============================================================ */

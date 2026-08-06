@@ -59,6 +59,13 @@
   --radius-lg: 22px;
 }
 
+html {
+  height: 100%;
+  overflow: hidden;
+  overscroll-behavior: none;
+  background: var(--color-bg);
+}
+
 body {
   font-family: var(--font-serif);
   background:
@@ -66,18 +73,69 @@ body {
     linear-gradient(225deg, rgba(77, 138, 104, 0.09), transparent 28%),
     var(--color-bg);
   color: var(--color-ink);
-  min-height: 100vh;
-  overflow-x: hidden;
+  height: 100%;
+  overflow: hidden;
+  overscroll-behavior: none;
 }
 
 .view {
   display: none;
-  min-height: 100vh;
+  height: 100%;
+  overflow: hidden;
+  overscroll-behavior: none;
+  min-height: 0;
 }
 
 .view.active {
   display: flex;
   flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+  overscroll-behavior: none;
+  min-height: 0;
+}
+
+/* 编辑器视图 - 允许内部滚动 */
+#editor-view {
+  overflow: hidden;
+}
+
+#editor-view.active {
+  display: flex;
+  flex-direction: column;
+}
+
+.editor-layout {
+  flex: 1;
+  display: flex;
+  overflow: hidden;
+  min-height: 0;
+}
+
+/* 阅读视图 - 允许内容滚动 */
+#reader-view {
+  overflow: hidden;
+}
+
+#reader-view.active {
+  display: flex;
+  flex-direction: column;
+}
+
+.reader-content {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* === 移动端 (≤900px) 编辑器布局：整页滚动 === */
+@media (max-width: 900px) {
+  #editor-view .editor-layout {
+    height: auto;
+    min-height: 0;
+  }
 }
 
 .site-header {
@@ -116,11 +174,15 @@ body {
   position: sticky;
   top: 0;
   z-index: 60;
-  background: rgba(255, 254, 249, 0.97);
+  background: rgba(255, 254, 249, 0.92);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05);
 }
 .view-header {
-  background: rgba(255, 254, 249, 0.97);
+  background: rgba(255, 254, 249, 0.92);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
 }
 
 .back-btn {
@@ -527,8 +589,10 @@ body {
    ======================================== */
 .home-layout {
   display: flex;
-  height: 100vh;
-  overflow: hidden;
+  height: 100%;
+  overflow: hidden !important;
+  overscroll-behavior: contain !important;
+  min-height: 0;
 }
 
 /* 左侧侧边栏 */
@@ -567,6 +631,8 @@ body {
 .sidebar-nav {
   flex: 1;
   overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
   padding: 10px 15px;
 }
 
@@ -1098,6 +1164,9 @@ body {
   position: relative;
   overflow-y: auto;
   overflow-x: hidden;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  height: 100%;
 }
 
 .gallery-header {
@@ -1457,8 +1526,10 @@ body {
 /* 信箱详情页布局 */
 .mailbox-layout {
   display: flex;
-  height: 100vh;
-  overflow: hidden;
+  height: 100%;
+  overflow: hidden !important;
+  overscroll-behavior: contain !important;
+  min-height: 0;
 }
 
 .sidebar-back-btn {
@@ -1857,6 +1928,9 @@ body {
   .home-layout,
   .mailbox-layout {
     position: relative;
+    height: 100%;
+    min-height: 0;
+    overflow: hidden;
   }
   
   .mobile-menu-toggle {
@@ -7243,4 +7317,19 @@ body {
 }
 .recipient-picker-code-search button:hover {
   background: #a58355;
+}
+
+/* ========================================
+   Overscroll 防御层：阻止各 view 内部滚动到边后
+   向 html/body 冒泡触发橡皮筋空隙
+   ======================================== */
+.journal-main,
+.journal-year-view,
+.journal-month-view,
+.journal-day-view,
+.journal-templates-view,
+.chat-history-list,
+.chat-messages {
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
 }

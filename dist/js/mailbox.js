@@ -558,6 +558,8 @@ Object.assign(MailboxManager, {
         const self = this;
         // 不阻塞同步返回
         (async () => {
+          // getMailboxesAsync 已在主动拉取时，跳过本次重复的 fire-and-forget
+          if (self._bgSyncing) return;
           try {
             const ok = await MailService.isRemoteAvailable();
             if (ok) {
@@ -588,6 +590,9 @@ Object.assign(MailboxManager, {
 
     // 1) 先主动从远端拉并合并本地（云端回来的 mailbox + 成员信息是权威）
     const currentUser = AuthManager.getCurrentUser();
+    // 主动拉取期间置位 _bgSyncing，避免步骤 2) 里 getMailboxes() 的 fire-and-forget 重复请求
+    this._bgSyncing = true;
+    let list;
     try {
       if (window.MailService && typeof MailService.isRemoteAvailable === 'function') {
         const ok = await MailService.isRemoteAvailable();
@@ -596,10 +601,12 @@ Object.assign(MailboxManager, {
           if (Array.isArray(merged)) { /* 合并已落 localStorage，下面 sync 版就能读到 */ }
         }
       }
-    } catch (_) { /* ignore, fallback */ }
 
-    // 2) 走 sync 版（本地 + 共享信箱 + 过滤）
-    let list = this.getMailboxes();
+      // 2) 走 sync 版（本地 + 共享信箱 + 过滤）
+      list = this.getMailboxes();
+    } catch (_) { /* ignore, fallback */ } finally {
+      this._bgSyncing = false;
+    }
     // 若 force 则不走 STORAGE.loadMailboxesAsync 的缓存，直接用 getMailboxes 结果
     if (!force && typeof STORAGE.loadMailboxesAsync === 'function') {
       try {
@@ -1004,21 +1011,27 @@ Object.assign(MailboxManager, {
     }
 
     // ── 远端优先：后台异步拉 MongoDB 的原始信件并 merge（下次 render 即可见） ──
+    //    节流：同一信箱 10s 内不重复拉取，避免频繁渲染触发重复请求
     try {
       if (window.MailService && typeof MailService.isRemoteAvailable === 'function' &&
           typeof MailService.listRemoteLetters === 'function') {
-        const self = this;
-        (async () => {
-          try {
-            const ok = await MailService.isRemoteAvailable();
-            if (!ok) return;
-            const merged = await self.loadRemoteLettersAndMergeLocal(mailboxId);
-            // 合并成功 → 把 merge 后的全量信件也刷新到 MailService._cache（侧边栏未读计数）
-            if (Array.isArray(merged) && typeof MailService.refreshMailboxCache === 'function') {
-              try { await MailService.refreshMailboxCache(mailboxId); } catch (_) {}
-            }
-          } catch (_) { /* ignore */ }
-        })();
+        const now = Date.now();
+        if (!this._letterFetchAt) this._letterFetchAt = {};
+        if (!this._letterFetchAt[mailboxId] || now - this._letterFetchAt[mailboxId] > 10000) {
+          this._letterFetchAt[mailboxId] = now;
+          const self = this;
+          (async () => {
+            try {
+              const ok = await MailService.isRemoteAvailable();
+              if (!ok) return;
+              const merged = await self.loadRemoteLettersAndMergeLocal(mailboxId);
+              // 合并成功 → 把 merge 后的全量信件也刷新到 MailService._cache（侧边栏未读计数）
+              if (Array.isArray(merged) && typeof MailService.refreshMailboxCache === 'function') {
+                try { await MailService.refreshMailboxCache(mailboxId); } catch (_) {}
+              }
+            } catch (_) { /* ignore */ }
+          })();
+        }
       }
     } catch (_) { /* ignore */ }
 
@@ -1762,7 +1775,7 @@ Object.assign(MailboxManager, {
 
     const forceAll = !!options.forceAll;
     const batchSize = options.batchSize || 5;
-    const gapMs = options.gapMs || 300;
+    const gapMs = options.gapMs || 50;
     const all = (STORAGE.loadMailboxes() || []).filter(m => m && m.id);
     const sharedAll = (STORAGE.loadSharedMailboxes && STORAGE.loadSharedMailboxes() || []).filter(m => m && m.id);
     // 合并 personal 和 shared
