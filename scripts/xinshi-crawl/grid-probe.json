@@ -1,0 +1,484 @@
+{
+ "10-fantasy-rpg-enemies": {
+  "file": "10-fantasy-rpg-enemies.png",
+  "size": [
+   148,
+   151
+  ],
+  "grid": null,
+  "cells": null,
+  "known_cell": null
+ },
+ "15-pixel-bones-and-skeletons": {
+  "file": "15-pixel-bones-and-skeletons.jpg",
+  "size": [
+   630,
+   500
+  ],
+  "grid": null,
+  "cells": null,
+  "known_cell": null
+ },
+ "16x16-fantasy-pixel-art-vehicles": {
+  "file": "16x16-fantasy-pixel-art-vehicles.jpg",
+  "size": [
+   288,
+   64
+  ],
+  "grid": [
+   8,
+   8,
+   36,
+   8
+  ],
+  "cells": [
+   36,
+   8
+  ],
+  "known_cell": 16
+ },
+ "16x16-pigeon-shrimp-bee-snail-pack": {
+  "file": "16x16-pigeon-shrimp-bee-snail-pack.png",
+  "size": [
+   64,
+   64
+  ],
+  "grid": [
+   8,
+   1,
+   8,
+   64
+  ],
+  "cells": [
+   8,
+   64
+  ],
+  "known_cell": 16
+ },
+ "64x64-pixel-art-pixel-bird": {
+  "file": "64x64-pixel-art-pixel-bird.png",
+  "size": [
+   660,
+   663
+  ],
+  "grid": null,
+  "cells": null,
+  "known_cell": null
+ },
+ "8-bit-space-shuttle": {
+  "file": "8-bit-space-shuttle.png",
+  "size": [
+   153,
+   92
+  ],
+  "grid": [
+   1,
+   1,
+   153,
+   92
+  ],
+  "cells": [
+   153,
+   92
+  ],
+  "known_cell": null
+ },
+ "airship-and-hot-air-balloon": {
+  "file": "airship-and-hot-air-balloon.png",
+  "size": [
+   250,
+   140
+  ],
+  "grid": null,
+  "cells": null,
+  "known_cell": null
+ },
+ "animated-pixel-art-raft-sprite": {
+  "file": "animated-pixel-art-raft-sprite.gif",
+  "size": [
+   652,
+   448
+  ],
+  "grid": null,
+  "cells": null,
+  "known_cell": null
+ },
+ "blue-bird-48x48": {
+  "file": "blue-bird-48x48.gif",
+  "size": [
+   336,
+   336
+  ],
+  "grid": [
+   1,
+   1,
+   336,
+   336
+  ],
+  "cells": [
+   336,
+   336
+  ],
+  "known_cell": null
+ },
+ "bunny-sprite": {
+  "file": "bunny-sprite.gif",
+  "size": [
+   96,
+   64
+  ],
+  "grid": [
+   8,
+   8,
+   12,
+   8
+  ],
+  "cells": [
+   12,
+   8
+  ],
+  "known_cell": null
+ },
+ "cat-demon": {
+  "file": "cat-demon.png",
+  "size": [
+   120,
+   102
+  ],
+  "grid": null,
+  "cells": null,
+  "known_cell": null
+ },
+ "chinese-dragon": {
+  "file": "chinese-dragon.png",
+  "size": [
+   32,
+   64
+  ],
+  "grid": [
+   8,
+   63,
+   4,
+   1
+  ],
+  "cells": [
+   4,
+   1
+  ],
+  "known_cell": null
+ },
+ "cute-16x16-animal-icons": {
+  "file": "cute-16x16-animal-icons.png",
+  "size": [
+   192,
+   16
+  ],
+  "grid": [
+   1,
+   8,
+   192,
+   2
+  ],
+  "cells": [
+   192,
+   2
+  ],
+  "known_cell": 16
+ },
+ "dogwolf-spritesheet": {
+  "file": "dogwolf-spritesheet.png",
+  "size": [
+   128,
+   32
+  ],
+  "grid": [
+   32,
+   1,
+   4,
+   32
+  ],
+  "cells": [
+   4,
+   32
+  ],
+  "known_cell": null
+ },
+ "dragon-idle-animation": {
+  "file": "dragon-idle-animation.gif",
+  "size": [
+   174,
+   103
+  ],
+  "grid": null,
+  "cells": null,
+  "known_cell": null
+ },
+ "footprint-shoeprint-silhouette": {
+  "file": "footprint-shoeprint-silhouette.png",
+  "size": [
+   400,
+   300
+  ],
+  "grid": [
+   1,
+   1,
+   400,
+   300
+  ],
+  "cells": [
+   400,
+   300
+  ],
+  "known_cell": null
+ },
+ "footprints": {
+  "file": "footprints.png",
+  "size": [
+   2048,
+   2048
+  ],
+  "grid": [
+   1,
+   1,
+   2048,
+   2048
+  ],
+  "cells": [
+   2048,
+   2048
+  ],
+  "known_cell": null
+ },
+ "fox-1": {
+  "file": "fox-1.png",
+  "size": [
+   1003,
+   512
+  ],
+  "grid": null,
+  "cells": null,
+  "known_cell": null
+ },
+ "frog-dogcatpig2d-pixel-1616": {
+  "file": "frog-dogcatpig2d-pixel-1616.png",
+  "size": [
+   352,
+   16
+  ],
+  "grid": [
+   1,
+   8,
+   352,
+   2
+  ],
+  "cells": [
+   352,
+   2
+  ],
+  "known_cell": 16
+ },
+ "fx-smoke-trail-pixel": {
+  "file": "fx-smoke-trail-pixel.gif",
+  "size": [
+   32,
+   64
+  ],
+  "grid": [
+   1,
+   1,
+   32,
+   64
+  ],
+  "cells": [
+   32,
+   64
+  ],
+  "known_cell": null
+ },
+ "hot-air-balloon": {
+  "file": "hot-air-balloon.png",
+  "size": [
+   1600,
+   1600
+  ],
+  "grid": [
+   1,
+   1,
+   1600,
+   1600
+  ],
+  "cells": [
+   1600,
+   1600
+  ],
+  "known_cell": null
+ },
+ "pixel-animals-16x16": {
+  "file": "pixel-animals-16x16.png",
+  "size": [
+   192,
+   64
+  ],
+  "grid": [
+   1,
+   1,
+   192,
+   64
+  ],
+  "cells": [
+   192,
+   64
+  ],
+  "known_cell": 16
+ },
+ "pixel-art-dog-and-cat": {
+  "file": "pixel-art-dog-and-cat.png",
+  "size": [
+   182,
+   242
+  ],
+  "grid": null,
+  "cells": null,
+  "known_cell": null
+ },
+ "pixel-art-duck-20x20": {
+  "file": "pixel-art-duck-20x20.png",
+  "size": [
+   20,
+   20
+  ],
+  "grid": null,
+  "cells": null,
+  "known_cell": null
+ },
+ "pixel-dragon": {
+  "file": "pixel-dragon.png",
+  "size": [
+   64,
+   96
+  ],
+  "grid": [
+   8,
+   8,
+   8,
+   12
+  ],
+  "cells": [
+   8,
+   12
+  ],
+  "known_cell": null
+ },
+ "pixel-lightning": {
+  "file": "pixel-lightning.png",
+  "size": [
+   400,
+   175
+  ],
+  "grid": [
+   1,
+   1,
+   400,
+   175
+  ],
+  "cells": [
+   400,
+   175
+  ],
+  "known_cell": null
+ },
+ "pixel-squirrel": {
+  "file": "pixel-squirrel.gif",
+  "size": [
+   260,
+   260
+  ],
+  "grid": null,
+  "cells": null,
+  "known_cell": null
+ },
+ "pixel-vehicle-pack-0": {
+  "file": "pixel-vehicle-pack-0.png",
+  "size": [
+   1985,
+   907
+  ],
+  "grid": null,
+  "cells": null,
+  "known_cell": null
+ },
+ "saturn-v-pixel-rocket": {
+  "file": "saturn-v-pixel-rocket.PNG",
+  "size": [
+   445,
+   1641
+  ],
+  "grid": null,
+  "cells": null,
+  "known_cell": null
+ },
+ "turkey-0": {
+  "file": "turkey-0.png",
+  "size": [
+   75,
+   80
+  ],
+  "grid": null,
+  "cells": null,
+  "known_cell": null
+ },
+ "werewolf": {
+  "file": "werewolf.png",
+  "size": [
+   604,
+   604
+  ],
+  "grid": [
+   1,
+   1,
+   604,
+   604
+  ],
+  "cells": [
+   604,
+   604
+  ],
+  "known_cell": null
+ },
+ "wolf-pack-32x32-walking-wolf-animation": {
+  "file": "wolf-pack-32x32-walking-wolf-animation.png",
+  "size": [
+   256,
+   256
+  ],
+  "grid": [
+   8,
+   8,
+   32,
+   32
+  ],
+  "cells": [
+   32,
+   32
+  ],
+  "known_cell": null
+ },
+ "wooden-boat": {
+  "file": "wooden-boat.jpg",
+  "size": [
+   288,
+   288
+  ],
+  "grid": [
+   8,
+   8,
+   36,
+   36
+  ],
+  "cells": [
+   36,
+   36
+  ],
+  "known_cell": null
+ }
+}

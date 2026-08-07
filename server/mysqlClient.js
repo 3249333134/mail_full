@@ -340,6 +340,20 @@ async function ensureSchema() {
       KEY \`idx_enabled\` (\`enabled\`)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`,
 
+    // ===== 信使档案表（万物送信 · 内置信使 + xinshi 扩展统一入库） =====
+    `CREATE TABLE IF NOT EXISTS \`carrier_definitions\` (
+      \`id\` VARCHAR(80) NOT NULL,
+      \`name\` VARCHAR(120) NOT NULL DEFAULT '',
+      \`category\` VARCHAR(20) NOT NULL DEFAULT 'real',
+      \`definition\` JSON NULL,
+      \`displayOrder\` INT NOT NULL DEFAULT 0,
+      \`enabled\` TINYINT(1) NOT NULL DEFAULT 1,
+      \`createdAt\` BIGINT NOT NULL DEFAULT 0,
+      \`updatedAt\` BIGINT NOT NULL DEFAULT 0,
+      PRIMARY KEY (\`id\`),
+      KEY \`idx_enabled\` (\`enabled\`)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`,
+
     // ===== 资产文件表（双端互通：所有图片/音频等资产统一入库，服务器磁盘仅作缓存） =====
     `CREATE TABLE IF NOT EXISTS \`asset_files\` (
       \`id\` VARCHAR(80) NOT NULL,

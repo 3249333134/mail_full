@@ -985,6 +985,48 @@ async function listCharacterDefinitions(worldCategory = null) {
   });
 }
 
+/* ---------------- 信使定义管理（万物送信）---------------- */
+
+async function saveCarrierDefinition(def) {
+  if (!isMysqlEnabled() || !def || !def.id) return null;
+  const now = Date.now();
+  const definitionJson = JSON.stringify(def);
+  const existing = await query('SELECT id FROM carrier_definitions WHERE id = ? LIMIT 1', [def.id]);
+  if (existing && existing.length > 0) {
+    await execute(
+      `UPDATE carrier_definitions SET name = ?, category = ?, definition = ?, enabled = 1, updatedAt = ? WHERE id = ?`,
+      [def.name || '', def.category || 'real', definitionJson, now, def.id]
+    );
+  } else {
+    await execute(
+      `INSERT INTO carrier_definitions (id, name, category, definition, displayOrder, enabled, createdAt, updatedAt)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      [def.id, def.name || '', def.category || 'real', definitionJson, def.displayOrder || 0, 1, now, now]
+    );
+  }
+  return def;
+}
+
+async function listCarrierDefinitions() {
+  if (!isMysqlEnabled()) return [];
+  const rows = await query(
+    'SELECT * FROM carrier_definitions WHERE enabled = 1 ORDER BY displayOrder ASC, createdAt ASC'
+  );
+  if (!rows) return [];
+  return rows.map(row => {
+    let def = {};
+    try { def = typeof row.definition === 'string' ? JSON.parse(row.definition) : (row.definition || {}); } catch (_) {}
+    return { ...def, id: row.id, name: row.name, category: row.category };
+  });
+}
+
+async function countCarrierDefinitions() {
+  if (!isMysqlEnabled()) return 0;
+  const rows = await query('SELECT COUNT(*) AS cnt FROM carrier_definitions');
+  if (!rows || !rows.length) return 0;
+  return Number(rows[0].cnt) || 0;
+}
+
 /** 返回全部角色定义（含 enabled=0 的软删除墓碑），definition 为已解析对象 */
 async function listAllCharacterDefinitions(worldCategory = null) {
   if (!isMysqlEnabled()) return [];
@@ -1593,6 +1635,10 @@ module.exports = {
   listAllMapDefinitions,
   deleteMapDefinition,
   disableMapDefinition,
+  // carrier definitions（信使档案）
+  saveCarrierDefinition,
+  listCarrierDefinitions,
+  countCarrierDefinitions,
   // asset files（双端互通资产）
   upsertAsset,
   getAssetMeta,

@@ -1,5 +1,6 @@
 const WebSocket = require('ws');
 const http = require('http');
+const https = require('https');
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
@@ -8,6 +9,7 @@ require('dotenv').config({ path: path.join(__dirname, '.env') });
 const { initMysql, isMysqlEnabled } = require('./mysqlClient');
 const mysqlDao = require('./mysqlDao');
 const assetStore = require('./assetStore');
+const carrierSeed = require('./carrierSeed');
 const {
   itemDefinitions,
   starterItems,
@@ -34,6 +36,64 @@ const poxiaoMartialByCharacter = poxiaoData.martialByCharacter;
 
 const Busboy = require('busboy');
 const packageGen = require('./packageGen');
+
+// ─── Agnes AI（旅程文案生成）───
+const AGNES_API_BASE = process.env.AGNES_API_BASE || 'https://apihub.agnes-ai.com/v1';
+const AGNES_API_BASE_CN = 'https://apihub.agnes-ai.cn/v1'; // 国内节点（网络不通时自动回退）
+const AGNES_MODEL = process.env.AGNES_MODEL || 'agnes-2.5-flash';
+let HttpsProxyAgent;
+try { HttpsProxyAgent = require('https-proxy-agent').HttpsProxyAgent; } catch (_) {}
+
+function callAgnesAI(apiKey, messages, maxTokens = 1800, temperature = 0.9) {
+  return new Promise((resolve, reject) => {
+    const payload = JSON.stringify({ model: AGNES_MODEL, messages, max_tokens: maxTokens, temperature });
+    const ATTEMPT_TIMEOUT = 10000;
+    // 尝试顺序：直连 .com → 直连 .cn → 代理 .com → 代理 .cn
+    const attempts = [
+      { url: AGNES_API_BASE + '/chat/completions', useProxy: false },
+      { url: AGNES_API_BASE_CN + '/chat/completions', useProxy: false },
+    ];
+    if (HttpsProxyAgent) {
+      const proxyUrl = process.env.AGNES_PROXY || process.env.https_proxy || process.env.HTTPS_PROXY
+        || process.env.http_proxy || process.env.HTTP_PROXY || 'http://127.0.0.1:7890';
+      attempts.push(
+        { url: AGNES_API_BASE + '/chat/completions', useProxy: true, proxyUrl },
+        { url: AGNES_API_BASE_CN + '/chat/completions', useProxy: true, proxyUrl }
+      );
+    }
+    let idx = 0;
+    const tryNext = () => {
+      if (idx >= attempts.length) return reject(new Error('AI 请求超时'));
+      const attempt = attempts[idx++];
+      const requestOptions = {
+        method: 'POST',
+        headers: {
+          'Authorization': 'Bearer ' + apiKey,
+          'Content-Type': 'application/json',
+          'Content-Length': Buffer.byteLength(payload),
+        },
+        timeout: ATTEMPT_TIMEOUT,
+      };
+      if (attempt.useProxy && HttpsProxyAgent) requestOptions.agent = new HttpsProxyAgent(attempt.proxyUrl);
+      const req = https.request(attempt.url, requestOptions, (res) => {
+        let data = '';
+        res.on('data', chunk => data += chunk);
+        res.on('end', () => {
+          try {
+            const json = JSON.parse(data);
+            if (json.error) return reject(new Error(json.error.message || 'AI API error'));
+            resolve(json.choices?.[0]?.message?.content || '');
+          } catch (e) { reject(new Error('AI 响应解析失败: ' + e.message)); }
+        });
+      });
+      req.on('error', () => tryNext());              // 连接失败 → 换下一方案
+      req.on('timeout', () => { req.destroy(); tryNext(); }); // 超时 → 换下一方案
+      req.write(payload);
+      req.end();
+    };
+    tryNext();
+  });
+}
 
 const PORT = Number(process.env.PORT || 3000);
 const HTTP_ONLY = process.env.HTTP_ONLY === '1';
@@ -1319,6 +1379,122 @@ async function handleApi(req, res, parsedUrl) {
         maxRetries: 3,
         enableCache: true,
       });
+      return true;
+    }
+
+    // ======== AI：信件旅程文案生成（预期抵达 / 中途经历 / 结语） ========
+    if (req.method === 'POST' && parsedUrl.pathname === '/api/ai/generate-journey') {
+      const aiKey = process.env.AGNES_CARRIER_API_KEY || process.env.AGNES_AI_API_KEY || '';
+      if (!aiKey) { jsonResponse(res, 503, { error: 'ai_not_configured', fallback: true }); return true; }
+      let body = {};
+      try { body = await readJsonBody(req, 1024 * 64); } catch (_) { jsonResponse(res, 400, { error: 'invalid_json', fallback: true }); return true; }
+      const carrier = body.carrier || {};
+      const letter = body.letter || {};
+      const sys = '你是一位书信旅程叙事师。你会为「万物送信」系统撰写诗意的旅程文案。' +
+        '必须返回严格有效的 JSON，不要包含任何 markdown 代码块标记、注释或多余说明。JSON 结构如下：' +
+        '{"expectedDelivery":"...","events":[{"type":"...","description":"..."}],"epilogue":"..."}。' +
+        'expectedDelivery 是诗意模糊的送达时间，必须专门根据该信使的 baseSpeed / lifespan / timeSense 属性生成，严禁与信使属性无关的通用文案。参考映射：' +
+        'baseSpeed >= 0.8（极快）→ "茶未凉便至""晨光未散即到""一炷香内"；' +
+        'baseSpeed 0.5~0.8（快）→ "半日之内""明日前""月出之时"；' +
+        'baseSpeed 0.2~0.5（中）→ "数日之后""等一场雨后""下弦月前"；' +
+        'baseSpeed <= 0.2（慢）→ "数载之后""等一场梅雨落尽""长路尽头"；' +
+        'timeSense=dilated（慢感知）→ 如"蚂蚁的一生""河水从源头到入海"类长周期；' +
+        'timeSense=compressed（快感知）→ 如"光年之外的回音""仿佛一瞬"类瞬时感。' +
+        '每次生成的 expectedDelivery 要与该信使一致且每次不同。' +
+        'events 是 8~12 个旅途中的际遇描述，type 只能是 departure、environment、encounter、serendipity、lineage、transfer、delivery 之一，' +
+        '描述要生动、有画面感，并呼应信使的属性（速度、寿命、捕食关系、栖息地）与寄收信人；' +
+        'epilogue 是一句凝练的旅程结语。';
+      const carrierBrief = JSON.stringify({
+        id: carrier.id || '', name: carrier.name || '', category: carrier.category || '',
+        baseSpeed: typeof carrier.baseSpeed === 'number' ? carrier.baseSpeed : null,   // 0~1 相对速度
+        lifespan: typeof carrier.lifespan === 'number' ? carrier.lifespan : null,     // 相对寿命
+        timeSense: carrier.timeSense || '',          // dilated 慢感知 / normal / compressed 快感知
+        envPreference: Array.isArray(carrier.envPreference) ? carrier.envPreference : [],
+        predators: Array.isArray(carrier.predators) ? carrier.predators : [],
+        reproductionRate: typeof carrier.reproductionRate === 'number' ? carrier.reproductionRate : null,
+        predationRate: typeof carrier.predationRate === 'number' ? carrier.predationRate : null,
+        lore: (carrier.lore || '').slice(0, 120),
+      });
+      const user = `所选信使：${carrierBrief}\n` +
+        `信件：寄信人 ${letter.sender || '(未知)'}，收信人 ${letter.recipient || '(未知)'}，标题 ${letter.title || '(无题)'}\n` +
+        `要求：expectedDelivery 用诗意模糊时间，参考 baseSpeed 越高送达越快、lifespan 越大寿命越长、timeSense 决定时间感知节奏，写一句贴合该信使的文案；事件要随机、每次不同，覆盖启程与送达。`;
+      try {
+        const text = await callAgnesAI(aiKey, [{ role: 'system', content: sys }, { role: 'user', content: user }], 1800, 0.9);
+        // 模型可能返回 markdown 代码块或前后说明，剥离后取第一个 JSON 对象
+        let ai = null;
+        const raw = String(text || '').replace(/```(?:json)?/gi, '').trim();
+        const js = raw.indexOf('{');
+        const je = raw.lastIndexOf('}');
+        if (js >= 0 && je > js) {
+          try { ai = JSON.parse(raw.slice(js, je + 1)); } catch (_) { ai = null; }
+        }
+        if (!ai) throw new Error('AI 未返回有效 JSON');
+        const events = Array.isArray(ai.events)
+          ? ai.events.filter(e => e && typeof e.description === 'string' &&
+              /^(departure|environment|encounter|serendipity|lineage|transfer|delivery)$/.test(e.type || '')).slice(0, 20)
+          : [];
+        jsonResponse(res, 200, {
+          expectedDelivery: typeof ai.expectedDelivery === 'string' ? ai.expectedDelivery.slice(0, 60) : '',
+          events,
+          epilogue: typeof ai.epilogue === 'string' ? ai.epilogue.slice(0, 120) : '',
+        });
+      } catch (e) {
+        jsonResponse(res, 502, { error: 'ai_failed', fallback: true, detail: String(e.message || e).slice(0, 200) });
+      }
+      return true;
+    }
+
+    // ======== AI：书信正文润色（选中的一段文字 → 优化版） ========
+    if (req.method === 'POST' && parsedUrl.pathname === '/api/ai/polish-text') {
+      const aiKey = process.env.AGNES_AI_API_KEY || '';
+      if (!aiKey) { jsonResponse(res, 503, { error: 'ai_not_configured' }); return true; }
+      let body = {};
+      try { body = await readJsonBody(req, 1024 * 64); } catch (_) { jsonResponse(res, 400, { error: 'invalid_json' }); return true; }
+      const text = String(body.text || '').trim();
+      if (!text) { jsonResponse(res, 400, { error: 'empty_text' }); return true; }
+      const letter = body.letter || {};
+      const sys = '你是一位中文书信润色师，服务于「信笺」书信应用。' +
+        '用户会给你一段信件文字，请在不改变原意、不改变事实、不增减段落结构的前提下润色语言表达：' +
+        '让文字更生动、更有书信的温度与画面感，贴合寄信人与收信人的关系以及信件标题的氛围。' +
+        '保留原有的换行与段落（用 \\n 分隔），保留标点习惯但不输出多余符号。' +
+        '只返回润色后的纯文本本身，不要任何 markdown 标记、代码块、JSON 包装、说明或引号。';
+      const user = `寄信人：${letter.sender || '(未知)'}；收信人：${letter.recipient || '(未知)'}；信件标题：${letter.title || letter.letterTitle || '(无题)'}\n` +
+        `请润色以下信件文字（保持段落结构）：\n${text}`;
+      try {
+        const out = await callAgnesAI(aiKey, [{ role: 'system', content: sys }, { role: 'user', content: user }], 1500, 0.8);
+        const cleaned = String(out || '').trim()
+          .replace(/^```(?:text|txt)?/i, '')
+          .replace(/```\s*$/, '')
+          .trim()
+          .slice(0, 2000);
+        if (!cleaned) throw new Error('AI 返回空文本');
+        jsonResponse(res, 200, { text: cleaned });
+      } catch (e) {
+        jsonResponse(res, 502, { error: 'ai_failed', detail: String(e.message || e).slice(0, 200) });
+      }
+      return true;
+    }
+
+    // ======== 信使档案（万物送信：内置 + xinshi 扩展，来自 MySQL） ========
+    if (req.method === 'GET' && parsedUrl.pathname === '/api/carriers') {
+      let carriers = [];
+      try {
+        carriers = await mysqlDao.listCarrierDefinitions();
+      } catch (_) { carriers = []; }
+      if (!carriers || !carriers.length) {
+        jsonResponse(res, 200, { version: 2, source: 'local', carriers: [] });
+        return true;
+      }
+      // 图片相对路径 → 完整资产 API URL（MySQL 主存，经 /api/assets 读取）
+      const apiBase = apiAssetBaseUrl(req);
+      carriers = carriers.map(c => {
+        const d = { ...c };
+        if (apiBase && d.small) d.small = apiBase + String(d.small).replace(/^\/+/, '');
+        if (apiBase && d.large) d.large = apiBase + String(d.large).replace(/^\/+/, '');
+        if (apiBase && d.trace) d.trace = apiBase + String(d.trace).replace(/^\/+/, '');
+        return d;
+      });
+      jsonResponse(res, 200, { version: 2, source: 'mysql', carriers });
       return true;
     }
 
@@ -4026,6 +4202,19 @@ async function seedPresetUsers() {
 
         // 从 MySQL 加载自定义角色/地图定义
         await loadCustomDefinitions();
+
+        // 信使档案 seed：carrier_definitions 为空时自动写入（内置 17 + xinshi 扩展 + 素材入库）
+        try {
+          const carrierCount = await mysqlDao.countCarrierDefinitions();
+          if (!carrierCount) {
+            const seedResult = await carrierSeed.seedCarriersToMysql();
+            console.log(`[carrier] seed 完成：档案 ${seedResult.carriers}/${seedResult.totalCarriers}，素材 ${seedResult.assets}`);
+          } else {
+            console.log(`[carrier] 信使档案已存在（${carrierCount}），跳过 seed`);
+          }
+        } catch (e) {
+          console.warn('[carrier] seed 异常（忽略，继续启动）:', e?.message || e);
+        }
       } catch (e) {
         console.warn('[bootstrap] 数据加载异常（忽略）：', e?.message || e);
       }

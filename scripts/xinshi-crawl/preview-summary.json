@@ -1,0 +1,724 @@
+{
+ "10-fantasy-rpg-enemies": {
+  "slug": "10-fantasy-rpg-enemies",
+  "count": 1,
+  "path": "D:\\prj\\mail\\scripts\\xinshi-crawl\\previews\\10-fantasy-rpg-enemies.png",
+  "files": [
+   "10-fantasy-rpg-enemies_f0_r0c0.png"
+  ]
+ },
+ "15-pixel-bones-and-skeletons": {
+  "slug": "15-pixel-bones-and-skeletons",
+  "count": 1,
+  "path": "D:\\prj\\mail\\scripts\\xinshi-crawl\\previews\\15-pixel-bones-and-skeletons.png",
+  "files": [
+   "15-pixel-bones-and-skeletons_f0_r0c0.png"
+  ]
+ },
+ "16x16-echinoderms": {
+  "slug": "16x16-echinoderms",
+  "count": 2,
+  "path": "D:\\prj\\mail\\scripts\\xinshi-crawl\\previews\\16x16-echinoderms.png",
+  "files": [
+   "16x16-echinoderms_f0_r0c0.png",
+   "16x16-echinoderms_f0_r1c0.png"
+  ]
+ },
+ "16x16-fantasy-pixel-art-vehicles": {
+  "slug": "16x16-fantasy-pixel-art-vehicles",
+  "count": 8,
+  "path": "D:\\prj\\mail\\scripts\\xinshi-crawl\\previews\\16x16-fantasy-pixel-art-vehicles.png",
+  "files": [
+   "16x16-fantasy-pixel-art-vehicles_f0_r0c0.png",
+   "16x16-fantasy-pixel-art-vehicles_f0_r1c0.png",
+   "16x16-fantasy-pixel-art-vehicles_f0_r2c0.png",
+   "16x16-fantasy-pixel-art-vehicles_f0_r3c0.png",
+   "16x16-fantasy-pixel-art-vehicles_f0_r4c0.png",
+   "16x16-fantasy-pixel-art-vehicles_f0_r5c0.png",
+   "16x16-fantasy-pixel-art-vehicles_f0_r6c0.png",
+   "16x16-fantasy-pixel-art-vehicles_f0_r7c0.png"
+  ]
+ },
+ "16x16-pigeon-shrimp-bee-snail-pack": {
+  "slug": "16x16-pigeon-shrimp-bee-snail-pack",
+  "count": 8,
+  "path": "D:\\prj\\mail\\scripts\\xinshi-crawl\\previews\\16x16-pigeon-shrimp-bee-snail-pack.png",
+  "files": [
+   "16x16-pigeon-shrimp-bee-snail-pack_f0_r0c0.png",
+   "16x16-pigeon-shrimp-bee-snail-pack_f0_r1c0.png",
+   "16x16-pigeon-shrimp-bee-snail-pack_f0_r2c0.png",
+   "16x16-pigeon-shrimp-bee-snail-pack_f0_r3c0.png",
+   "16x16-pigeon-shrimp-bee-snail-pack_f0_r4c0.png",
+   "16x16-pigeon-shrimp-bee-snail-pack_f0_r5c0.png",
+   "16x16-pigeon-shrimp-bee-snail-pack_f0_r6c0.png",
+   "16x16-pigeon-shrimp-bee-snail-pack_f0_r7c0.png"
+  ]
+ },
+ "64x64-pixel-art-pixel-bird": {
+  "slug": "64x64-pixel-art-pixel-bird",
+  "count": 1,
+  "path": "D:\\prj\\mail\\scripts\\xinshi-crawl\\previews\\64x64-pixel-art-pixel-bird.png",
+  "files": [
+   "64x64-pixel-art-pixel-bird_f0_r0c0.png"
+  ]
+ },
+ "8-bit-space-shuttle": {
+  "slug": "8-bit-space-shuttle",
+  "count": 1,
+  "path": "D:\\prj\\mail\\scripts\\xinshi-crawl\\previews\\8-bit-space-shuttle.png",
+  "files": [
+   "8-bit-space-shuttle_f0_r0c0.png"
+  ]
+ },
+ "admurins-flora-and-fauna": {
+  "slug": "admurins-flora-and-fauna",
+  "count": 16,
+  "path": "D:\\prj\\mail\\scripts\\xinshi-crawl\\previews\\admurins-flora-and-fauna.png",
+  "files": [
+   "admurins-flora-and-fauna_f0_r0c0.png",
+   "admurins-flora-and-fauna_f0_r1c0.png",
+   "admurins-flora-and-fauna_f0_r2c0.png",
+   "admurins-flora-and-fauna_f0_r3c0.png",
+   "admurins-flora-and-fauna_f0_r4c14.png",
+   "admurins-flora-and-fauna_f0_r5c0.png",
+   "admurins-flora-and-fauna_f0_r6c0.png",
+   "admurins-flora-and-fauna_f0_r7c1.png",
+   "admurins-flora-and-fauna_f0_r8c1.png",
+   "admurins-flora-and-fauna_f0_r9c10.png",
+   "admurins-flora-and-fauna_f0_r10c1.png",
+   "admurins-flora-and-fauna_f0_r11c1.png",
+   "admurins-flora-and-fauna_f0_r12c1.png",
+   "admurins-flora-and-fauna_f0_r13c1.png",
+   "admurins-flora-and-fauna_f0_r14c0.png",
+   "admurins-flora-and-fauna_f0_r15c1.png"
+  ]
+ },
+ "airship-and-hot-air-balloon": {
+  "slug": "airship-and-hot-air-balloon",
+  "count": 1,
+  "path": "D:\\prj\\mail\\scripts\\xinshi-crawl\\previews\\airship-and-hot-air-balloon.png",
+  "files": [
+   "airship-and-hot-air-balloon_f0_r0c0.png"
+  ]
+ },
+ "animated-pixel-art-raft-sprite": {
+  "slug": "animated-pixel-art-raft-sprite",
+  "count": 1,
+  "path": "D:\\prj\\mail\\scripts\\xinshi-crawl\\previews\\animated-pixel-art-raft-sprite.png",
+  "files": [
+   "animated-pixel-art-raft-sprite_f0_r0c0.png"
+  ]
+ },
+ "animated-wild-animals": {
+  "slug": "animated-wild-animals",
+  "count": 5,
+  "path": "D:\\prj\\mail\\scripts\\xinshi-crawl\\previews\\animated-wild-animals.png",
+  "files": [
+   "animated-wild-animals_f0_r0c0.png",
+   "animated-wild-animals_f0_r1c0.png",
+   "animated-wild-animals_f0_r2c1.png",
+   "animated-wild-animals_f0_r3c1.png",
+   "animated-wild-animals_f0_r4c10.png"
+  ]
+ },
+ "blue-bird-48x48": {
+  "slug": "blue-bird-48x48",
+  "count": 5,
+  "path": "D:\\prj\\mail\\scripts\\xinshi-crawl\\previews\\blue-bird-48x48.png",
+  "files": [
+   "blue-bird-48x48_f0_r1c3.png",
+   "blue-bird-48x48_f0_r2c2.png",
+   "blue-bird-48x48_f0_r3c1.png",
+   "blue-bird-48x48_f0_r4c1.png",
+   "blue-bird-48x48_f0_r5c4.png"
+  ]
+ },
+ "bunny-sprite": {
+  "slug": "bunny-sprite",
+  "count": 8,
+  "path": "D:\\prj\\mail\\scripts\\xinshi-crawl\\previews\\bunny-sprite.png",
+  "files": [
+   "bunny-sprite_f0_r0c0.png",
+   "bunny-sprite_f0_r1c0.png",
+   "bunny-sprite_f0_r2c0.png",
+   "bunny-sprite_f0_r3c0.png",
+   "bunny-sprite_f0_r4c0.png",
+   "bunny-sprite_f0_r5c0.png",
+   "bunny-sprite_f0_r6c0.png",
+   "bunny-sprite_f0_r7c0.png"
+  ]
+ },
+ "cat-demon": {
+  "slug": "cat-demon",
+  "count": 1,
+  "path": "D:\\prj\\mail\\scripts\\xinshi-crawl\\previews\\cat-demon.png",
+  "files": [
+   "cat-demon_f0_r0c0.png"
+  ]
+ },
+ "cats-pixel-art": {
+  "slug": "cats-pixel-art",
+  "count": 20,
+  "path": "D:\\prj\\mail\\scripts\\xinshi-crawl\\previews\\cats-pixel-art.png",
+  "files": [
+   "cats-pixel-art_f0_r0c1.png",
+   "cats-pixel-art_f0_r1c1.png",
+   "cats-pixel-art_f0_r2c1.png",
+   "cats-pixel-art_f0_r3c1.png",
+   "cats-pixel-art_f0_r4c0.png",
+   "cats-pixel-art_f0_r5c0.png",
+   "cats-pixel-art_f0_r6c0.png",
+   "cats-pixel-art_f0_r7c0.png",
+   "cats-pixel-art_f0_r8c0.png",
+   "cats-pixel-art_f0_r9c0.png",
+   "cats-pixel-art_f0_r10c0.png",
+   "cats-pixel-art_f0_r11c0.png",
+   "cats-pixel-art_f0_r12c0.png",
+   "cats-pixel-art_f0_r13c0.png",
+   "cats-pixel-art_f0_r14c0.png",
+   "cats-pixel-art_f0_r15c0.png",
+   "cats-pixel-art_f0_r16c0.png",
+   "cats-pixel-art_f0_r17c0.png",
+   "cats-pixel-art_f0_r18c0.png",
+   "cats-pixel-art_f0_r19c1.png"
+  ]
+ },
+ "chinese-dragon": {
+  "slug": "chinese-dragon",
+  "count": 8,
+  "path": "D:\\prj\\mail\\scripts\\xinshi-crawl\\previews\\chinese-dragon.png",
+  "files": [
+   "chinese-dragon_f0_r0c0.png",
+   "chinese-dragon_f0_r1c0.png",
+   "chinese-dragon_f0_r2c0.png",
+   "chinese-dragon_f0_r3c0.png",
+   "chinese-dragon_f0_r4c0.png",
+   "chinese-dragon_f0_r5c0.png",
+   "chinese-dragon_f0_r6c0.png",
+   "chinese-dragon_f0_r7c1.png"
+  ]
+ },
+ "cute-16x16-animal-icons": {
+  "slug": "cute-16x16-animal-icons",
+  "count": 2,
+  "path": "D:\\prj\\mail\\scripts\\xinshi-crawl\\previews\\cute-16x16-animal-icons.png",
+  "files": [
+   "cute-16x16-animal-icons_f0_r0c0.png",
+   "cute-16x16-animal-icons_f0_r1c0.png"
+  ]
+ },
+ "dawnlike-16x16-universal-rogue-like-tileset-v181": {
+  "slug": "dawnlike-16x16-universal-rogue-like-tileset-v181",
+  "count": 32,
+  "path": "D:\\prj\\mail\\scripts\\xinshi-crawl\\previews\\dawnlike-16x16-universal-rogue-like-tileset-v181.png",
+  "files": [
+   "dawnlike-16x16-universal-rogue-like-tileset-v181_f0_r0c0.png",
+   "dawnlike-16x16-universal-rogue-like-tileset-v181_f0_r1c0.png",
+   "dawnlike-16x16-universal-rogue-like-tileset-v181_f0_r2c0.png",
+   "dawnlike-16x16-universal-rogue-like-tileset-v181_f0_r3c0.png",
+   "dawnlike-16x16-universal-rogue-like-tileset-v181_f0_r4c0.png",
+   "dawnlike-16x16-universal-rogue-like-tileset-v181_f0_r5c0.png",
+   "dawnlike-16x16-universal-rogue-like-tileset-v181_f0_r6c0.png",
+   "dawnlike-16x16-universal-rogue-like-tileset-v181_f0_r7c0.png",
+   "dawnlike-16x16-universal-rogue-like-tileset-v181_f0_r8c0.png",
+   "dawnlike-16x16-universal-rogue-like-tileset-v181_f0_r9c0.png",
+   "dawnlike-16x16-universal-rogue-like-tileset-v181_f0_r10c0.png",
+   "dawnlike-16x16-universal-rogue-like-tileset-v181_f0_r11c0.png",
+   "dawnlike-16x16-universal-rogue-like-tileset-v181_f0_r12c0.png",
+   "dawnlike-16x16-universal-rogue-like-tileset-v181_f0_r13c0.png",
+   "dawnlike-16x16-universal-rogue-like-tileset-v181_f0_r14c0.png",
+   "dawnlike-16x16-universal-rogue-like-tileset-v181_f0_r15c0.png",
+   "dawnlike-16x16-universal-rogue-like-tileset-v181_f0_r16c0.png",
+   "dawnlike-16x16-universal-rogue-like-tileset-v181_f0_r17c0.png",
+   "dawnlike-16x16-universal-rogue-like-tileset-v181_f0_r18c0.png",
+   "dawnlike-16x16-universal-rogue-like-tileset-v181_f0_r19c0.png",
+   "dawnlike-16x16-universal-rogue-like-tileset-v181_f0_r20c0.png",
+   "dawnlike-16x16-universal-rogue-like-tileset-v181_f0_r21c0.png",
+   "dawnlike-16x16-universal-rogue-like-tileset-v181_f0_r22c0.png",
+   "dawnlike-16x16-universal-rogue-like-tileset-v181_f0_r23c0.png",
+   "dawnlike-16x16-universal-rogue-like-tileset-v181_f0_r24c0.png",
+   "dawnlike-16x16-universal-rogue-like-tileset-v181_f0_r25c0.png",
+   "dawnlike-16x16-universal-rogue-like-tileset-v181_f0_r26c0.png",
+   "dawnlike-16x16-universal-rogue-like-tileset-v181_f0_r27c0.png",
+   "dawnlike-16x16-universal-rogue-like-tileset-v181_f0_r28c0.png",
+   "dawnlike-16x16-universal-rogue-like-tileset-v181_f0_r29c0.png",
+   "dawnlike-16x16-universal-rogue-like-tileset-v181_f0_r30c0.png",
+   "dawnlike-16x16-universal-rogue-like-tileset-v181_f0_r31c0.png"
+  ]
+ },
+ "dogwolf-spritesheet": {
+  "slug": "dogwolf-spritesheet",
+  "count": 4,
+  "path": "D:\\prj\\mail\\scripts\\xinshi-crawl\\previews\\dogwolf-spritesheet.png",
+  "files": [
+   "dogwolf-spritesheet_f0_r0c0.png",
+   "dogwolf-spritesheet_f0_r1c0.png",
+   "dogwolf-spritesheet_f0_r2c0.png",
+   "dogwolf-spritesheet_f0_r3c0.png"
+  ]
+ },
+ "dragon-icon-pack": {
+  "slug": "dragon-icon-pack",
+  "count": 1,
+  "path": "D:\\prj\\mail\\scripts\\xinshi-crawl\\previews\\dragon-icon-pack.png",
+  "files": [
+   "dragon-icon-pack_f0_r0c0.png"
+  ]
+ },
+ "dragon-idle-animation": {
+  "slug": "dragon-idle-animation",
+  "count": 1,
+  "path": "D:\\prj\\mail\\scripts\\xinshi-crawl\\previews\\dragon-idle-animation.png",
+  "files": [
+   "dragon-idle-animation_f0_r0c0.png"
+  ]
+ },
+ "footprint-shoeprint-silhouette": {
+  "slug": "footprint-shoeprint-silhouette",
+  "count": 1,
+  "path": "D:\\prj\\mail\\scripts\\xinshi-crawl\\previews\\footprint-shoeprint-silhouette.png",
+  "files": [
+   "footprint-shoeprint-silhouette_f0_r0c0.png"
+  ]
+ },
+ "footprints": {
+  "slug": "footprints",
+  "count": 1,
+  "path": "D:\\prj\\mail\\scripts\\xinshi-crawl\\previews\\footprints.png",
+  "files": [
+   "footprints_f0_r0c0.png"
+  ]
+ },
+ "fox-1": {
+  "slug": "fox-1",
+  "count": 1,
+  "path": "D:\\prj\\mail\\scripts\\xinshi-crawl\\previews\\fox-1.png",
+  "files": [
+   "fox-1_f0_r0c0.png"
+  ]
+ },
+ "frog-dogcatpig2d-pixel-1616": {
+  "slug": "frog-dogcatpig2d-pixel-1616",
+  "count": 2,
+  "path": "D:\\prj\\mail\\scripts\\xinshi-crawl\\previews\\frog-dogcatpig2d-pixel-1616.png",
+  "files": [
+   "frog-dogcatpig2d-pixel-1616_f0_r0c0.png",
+   "frog-dogcatpig2d-pixel-1616_f0_r1c0.png"
+  ]
+ },
+ "fx-smoke-trail-pixel": {
+  "slug": "fx-smoke-trail-pixel",
+  "count": 2,
+  "path": "D:\\prj\\mail\\scripts\\xinshi-crawl\\previews\\fx-smoke-trail-pixel.png",
+  "files": [
+   "fx-smoke-trail-pixel_f1_r1c1.png",
+   "fx-smoke-trail-pixel_f0_r2c1.png"
+  ]
+ },
+ "gb-funky-fauna": {
+  "slug": "gb-funky-fauna",
+  "count": 8,
+  "path": "D:\\prj\\mail\\scripts\\xinshi-crawl\\previews\\gb-funky-fauna.png",
+  "files": [
+   "gb-funky-fauna_f0_r0c0.png",
+   "gb-funky-fauna_f0_r1c0.png",
+   "gb-funky-fauna_f0_r2c0.png",
+   "gb-funky-fauna_f0_r3c0.png",
+   "gb-funky-fauna_f0_r4c0.png",
+   "gb-funky-fauna_f0_r5c0.png",
+   "gb-funky-fauna_f0_r6c0.png",
+   "gb-funky-fauna_f0_r7c0.png"
+  ]
+ },
+ "horse-pixel-art-animation": {
+  "slug": "horse-pixel-art-animation",
+  "count": 2,
+  "path": "D:\\prj\\mail\\scripts\\xinshi-crawl\\previews\\horse-pixel-art-animation.png",
+  "files": [
+   "horse-pixel-art-animation_f0_r2c0.png",
+   "horse-pixel-art-animation_f0_r3c1.png"
+  ]
+ },
+ "hot-air-balloon": {
+  "slug": "hot-air-balloon",
+  "count": 1,
+  "path": "D:\\prj\\mail\\scripts\\xinshi-crawl\\previews\\hot-air-balloon.png",
+  "files": [
+   "hot-air-balloon_f0_r0c0.png"
+  ]
+ },
+ "lpc-ship": {
+  "slug": "lpc-ship",
+  "count": 28,
+  "path": "D:\\prj\\mail\\scripts\\xinshi-crawl\\previews\\lpc-ship.png",
+  "files": [
+   "lpc-ship_f0_r0c0.png",
+   "lpc-ship_f0_r1c0.png",
+   "lpc-ship_f0_r2c0.png",
+   "lpc-ship_f0_r3c0.png",
+   "lpc-ship_f0_r4c0.png",
+   "lpc-ship_f0_r5c0.png",
+   "lpc-ship_f0_r6c0.png",
+   "lpc-ship_f0_r7c0.png",
+   "lpc-ship_f0_r8c0.png",
+   "lpc-ship_f0_r9c0.png",
+   "lpc-ship_f0_r10c0.png",
+   "lpc-ship_f0_r11c0.png",
+   "lpc-ship_f0_r12c0.png",
+   "lpc-ship_f0_r13c0.png",
+   "lpc-ship_f0_r14c0.png",
+   "lpc-ship_f0_r15c0.png",
+   "lpc-ship_f0_r16c0.png",
+   "lpc-ship_f0_r17c0.png",
+   "lpc-ship_f0_r18c0.png",
+   "lpc-ship_f0_r19c0.png",
+   "lpc-ship_f0_r21c0.png",
+   "lpc-ship_f0_r22c0.png",
+   "lpc-ship_f0_r23c0.png",
+   "lpc-ship_f0_r24c0.png",
+   "lpc-ship_f0_r27c3.png",
+   "lpc-ship_f0_r28c0.png",
+   "lpc-ship_f0_r29c0.png",
+   "lpc-ship_f0_r30c0.png"
+  ]
+ },
+ "magic-pixel-art": {
+  "slug": "magic-pixel-art",
+  "count": 2,
+  "path": "D:\\prj\\mail\\scripts\\xinshi-crawl\\previews\\magic-pixel-art.png",
+  "files": [
+   "magic-pixel-art_f0_r0c0.png",
+   "magic-pixel-art_f0_r1c0.png"
+  ]
+ },
+ "open-ocean-game-art-mostly-2d-fish-animations": {
+  "slug": "open-ocean-game-art-mostly-2d-fish-animations",
+  "count": 16,
+  "path": "D:\\prj\\mail\\scripts\\xinshi-crawl\\previews\\open-ocean-game-art-mostly-2d-fish-animations.png",
+  "files": [
+   "open-ocean-game-art-mostly-2d-fish-animations_f0_r0c0.png",
+   "open-ocean-game-art-mostly-2d-fish-animations_f0_r1c0.png",
+   "open-ocean-game-art-mostly-2d-fish-animations_f0_r2c0.png",
+   "open-ocean-game-art-mostly-2d-fish-animations_f0_r3c0.png",
+   "open-ocean-game-art-mostly-2d-fish-animations_f0_r4c0.png",
+   "open-ocean-game-art-mostly-2d-fish-animations_f0_r5c0.png",
+   "open-ocean-game-art-mostly-2d-fish-animations_f0_r6c0.png",
+   "open-ocean-game-art-mostly-2d-fish-animations_f0_r7c0.png",
+   "open-ocean-game-art-mostly-2d-fish-animations_f0_r8c0.png",
+   "open-ocean-game-art-mostly-2d-fish-animations_f0_r9c0.png",
+   "open-ocean-game-art-mostly-2d-fish-animations_f0_r10c0.png",
+   "open-ocean-game-art-mostly-2d-fish-animations_f0_r11c0.png",
+   "open-ocean-game-art-mostly-2d-fish-animations_f0_r12c0.png",
+   "open-ocean-game-art-mostly-2d-fish-animations_f0_r13c0.png",
+   "open-ocean-game-art-mostly-2d-fish-animations_f0_r14c0.png",
+   "open-ocean-game-art-mostly-2d-fish-animations_f0_r15c0.png"
+  ]
+ },
+ "pixel-animals-16x16": {
+  "slug": "pixel-animals-16x16",
+  "count": 5,
+  "path": "D:\\prj\\mail\\scripts\\xinshi-crawl\\previews\\pixel-animals-16x16.png",
+  "files": [
+   "pixel-animals-16x16_f0_r3c0.png",
+   "pixel-animals-16x16_f0_r4c0.png",
+   "pixel-animals-16x16_f0_r5c1.png",
+   "pixel-animals-16x16_f0_r6c1.png",
+   "pixel-animals-16x16_f0_r7c1.png"
+  ]
+ },
+ "pixel-art-dog-and-cat": {
+  "slug": "pixel-art-dog-and-cat",
+  "count": 1,
+  "path": "D:\\prj\\mail\\scripts\\xinshi-crawl\\previews\\pixel-art-dog-and-cat.png",
+  "files": [
+   "pixel-art-dog-and-cat_f0_r0c0.png"
+  ]
+ },
+ "pixel-art-duck-20x20": {
+  "slug": "pixel-art-duck-20x20",
+  "count": 1,
+  "path": "D:\\prj\\mail\\scripts\\xinshi-crawl\\previews\\pixel-art-duck-20x20.png",
+  "files": [
+   "pixel-art-duck-20x20_f0_r0c0.png"
+  ]
+ },
+ "pixel-dragon": {
+  "slug": "pixel-dragon",
+  "count": 12,
+  "path": "D:\\prj\\mail\\scripts\\xinshi-crawl\\previews\\pixel-dragon.png",
+  "files": [
+   "pixel-dragon_f0_r0c0.png",
+   "pixel-dragon_f0_r1c0.png",
+   "pixel-dragon_f0_r2c0.png",
+   "pixel-dragon_f0_r3c0.png",
+   "pixel-dragon_f0_r4c0.png",
+   "pixel-dragon_f0_r5c0.png",
+   "pixel-dragon_f0_r6c0.png",
+   "pixel-dragon_f0_r7c0.png",
+   "pixel-dragon_f0_r8c0.png",
+   "pixel-dragon_f0_r9c0.png",
+   "pixel-dragon_f0_r10c0.png",
+   "pixel-dragon_f0_r11c0.png"
+  ]
+ },
+ "pixel-lightning": {
+  "slug": "pixel-lightning",
+  "count": 1,
+  "path": "D:\\prj\\mail\\scripts\\xinshi-crawl\\previews\\pixel-lightning.png",
+  "files": [
+   "pixel-lightning_f0_r0c0.png"
+  ]
+ },
+ "pixel-squirrel": {
+  "slug": "pixel-squirrel",
+  "count": 1,
+  "path": "D:\\prj\\mail\\scripts\\xinshi-crawl\\previews\\pixel-squirrel.png",
+  "files": [
+   "pixel-squirrel_f0_r0c0.png"
+  ]
+ },
+ "pixel-vehicle-pack": {
+  "slug": "pixel-vehicle-pack",
+  "count": 3,
+  "path": "D:\\prj\\mail\\scripts\\xinshi-crawl\\previews\\pixel-vehicle-pack.png",
+  "files": [
+   "pixel-vehicle-pack_f0_r0c0.png",
+   "pixel-vehicle-pack_f0_r1c0.png",
+   "pixel-vehicle-pack_f0_r2c0.png"
+  ]
+ },
+ "pixel-vehicle-pack-0": {
+  "slug": "pixel-vehicle-pack-0",
+  "count": 1,
+  "path": "D:\\prj\\mail\\scripts\\xinshi-crawl\\previews\\pixel-vehicle-pack-0.png",
+  "files": [
+   "pixel-vehicle-pack-0_f0_r0c0.png"
+  ]
+ },
+ "pond-pals-art-pack": {
+  "slug": "pond-pals-art-pack",
+  "count": 16,
+  "path": "D:\\prj\\mail\\scripts\\xinshi-crawl\\previews\\pond-pals-art-pack.png",
+  "files": [
+   "pond-pals-art-pack_f0_r0c0.png",
+   "pond-pals-art-pack_f0_r1c0.png",
+   "pond-pals-art-pack_f0_r2c0.png",
+   "pond-pals-art-pack_f0_r3c0.png",
+   "pond-pals-art-pack_f0_r4c0.png",
+   "pond-pals-art-pack_f0_r5c0.png",
+   "pond-pals-art-pack_f0_r6c0.png",
+   "pond-pals-art-pack_f0_r7c0.png",
+   "pond-pals-art-pack_f0_r8c0.png",
+   "pond-pals-art-pack_f0_r9c0.png",
+   "pond-pals-art-pack_f0_r10c0.png",
+   "pond-pals-art-pack_f0_r11c0.png",
+   "pond-pals-art-pack_f0_r12c0.png",
+   "pond-pals-art-pack_f0_r13c0.png",
+   "pond-pals-art-pack_f0_r14c0.png",
+   "pond-pals-art-pack_f0_r15c0.png"
+  ]
+ },
+ "random-animals": {
+  "slug": "random-animals",
+  "count": 2,
+  "path": "D:\\prj\\mail\\scripts\\xinshi-crawl\\previews\\random-animals.png",
+  "files": [
+   "random-animals_f0_r0c0.png",
+   "random-animals_f0_r1c0.png"
+  ]
+ },
+ "rocket-thruster-effect-animations": {
+  "slug": "rocket-thruster-effect-animations",
+  "count": 28,
+  "path": "D:\\prj\\mail\\scripts\\xinshi-crawl\\previews\\rocket-thruster-effect-animations.png",
+  "files": [
+   "rocket-thruster-effect-animations_f0_r0c0.png",
+   "rocket-thruster-effect-animations_f0_r1c0.png",
+   "rocket-thruster-effect-animations_f0_r2c0.png",
+   "rocket-thruster-effect-animations_f0_r3c0.png",
+   "rocket-thruster-effect-animations_f0_r4c0.png",
+   "rocket-thruster-effect-animations_f0_r5c0.png",
+   "rocket-thruster-effect-animations_f0_r6c0.png",
+   "rocket-thruster-effect-animations_f0_r7c0.png",
+   "rocket-thruster-effect-animations_f0_r8c0.png",
+   "rocket-thruster-effect-animations_f0_r9c0.png",
+   "rocket-thruster-effect-animations_f0_r10c0.png",
+   "rocket-thruster-effect-animations_f0_r11c0.png",
+   "rocket-thruster-effect-animations_f0_r12c0.png",
+   "rocket-thruster-effect-animations_f0_r13c0.png",
+   "rocket-thruster-effect-animations_f0_r14c0.png",
+   "rocket-thruster-effect-animations_f0_r15c0.png",
+   "rocket-thruster-effect-animations_f0_r16c0.png",
+   "rocket-thruster-effect-animations_f0_r17c0.png",
+   "rocket-thruster-effect-animations_f0_r18c0.png",
+   "rocket-thruster-effect-animations_f0_r19c0.png",
+   "rocket-thruster-effect-animations_f0_r20c0.png",
+   "rocket-thruster-effect-animations_f0_r21c0.png",
+   "rocket-thruster-effect-animations_f0_r22c0.png",
+   "rocket-thruster-effect-animations_f0_r23c0.png",
+   "rocket-thruster-effect-animations_f0_r24c0.png",
+   "rocket-thruster-effect-animations_f0_r25c0.png",
+   "rocket-thruster-effect-animations_f0_r26c0.png",
+   "rocket-thruster-effect-animations_f0_r27c0.png"
+  ]
+ },
+ "saturn-v-pixel-rocket": {
+  "slug": "saturn-v-pixel-rocket",
+  "count": 1,
+  "path": "D:\\prj\\mail\\scripts\\xinshi-crawl\\previews\\saturn-v-pixel-rocket.png",
+  "files": [
+   "saturn-v-pixel-rocket_f0_r0c0.png"
+  ]
+ },
+ "space-pixel-art": {
+  "slug": "space-pixel-art",
+  "count": 2,
+  "path": "D:\\prj\\mail\\scripts\\xinshi-crawl\\previews\\space-pixel-art.png",
+  "files": [
+   "space-pixel-art_f0_r0c0.png",
+   "space-pixel-art_f0_r1c0.png"
+  ]
+ },
+ "street-animal-pixel-art": {
+  "slug": "street-animal-pixel-art",
+  "count": 5,
+  "path": "D:\\prj\\mail\\scripts\\xinshi-crawl\\previews\\street-animal-pixel-art.png",
+  "files": [
+   "street-animal-pixel-art_f0_r1c0.png",
+   "street-animal-pixel-art_f0_r2c0.png",
+   "street-animal-pixel-art_f0_r3c0.png",
+   "street-animal-pixel-art_f0_r4c0.png",
+   "street-animal-pixel-art_f0_r5c0.png"
+  ]
+ },
+ "tiny-creatures": {
+  "slug": "tiny-creatures",
+  "count": 18,
+  "path": "D:\\prj\\mail\\scripts\\xinshi-crawl\\previews\\tiny-creatures.png",
+  "files": [
+   "tiny-creatures_f0_r0c0.png",
+   "tiny-creatures_f0_r1c0.png",
+   "tiny-creatures_f0_r2c0.png",
+   "tiny-creatures_f0_r3c0.png",
+   "tiny-creatures_f0_r4c0.png",
+   "tiny-creatures_f0_r5c0.png",
+   "tiny-creatures_f0_r6c0.png",
+   "tiny-creatures_f0_r7c0.png",
+   "tiny-creatures_f0_r8c0.png",
+   "tiny-creatures_f0_r9c0.png",
+   "tiny-creatures_f0_r10c0.png",
+   "tiny-creatures_f0_r11c0.png",
+   "tiny-creatures_f0_r12c0.png",
+   "tiny-creatures_f0_r13c0.png",
+   "tiny-creatures_f0_r14c0.png",
+   "tiny-creatures_f0_r15c0.png",
+   "tiny-creatures_f0_r16c0.png",
+   "tiny-creatures_f0_r17c0.png"
+  ]
+ },
+ "tiny-horses": {
+  "slug": "tiny-horses",
+  "count": 1,
+  "path": "D:\\prj\\mail\\scripts\\xinshi-crawl\\previews\\tiny-horses.png",
+  "files": [
+   "tiny-horses_f0_r0c0.png"
+  ]
+ },
+ "turkey-0": {
+  "slug": "turkey-0",
+  "count": 1,
+  "path": "D:\\prj\\mail\\scripts\\xinshi-crawl\\previews\\turkey-0.png",
+  "files": [
+   "turkey-0_f0_r0c0.png"
+  ]
+ },
+ "werewolf": {
+  "slug": "werewolf",
+  "count": 1,
+  "path": "D:\\prj\\mail\\scripts\\xinshi-crawl\\previews\\werewolf.png",
+  "files": [
+   "werewolf_f0_r0c0.png"
+  ]
+ },
+ "winter-pixel-art-background-with-mountain": {
+  "slug": "winter-pixel-art-background-with-mountain",
+  "count": 1,
+  "path": "D:\\prj\\mail\\scripts\\xinshi-crawl\\previews\\winter-pixel-art-background-with-mountain.png",
+  "files": [
+   "winter-pixel-art-background-with-mountain_f0_r0c0.png"
+  ]
+ },
+ "wintery-pixel-art-pack": {
+  "slug": "wintery-pixel-art-pack",
+  "count": 18,
+  "path": "D:\\prj\\mail\\scripts\\xinshi-crawl\\previews\\wintery-pixel-art-pack.png",
+  "files": [
+   "wintery-pixel-art-pack_f0_r0c0.png",
+   "wintery-pixel-art-pack_f0_r1c0.png",
+   "wintery-pixel-art-pack_f0_r2c0.png",
+   "wintery-pixel-art-pack_f0_r3c0.png",
+   "wintery-pixel-art-pack_f0_r4c0.png",
+   "wintery-pixel-art-pack_f0_r5c0.png",
+   "wintery-pixel-art-pack_f0_r6c0.png",
+   "wintery-pixel-art-pack_f0_r7c0.png",
+   "wintery-pixel-art-pack_f0_r8c0.png",
+   "wintery-pixel-art-pack_f0_r9c0.png",
+   "wintery-pixel-art-pack_f0_r10c0.png",
+   "wintery-pixel-art-pack_f0_r11c0.png",
+   "wintery-pixel-art-pack_f0_r12c0.png",
+   "wintery-pixel-art-pack_f0_r13c0.png",
+   "wintery-pixel-art-pack_f0_r14c0.png",
+   "wintery-pixel-art-pack_f0_r15c0.png",
+   "wintery-pixel-art-pack_f0_r16c0.png",
+   "wintery-pixel-art-pack_f0_r17c0.png"
+  ]
+ },
+ "wolf-pack-32x32-walking-wolf-animation": {
+  "slug": "wolf-pack-32x32-walking-wolf-animation",
+  "count": 16,
+  "path": "D:\\prj\\mail\\scripts\\xinshi-crawl\\previews\\wolf-pack-32x32-walking-wolf-animation.png",
+  "files": [
+   "wolf-pack-32x32-walking-wolf-animation_f0_r0c0.png",
+   "wolf-pack-32x32-walking-wolf-animation_f0_r1c0.png",
+   "wolf-pack-32x32-walking-wolf-animation_f0_r2c0.png",
+   "wolf-pack-32x32-walking-wolf-animation_f0_r3c0.png",
+   "wolf-pack-32x32-walking-wolf-animation_f0_r4c0.png",
+   "wolf-pack-32x32-walking-wolf-animation_f0_r5c0.png",
+   "wolf-pack-32x32-walking-wolf-animation_f0_r6c0.png",
+   "wolf-pack-32x32-walking-wolf-animation_f0_r7c0.png",
+   "wolf-pack-32x32-walking-wolf-animation_f0_r8c0.png",
+   "wolf-pack-32x32-walking-wolf-animation_f0_r9c0.png",
+   "wolf-pack-32x32-walking-wolf-animation_f0_r10c0.png",
+   "wolf-pack-32x32-walking-wolf-animation_f0_r11c0.png",
+   "wolf-pack-32x32-walking-wolf-animation_f0_r12c0.png",
+   "wolf-pack-32x32-walking-wolf-animation_f0_r13c0.png",
+   "wolf-pack-32x32-walking-wolf-animation_f0_r14c0.png",
+   "wolf-pack-32x32-walking-wolf-animation_f0_r15c0.png"
+  ]
+ },
+ "wooden-boat": {
+  "slug": "wooden-boat",
+  "count": 18,
+  "path": "D:\\prj\\mail\\scripts\\xinshi-crawl\\previews\\wooden-boat.png",
+  "files": [
+   "wooden-boat_f0_r0c0.png",
+   "wooden-boat_f0_r1c0.png",
+   "wooden-boat_f0_r2c0.png",
+   "wooden-boat_f0_r3c0.png",
+   "wooden-boat_f0_r4c0.png",
+   "wooden-boat_f0_r5c0.png",
+   "wooden-boat_f0_r6c0.png",
+   "wooden-boat_f0_r7c0.png",
+   "wooden-boat_f0_r8c0.png",
+   "wooden-boat_f0_r9c0.png",
+   "wooden-boat_f0_r10c0.png",
+   "wooden-boat_f0_r11c0.png",
+   "wooden-boat_f0_r12c0.png",
+   "wooden-boat_f0_r13c0.png",
+   "wooden-boat_f0_r14c0.png",
+   "wooden-boat_f0_r15c0.png",
+   "wooden-boat_f0_r16c0.png",
+   "wooden-boat_f0_r17c0.png"
+  ]
+ }
+}

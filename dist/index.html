@@ -11,7 +11,7 @@
   <link rel="stylesheet" href="css/community-redesign.css?v=20260803d">
   <link rel="stylesheet" href="css/envelopes.css?v=20260801h">
   <link rel="stylesheet" href="css/paper.css?v=20260801h">
-  <link rel="stylesheet" href="css/editor.css?v=20260801h">
+  <link rel="stylesheet" href="css/editor.css?v=20260807m">
   <link rel="stylesheet" href="css/modules/editor-widgets-year.css?v=20260801h">
   <link rel="stylesheet" href="css/modules/editor-widgets-month.css?v=20260801e">
   <link rel="stylesheet" href="css/modules/editor-widgets-week.css?v=20260801e">
@@ -19,9 +19,9 @@
   <link rel="stylesheet" href="css/features.css?v=20260801e">
   <link rel="stylesheet" href="css/map.css?v=20260801e">
   <!-- UI Polish：设计升级层（纯视觉覆盖，加载在最后保证优先级） -->
-  <link rel="stylesheet" href="css/ui-polish.css?v=20260805a">
+  <link rel="stylesheet" href="css/ui-polish.css?v=20260807b">
   <!-- design-v2：全站视觉升级覆盖层（最高优先级，纯显示） -->
-  <link rel="stylesheet" href="css/design-v2.css?v=20260805a">
+  <link rel="stylesheet" href="css/design-v2.css?v=20260807m">
 </head>
 <body>
   <!--
@@ -712,6 +712,7 @@
       <h2 class="view-title" id="editor-title">新建信件</h2>
       <div class="editor-actions">
         <button class="attachment-btn" id="letter-item-attachments-btn" type="button" aria-label="打开随信物品">🎁 随信物品 0/8</button>
+        <button class="tool-btn ai-polish-btn" id="ai-polish-btn" type="button" title="AI 优化选中的文字">✨ AI 优化</button>
         <button class="save-btn" id="save-letter-btn">💾 保存草稿</button>
         <button class="read-btn" id="read-letter-btn">📖 阅读</button>
         <button class="send-letter-btn" id="send-letter-btn">✉ 发送</button>
@@ -784,10 +785,29 @@
           <h3>信封样式</h3>
           <div class="envelope-style-row" id="toolbar-envelope-grid"></div>
         </div>
-        <div class="toolbar-section">
-          <h3>信使 <span class="carrier-toolbar-title">万物送信</span></h3>
-          <button class="tool-btn carrier-toolbar-open-btn" id="open-carrier-picker" title="选择送信信使">🐜 选择信使</button>
-          <div id="carrier-selected" class="carrier-selected-box" style="display:none"></div>
+        <div class="toolbar-section carrier-section">
+          <div class="carrier-section-head" id="carrier-section-toggle" role="button" tabindex="0" aria-expanded="true">
+            <h3>信使 <span class="carrier-toolbar-title">万物送信</span></h3>
+            <span class="carrier-collapse-arrow" id="carrier-collapse-arrow">▾</span>
+          </div>
+          <div class="carrier-section-body" id="carrier-section-body">
+            <div id="carrier-selected" class="carrier-selected-box" style="display:none"></div>
+            <div class="carrier-inline-grid" id="carrier-inline-grid"></div>
+            <div class="carrier-section-actions">
+              <button class="tool-btn" id="open-carrier-picker" title="浏览全部信使">全部信使…</button>
+              <button class="tool-btn carrier-random-btn" id="carrier-random-inline" title="随机一位信使">🎲 随机</button>
+            </div>
+            <div class="carrier-journey-inline">
+              <label class="carrier-journey-check">
+                <input type="checkbox" id="carrier-transit-check-inline">
+                🌙 让它慢慢走
+              </label>
+              <span class="carrier-journey-time">
+                定时送达
+                <input type="datetime-local" id="carrier-deliver-at-inline">
+              </span>
+            </div>
+          </div>
         </div>
         <div class="toolbar-section envelope-large-section">
           <div class="envelope-large-preview" id="envelope-large-preview">
@@ -871,6 +891,49 @@
             <button class="draft-btn" id="import-backup-btn" title="导入信件备份">📥 导入备份</button>
           </div>
         </div>
+      </aside>
+
+      <!-- 移动端底部选择栏 -->
+      <nav class="mobile-bottom-bar" id="mobile-bottom-bar" aria-hidden="true">
+        <div class="mobile-pill">
+          <button class="mobile-tab" data-tab="pages" type="button">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13 3H8a2 2 0 0 0-2 2v11a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V8l-5-5z"/><path d="M13 3v5h5"/><path d="M9 13h6M9 16h6"/><path d="M5 8a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h8"/></svg>
+            <span>页面</span>
+          </button>
+          <button class="mobile-tab" data-tab="add" type="button">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/></svg>
+            <span>添加</span>
+          </button>
+          <button class="mobile-tab" data-tab="sticker" type="button">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 4h9l7 7-9 9-7-7V4z"/><circle cx="9.2" cy="9.2" r="1.4"/></svg>
+            <span>贴纸</span>
+          </button>
+          <button class="mobile-tab" data-tab="style" type="button">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3a9 9 0 1 0 0 18c1.2 0 1.9-.9 1.9-1.9 0-.5-.2-.9-.6-1.2-.4-.3-.6-.8-.6-1.3 0-1 .8-1.8 1.8-1.8H16a5 5 0 0 0 5-5c0-3.9-4-7-9-7z"/><circle cx="7.5" cy="11" r="1"/><circle cx="10.5" cy="7.5" r="1"/><circle cx="15" cy="8.5" r="1"/></svg>
+            <span>风格</span>
+          </button>
+          <button class="mobile-tab" data-tab="carrier" type="button">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 8l9 6 9-6"/><path d="M3 8v10a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V8"/><path d="M21 8l-9-5-9 5"/></svg>
+            <span>信使</span>
+          </button>
+          <button class="mobile-tab" data-tab="property" type="button">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h9.5M18.5 7H20"/><circle cx="16" cy="7" r="2.5"/><path d="M4 12h2.5M10.5 12H20"/><circle cx="8" cy="12" r="2.5"/><path d="M4 17h9.5M18.5 17H20"/><circle cx="16" cy="17" r="2.5"/></svg>
+            <span>属性</span>
+          </button>
+        </div>
+      </nav>
+
+      <div class="mobile-sheet-overlay" id="mobile-sheet-overlay"></div>
+
+      <aside class="mobile-bottom-sheet" id="mobile-bottom-sheet" aria-hidden="true">
+        <div class="mobile-sheet-handle"></div>
+        <button class="mobile-sheet-close" id="mobile-sheet-close" type="button" aria-label="关闭面板">×</button>
+        <div class="mobile-sheet-panel" data-panel="pages"><header class="mobile-sheet-title">页面</header></div>
+        <div class="mobile-sheet-panel" data-panel="add"><header class="mobile-sheet-title">工具与组件</header></div>
+        <div class="mobile-sheet-panel" data-panel="sticker"><header class="mobile-sheet-title">贴纸</header></div>
+        <div class="mobile-sheet-panel" data-panel="style"><header class="mobile-sheet-title">风格</header></div>
+        <div class="mobile-sheet-panel" data-panel="carrier"><header class="mobile-sheet-title">信使</header></div>
+        <div class="mobile-sheet-panel" data-panel="property"><header class="mobile-sheet-title">属性</header></div>
       </aside>
     </div>
   </div>
@@ -968,6 +1031,7 @@
         </span>
       </div>
       <div class="recipient-picker-status" id="carrier-picker-status" role="status" aria-live="polite"></div>
+      <div class="carrier-picker-toolbar" id="carrier-picker-toolbar"></div>
       <div class="carrier-picker-grid" id="carrier-picker-grid"></div>
     </section>
   </div>
@@ -1004,6 +1068,36 @@
         <button class="recipient-picker-close" id="journey-report-close" type="button" aria-label="关闭">×</button>
       </header>
       <div id="journey-report-body" class="journey-report-body"></div>
+    </section>
+  </div>
+
+  <!-- ======== AI 润色弹窗（写信内容优化） ======== -->
+  <div id="ai-polish-overlay" class="recipient-picker-overlay" aria-hidden="true">
+    <section class="recipient-picker-panel ai-polish-panel" role="dialog" aria-modal="true" aria-labelledby="ai-polish-title" style="max-width:900px">
+      <header class="recipient-picker-header">
+        <div>
+          <h2 id="ai-polish-title">✨ AI 润色</h2>
+          <p id="ai-polish-target"></p>
+        </div>
+        <button class="recipient-picker-close" id="ai-polish-close" type="button" aria-label="关闭">×</button>
+      </header>
+      <div class="ai-polish-body">
+        <div class="ai-polish-col">
+          <div class="ai-polish-col-title">原文</div>
+          <div class="ai-polish-text original" id="ai-polish-original"></div>
+        </div>
+        <div class="ai-polish-divider">→</div>
+        <div class="ai-polish-col">
+          <div class="ai-polish-col-title">AI 优化版</div>
+          <div class="ai-polish-text optimized" id="ai-polish-optimized"></div>
+        </div>
+      </div>
+      <footer class="ai-polish-footer">
+        <span class="ai-polish-status" id="ai-polish-status" role="status" aria-live="polite"></span>
+        <button type="button" class="ai-polish-btn-sm" id="ai-polish-regenerate">🔄 重新生成</button>
+        <button type="button" class="send-letter-btn" id="ai-polish-apply">✅ 采用</button>
+        <button type="button" class="ai-polish-btn-sm" id="ai-polish-cancel">取消</button>
+      </footer>
     </section>
   </div>
 
@@ -1537,7 +1631,7 @@
   <script src="js/imageFrames.js?v=20260801e"></script>
   <script src="js/mailbox.js?v=20260806a"></script>
   <script src="js/modules/carrier-roster.js?v=20260805b"></script>
-  <script src="js/modules/journey-engine.js?v=20260805b"></script>
+  <script src="js/modules/journey-engine.js?v=20260807j"></script>
   <script src="js/modules/journey-tracker.js?v=20260805a"></script>
   <script src="js/modules/mailbox-letters.js?v=20260801e"></script>
   <script src="js/app.js?v=20260806a"></script>
@@ -1547,7 +1641,8 @@
   <script src="js/modules/app-mailbox-modal.js?v=20260806a"></script>
   <script src="js/modules/app-diary.js?v=20260801e"></script>
   <script src="js/modules/app-features.js?v=20260801e"></script>
-  <script src="js/editor.js?v=20260805d"></script>
+  <script src="js/editor.js?v=20260807m"></script>
+  <script src="js/modules/editor-ai-polish.js?v=20260807b"></script>
   <script src="js/modules/editor-widgets-year.js?v=20260801e"></script>
   <script src="js/modules/editor-widgets-month.js?v=20260801e"></script>
   <script src="js/modules/editor-widgets-week.js?v=20260801e"></script>
@@ -1568,7 +1663,7 @@
         '#editor-view .editor-layout,#reader-view .reader-content{overflow-y:auto!important;overflow-x:hidden!important;overscroll-behavior:contain!important;-webkit-overflow-scrolling:touch!important;}';
       document.head.appendChild(rootStyle);
 
-      var scrollables = '.gallery-main,.sidebar-nav,.toolbar,.editor-layout,.paper-area,.property-panel,.editor-body,.reader-content,.reader-body,.journal-main,.journal-year-view,.journal-month-view,.journal-day-view,.journal-templates-view,.diary-body,.chat-history-list,.chat-messages,.mailbox-scroll,.login-container,.map-container,.mp-panel-body,.equipment-modal-body,.viewer-body,.chat-messages-inner';
+      var scrollables = '.gallery-main,.sidebar-nav,.toolbar,.editor-layout,.paper-area,.property-panel,.editor-body,.reader-content,.reader-body,.journal-main,.journal-year-view,.journal-month-view,.journal-day-view,.journal-templates-view,.diary-body,.chat-history-list,.chat-messages,.mailbox-scroll,.login-container,.map-container,.mp-panel-body,.equipment-modal-body,.viewer-body,.chat-messages-inner,.recipient-picker-panel,.carrier-picker-grid,.ai-polish-panel,.ai-polish-text';
       var isScrollableTarget = function(target) {
         if (!(target instanceof Element)) return false;
         // 必须是可滚动容器（自身可滚动，或在其内部）

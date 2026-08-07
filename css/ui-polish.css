@@ -275,17 +275,7 @@ select:focus-visible,
   transform: translateY(-2px);
 }
 
-/* ---------- 编辑器：工具栏与纸张 ---------- */
-.editor-toolbar button,
-.editor-toolbar .tool-btn {
-  border-radius: 8px;
-  transition: all var(--t-fast);
-}
-
-.editor-toolbar button:hover,
-.editor-toolbar .tool-btn:hover {
-  background: rgba(139, 90, 62, 0.12);
-}
+/* ---------- 编辑器：工具栏与纸张（tool-btn 样式已由 design-v2.css 统一接管） ---------- */
 
 /* ---------- 通用卡片微阴影 ---------- */
 .panel-card,

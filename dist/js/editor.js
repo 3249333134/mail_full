@@ -2,6 +2,15 @@
    信笺 — 信纸编辑器核心
    ======================================== */
 
+// 信使图片加载失败兜底：仅替换 <img> 自身为 emoji <span>，保留父容器布局
+window.__carrierImgFallback = function (img, emoji) {
+  if (!img || !img.parentElement) return;
+  const span = document.createElement('span');
+  span.className = 'carrier-emoji-fallback';
+  span.textContent = emoji || '✉';
+  img.replaceWith(span);
+};
+
 const Editor = {
   letter: null,
   mailboxId: null,
@@ -131,6 +140,9 @@ const Editor = {
     this.renderPaperElements();
     this._updateItemAttachmentButton();
     this.switchMode(this.currentMode);
+    this.initMobileBottomBar();
+    // 先合并完整信使库（17 内置 + 108 xinshi），再渲染内联面板
+    this._buildFullRoster().then(() => this._renderCarrierInlineSection());
   },
 
   get elements() {
@@ -3307,8 +3319,13 @@ Object.assign(Editor, {
     const carrierRandom = document.getElementById('carrier-picker-random');
     if (carrierRandom) carrierRandom.addEventListener('click', () => {
       const roster = window.CARRIER_ROSTER || [];
-      if (roster.length) this.selectCarrier(roster[Math.floor(Math.random() * roster.length)].id, true);
+      const pool = this._applyCarrierFilters(roster);
+      const source = pool.length ? pool : roster;
+      if (source.length) this.selectCarrier(source[Math.floor(Math.random() * source.length)].id, true);
     });
+
+    // 信使内联栏目（toolbar 常驻展开区）
+    this._bindCarrierInlineControls();
 
     // 添加页面按钮
     const addPageBtn = document.getElementById('add-page-btn');
@@ -3456,6 +3473,126 @@ Object.assign(Editor, {
     });
   },
 
+  // === 移动端底部选择栏 ===
+  initMobileBottomBar() {
+    const mq = window.matchMedia('(max-width: 900px)');
+    this._mobileState = { active: false, openTab: null };
+    this._mobileOrigins = {
+      toolbar: document.getElementById('toolbar'),
+      panel: document.getElementById('property-panel')
+    };
+
+    // 首次初始化：打分组标记 + 绑定事件（Editor 为单例，避免重复绑定）
+    if (!this._mobileBarBound) {
+      this._mobileBarBound = true;
+
+      // 按 HTML 顺序给 toolbar section 打分组标记：
+      // pages(0) 工具(1) 组件(2) BGM(3) 贴纸(4) 信纸风格(5) 信封样式(6) 信使(7) 信封大图(8)
+      const tb = this._mobileOrigins.toolbar;
+      const groups = ['pages', 'add', 'add', 'add', 'sticker', 'style', 'style', 'carrier', 'style'];
+      Array.from(tb.children).forEach((sec, i) => {
+        if (groups[i]) sec.dataset.mobileGroup = groups[i];
+        sec.dataset.mobileIndex = i;
+      });
+
+      // 断点监听
+      this._mobileMq = mq;
+      this._mobileMqApply = (e) => this._toggleMobileMode(e.matches);
+      mq.addEventListener('change', this._mobileMqApply);
+
+      // Tab 点击
+      document.querySelectorAll('.mobile-tab').forEach(tab => {
+        tab.addEventListener('click', () => this._onMobileTabClick(tab.dataset.tab));
+      });
+
+      // 关闭面板
+      const closeBtn = document.getElementById('mobile-sheet-close');
+      if (closeBtn) closeBtn.addEventListener('click', () => this._closeMobileSheet());
+      const overlay = document.getElementById('mobile-sheet-overlay');
+      if (overlay) overlay.addEventListener('click', () => this._closeMobileSheet());
+    }
+
+    // 每次打开编辑器都按当前视口应用布局
+    this._toggleMobileMode(mq.matches);
+  },
+
+  _toggleMobileMode(isMobile) {
+    this._mobileState.active = isMobile;
+    const bar = document.getElementById('mobile-bottom-bar');
+    const sheet = document.getElementById('mobile-bottom-sheet');
+    if (bar) bar.setAttribute('aria-hidden', String(!isMobile));
+    if (sheet) sheet.setAttribute('aria-hidden', String(!isMobile));
+
+    if (isMobile) {
+      this._moveSectionsToSheet();
+    } else {
+      this._restoreSections();
+    }
+  },
+
+  _moveSectionsToSheet() {
+    const tb = this._mobileOrigins.toolbar;
+    const propPanel = this._mobileOrigins.panel;
+    if (!tb || !propPanel) return;
+
+    // 左侧 toolbar section 按 data-mobile-group 移动到底部面板
+    tb.querySelectorAll('[data-mobile-group]').forEach(sec => {
+      const panel = document.querySelector(`.mobile-sheet-panel[data-panel="${sec.dataset.mobileGroup}"]`);
+      if (panel) panel.appendChild(sec);
+    });
+
+    // 右侧 property-panel 全部子节点移入 property 面板
+    const propContainer = document.querySelector('.mobile-sheet-panel[data-panel="property"]');
+    if (propContainer) {
+      Array.from(propPanel.children).forEach(c => propContainer.appendChild(c));
+    }
+  },
+
+  _restoreSections() {
+    this._closeMobileSheet();
+
+    const tb = this._mobileOrigins.toolbar;
+    const propPanel = this._mobileOrigins.panel;
+    if (!tb || !propPanel) return;
+
+    // 从各面板取回 toolbar section，按打标时记录的原始索引放回（无损保持 toolbar 原顺序）
+    Array.from(document.querySelectorAll('.mobile-sheet-panel [data-mobile-group]'))
+      .sort((a, b) => (parseInt(a.dataset.mobileIndex, 10) || 0) - (parseInt(b.dataset.mobileIndex, 10) || 0))
+      .forEach(sec => tb.appendChild(sec));
+
+    // property 内容移回（标题栏 .mobile-sheet-title 保留在面板内，不随内容移回）
+    const propContainer = document.querySelector('.mobile-sheet-panel[data-panel="property"]');
+    if (propContainer) {
+      Array.from(propContainer.children).forEach(c => {
+        if (!c.classList || !c.classList.contains('mobile-sheet-title')) {
+          propPanel.appendChild(c);
+        }
+      });
+    }
+  },
+
+  _onMobileTabClick(tab) {
+    if (this._mobileState.openTab === tab) {
+      return this._closeMobileSheet();
+    }
+    document.querySelectorAll('.mobile-tab').forEach(t => {
+      t.classList.toggle('active', t.dataset.tab === tab);
+    });
+    document.querySelectorAll('.mobile-sheet-panel').forEach(p => {
+      p.classList.toggle('active', p.dataset.panel === tab);
+    });
+    document.getElementById('mobile-bottom-sheet').classList.add('open');
+    document.getElementById('mobile-sheet-overlay').classList.add('open');
+    this._mobileState.openTab = tab;
+  },
+
+  _closeMobileSheet() {
+    document.getElementById('mobile-bottom-sheet').classList.remove('open');
+    document.getElementById('mobile-sheet-overlay').classList.remove('open');
+    document.querySelectorAll('.mobile-tab').forEach(t => t.classList.remove('active'));
+    this._mobileState.openTab = null;
+  },
+
   switchMode(mode) {
     this.currentMode = mode;
     document.querySelectorAll('.mode-tab').forEach(tab => {
@@ -3482,6 +3619,16 @@ Object.assign(Editor, {
     }
     
     this.renderLayersList();
+
+    // 移动端底部栏 cover-mode 同步
+    const mbb = document.getElementById('mobile-bottom-bar');
+    const mbs = document.getElementById('mobile-bottom-sheet');
+    if (mbb) mbb.classList.toggle('cover-mode', mode === 'cover');
+    if (mbs) mbs.classList.toggle('cover-mode', mode === 'cover');
+    // cover 模式下若当前打开的是被隐藏的 tab，收起面板
+    if (mode === 'cover' && this._mobileState && !['sticker', 'property'].includes(this._mobileState.openTab)) {
+      this._closeMobileSheet();
+    }
   },
 
   // === 撤销/重做系统 ===
@@ -3764,6 +3911,7 @@ Object.assign(Editor, {
 
   onTouchMove(e) {
     if (e.touches.length !== 1) return;
+    if (!this.dragState && !this.resizeState && !this.rotateState) return;
     e.preventDefault();
     const touch = e.touches[0];
     this.onMouseMove({ clientX: touch.clientX, clientY: touch.clientY });
@@ -4093,40 +4241,394 @@ Object.assign(Editor, {
   },
 
   // ===== 万物送信 · 信使选择 =====
+  // 信使素材索引缓存（优先后端 /api/carriers，兜底本地 mailfile/xinshi/index.json）
+  _xinshiIndex: null,
+  _xinshiList: null,
+  _xinshiIndexLoaded: false,
+  _fullRosterBuilt: false,
+  _carriersFromBackend: false,
+
+  async _loadXinshiIndex() {
+    if (this._xinshiIndexLoaded) return { map: this._xinshiIndex || {}, list: this._xinshiList || [] };
+    let map = {};
+    let list = [];
+    // ① 后端优先：信使档案来自 MySQL（含 xinshi 扩展与重写后的图片 URL）
+    try {
+      const base = (typeof MailService !== 'undefined' && typeof MailService.getBaseUrl === 'function')
+        ? MailService.getBaseUrl() : '';
+      const res = await fetch(base + '/api/carriers', { cache: 'no-cache' });
+      if (res.ok) {
+        const data = await res.json();
+        const backendList = (data && data.carriers) || [];
+        if (backendList.length) {
+          backendList.forEach(c => { map[c.id] = c; });
+          list = backendList;
+          this._carriersFromBackend = true;
+        }
+      }
+    } catch (e) {
+      console.warn('[Editor] 后端信使档案加载失败，回退本地索引:', e.message);
+    }
+    // ② 本地兜底：mailfile/xinshi/index.json（离线 / 后端不可用）
+    if (!list.length) {
+      try {
+        const res = await fetch('/mailfile/xinshi/index.json', { cache: 'no-cache' });
+        if (res.ok) {
+          const data = await res.json();
+          list = data.carriers || [];
+          list.forEach(c => { map[c.id] = c; });
+        }
+      } catch (e) {
+        console.warn('[Editor] 信使素材索引加载失败，回退 emoji:', e.message);
+      }
+    }
+    this._xinshiIndex = map;
+    this._xinshiList = list;
+    this._xinshiIndexLoaded = true;
+    return { map, list };
+  },
+
+  _hashString(str) {
+    let h = 0;
+    for (let i = 0; i < str.length; i++) h = ((h << 5) - h + str.charCodeAt(i)) >>> 0;
+    return h / 4294967295;
+  },
+
+  _derivePredators(envList, h) {
+    const pool = [
+      { id: 'sparrow', env: ['land', 'sky'] },
+      { id: 'lizard', env: ['land'] },
+      { id: 'fish', env: ['water'] },
+      { id: 'hawk', env: ['sky'] },
+      { id: 'cat', env: ['land'] },
+      { id: 'frog', env: ['land', 'water'] },
+      { id: 'wasp', env: ['land', 'sky'] },
+      { id: 'seal', env: ['water'] },
+      { id: 'human', env: ['land', 'water', 'sky', 'underground'] },
+      { id: 'black-hole', env: ['space'] }
+    ];
+    const candidates = [];
+    pool.forEach(p => {
+      if (envList.some(e => p.env.includes(e))) candidates.push(p.id);
+    });
+    const count = Math.max(0, Math.min(3, Math.floor(h * 5)));
+    const out = [];
+    for (let i = 0; i < count && candidates.length; i++) {
+      out.push(candidates[Math.floor((h * 1000 + i) % candidates.length)]);
+    }
+    return [...new Set(out)];
+  },
+
+  _enrichXinshiCarrier(raw) {
+    const traceEnvMap = {
+      paw: ['land'], feather: ['sky'], sparkle: ['sky', 'dream'],
+      smoke: ['sky', 'space'], bolt: ['sky', 'space'], flame: ['sky', 'space'],
+      trail: ['land', 'water'], ripple: ['water'], footprint: ['land'],
+      arc: ['space', 'dream'], snow: ['land', 'sky'], vortex: ['space', 'dream', 'time']
+    };
+    const traceAbilityMap = {
+      paw: 'stealth', feather: 'homing', sparkle: 'night-glow',
+      smoke: 'smoke-screen', bolt: 'warp', flame: 'warp',
+      trail: 'seek-beloved', ripple: 'upstream', footprint: 'hitchhike',
+      arc: 'teleport', snow: 'phase-through', vortex: 'time-skip'
+    };
+    const h = this._hashString(raw.id);
+    const isReal = raw.category === 'real';
+    const env = traceEnvMap[raw.traceType] || ['land'];
+    const abilities = traceAbilityMap[raw.traceType] ? [traceAbilityMap[raw.traceType]] : [];
+    const inanimate = ['vortex', 'snow', 'ripple', 'bolt', 'flame', 'smoke', 'arc'].includes(raw.traceType);
+
+    return {
+      id: 'xs-' + raw.id,
+      name: raw.name,
+      category: raw.category,
+      emoji: raw.emoji || (isReal ? '📨' : '✨'),
+      _xinshi: true,
+      _originalId: raw.id,
+      small: raw.small,
+      large: raw.large,
+      trace: raw.trace,
+      traceType: raw.traceType,
+      baseSpeed: isReal ? 0.25 + h * 0.65 : 0.45 + h * 0.55,
+      lifespan: inanimate ? Infinity : (isReal ? 4 + Math.floor(h * 18) : 10 + Math.floor(h * 25)),
+      reproductionRate: inanimate ? 0 : (isReal ? 0.1 + h * 0.45 : 0.05 + h * 0.25),
+      predationRate: isReal ? 0.05 + h * 0.65 : 0.02 + h * 0.3,
+      predators: this._derivePredators(env, h),
+      envPreference: env,
+      specialAbilities: abilities,
+      timeSense: isReal ? (h < 0.25 ? 'dilated' : 'normal') : (h < 0.5 ? 'compressed' : 'normal'),
+      lineageNaming: inanimate ? null : { base: (raw.name.slice(0, 2) || raw.name), pattern: '{base}的{N}世孙' },
+      lore: `${raw.name}接到了这封信，准备踏上属于自己的旅程。`
+    };
+  },
+
+  async _buildFullRoster() {
+    if (this._fullRosterBuilt) return;
+    const { list } = await this._loadXinshiIndex();
+    let merged;
+    if (this._carriersFromBackend && (list || []).length) {
+      // 后端已返回全部信使（内置17 + xinshi108，含 enrich 与重写后的图片 URL），直接用
+      merged = [...list];
+    } else {
+      // 本地兜底：内置 + enrich xinshi
+      const original = [...(window.CARRIER_ROSTER || [])];
+      const extras = (list || []).map(c => this._enrichXinshiCarrier(c));
+      merged = [...original, ...extras];
+    }
+    merged.byId = (id) => merged.find(c => c && c.id === id) || null;
+    merged.random = () => merged[Math.floor(Math.random() * merged.length)];
+    merged.real = () => merged.filter(c => c && c.category === 'real');
+    merged.scifi = () => merged.filter(c => c && c.category === 'scifi');
+    window.CARRIER_ROSTER = merged;
+    this._fullRosterBuilt = true;
+  },
+
+  _resolveCarrierArt(carrier, xinshiMap) {
+    if (carrier._xinshi) {
+      return { small: carrier.small, large: carrier.large, trace: carrier.trace };
+    }
+    return xinshiMap ? (xinshiMap[carrier.id] || null) : null;
+  },
+
+  // 信使主题色：按环境偏好分配 4 色，选中态实色填充用（未选中态保持统一浅灰底）
+  _carrierThemeColor(c) {
+    const envs = (c && c.envPreference) || [];
+    if (envs.includes('time') || envs.includes('dream') || envs.includes('space')) {
+      return '#a8443a'; // 朱砂红（时光/梦境/星宇）
+    }
+    if (envs.includes('water')) return '#3d5b78'; // 夜蓝（水域）
+    if (envs.includes('sky')) return '#56703f';   // 苔绿（天空）
+    return '#a97b2f';                              // 琥珀金（大地/陆地）
+  },
+
+  _renderCarrierCard(c, current, xinshiMap) {
+    const isActive = current && current.id === c.id;
+    const art = this._resolveCarrierArt(c, xinshiMap);
+    const artHtml = art && art.small
+      ? `<div class="carrier-emoji"><img src="${art.small}" alt="${c.name}" class="carrier-img" onerror="__carrierImgFallback(this,'${c.emoji || '✉'}');"></div>`
+      : `<div class="carrier-emoji">${c.emoji || '✉'}</div>`;
+    return `
+      <div class="carrier-card carrier-card-compact ${isActive ? 'active' : ''}" style="--carrier-accent:${this._carrierThemeColor(c)};" data-carrier-id="${c.id}" data-carrier-category="${c.category || ''}" data-carrier-name="${c.name}" title="${c.name}">
+        ${artHtml}
+        <div class="carrier-name">${c.name}</div>
+      </div>`;
+  },
+
+  _carrierFilter: { search: '', category: 'all', env: null },
+  _carrierSearchTimer: null,
+  _carrierToolbarBound: false,
+
+  _applyCarrierFilters(list) {
+    const f = this._carrierFilter || (this._carrierFilter = { search: '', category: 'all', env: null });
+    const q = (f.search || '').trim().toLowerCase();
+    return (list || []).filter(c => {
+      if (f.category !== 'all' && c.category !== f.category) return false;
+      if (f.env && !(c.envPreference || []).includes(f.env)) return false;
+      if (q) {
+        const name = (c.name || '').toLowerCase();
+        const id = (c.id || '').toLowerCase();
+        if (!name.includes(q) && !id.includes(q)) return false;
+      }
+      return true;
+    });
+  },
+
+  _renderCarrierToolbar() {
+    const toolbar = document.getElementById('carrier-picker-toolbar');
+    if (!toolbar) return;
+    const f = this._carrierFilter;
+    const cats = [
+      { key: 'all', label: '全部' },
+      { key: 'real', label: '真实' },
+      { key: 'scifi', label: '科幻奇幻' }
+    ];
+    const envs = [
+      { key: 'land', label: '陆地' },
+      { key: 'sky', label: '天空' },
+      { key: 'water', label: '水域' },
+      { key: 'space', label: '星宇' },
+      { key: 'dream', label: '梦境' },
+      { key: 'time', label: '时光' }
+    ];
+    toolbar.innerHTML = `
+      <div class="carrier-picker-toolbar-inner">
+        <div class="carrier-search-row">
+          <span class="carrier-search-icon">🔍</span>
+          <input id="carrier-search-input" type="text" class="carrier-search" placeholder="搜索信使…" value="${(f.search || '').replace(/"/g, '&quot;')}">
+          ${f.search ? '<button type="button" class="carrier-search-clear" id="carrier-search-clear" aria-label="清空">×</button>' : ''}
+        </div>
+        <div class="carrier-chip-row carrier-chip-row-cat">
+          ${cats.map(c => `<button type="button" class="carrier-chip ${f.category === c.key ? 'active' : ''}" data-cat="${c.key}">${c.label}</button>`).join('')}
+        </div>
+        <div class="carrier-chip-row carrier-chip-row-env">
+          ${f.env ? `<button type="button" class="carrier-chip carrier-chip-clear" id="carrier-env-clear" aria-label="清除环境">× 环境</button>` : ''}
+          ${envs.map(e => `<button type="button" class="carrier-chip carrier-chip-env ${f.env === e.key ? 'active' : ''}" data-env="${e.key}">${e.label}</button>`).join('')}
+        </div>
+      </div>`;
+
+    // Always bind input listener — _renderCarrierToolbar is only called on open,
+    // and the input element is freshly created each time.
+    const input = toolbar.querySelector('#carrier-search-input');
+    if (input) input.addEventListener('input', (ev) => {
+      clearTimeout(this._carrierSearchTimer);
+      this._carrierSearchTimer = setTimeout(() => {
+        this._carrierFilter.search = ev.target.value;
+        this._refreshCarrierPicker();
+      }, 200);
+    });
+
+    if (!this._carrierToolbarBound) {
+      this._carrierToolbarBound = true;
+      toolbar.addEventListener('click', (ev) => {
+        const t = ev.target.closest('[data-cat],[data-env],#carrier-search-clear,#carrier-env-clear');
+        if (!t) return;
+        if (t.id === 'carrier-search-clear') {
+          this._carrierFilter.search = '';
+          this._refreshCarrierPicker();
+          return;
+        }
+        if (t.id === 'carrier-env-clear') {
+          this._carrierFilter.env = null;
+          this._refreshCarrierPicker();
+          return;
+        }
+        if (t.dataset.cat) {
+          this._carrierFilter.category = t.dataset.cat;
+          if (t.dataset.cat !== 'all') this._carrierFilter.env = null;
+          this._refreshCarrierPicker();
+        } else if (t.dataset.env) {
+          this._carrierFilter.env = this._carrierFilter.env === t.dataset.env ? null : t.dataset.env;
+          this._refreshCarrierPicker();
+        }
+      });
+    }
+  },
+
+  _updateCarrierToolbarState() {
+    const toolbar = document.getElementById('carrier-picker-toolbar');
+    if (!toolbar) return;
+    const f = this._carrierFilter;
+
+    // Update category chip active states
+    toolbar.querySelectorAll('[data-cat]').forEach(chip => {
+      chip.classList.toggle('active', f.category === chip.dataset.cat);
+    });
+
+    // Update env chip active states
+    toolbar.querySelectorAll('[data-env]').forEach(chip => {
+      chip.classList.toggle('active', f.env === chip.dataset.env);
+    });
+
+    // Sync search input value (e.g. after clear-button click)
+    const input = toolbar.querySelector('#carrier-search-input');
+    if (input && input.value !== (f.search || '')) {
+      input.value = f.search || '';
+    }
+
+    // Toggle search clear button visibility
+    let searchClear = toolbar.querySelector('#carrier-search-clear');
+    if (f.search && !searchClear) {
+      const row = toolbar.querySelector('.carrier-search-row');
+      if (row) {
+        searchClear = document.createElement('button');
+        searchClear.type = 'button';
+        searchClear.className = 'carrier-search-clear';
+        searchClear.id = 'carrier-search-clear';
+        searchClear.setAttribute('aria-label', '清空');
+        searchClear.textContent = '\u00d7';
+        row.appendChild(searchClear);
+      }
+    } else if (!f.search && searchClear) {
+      searchClear.remove();
+    }
+
+    // Toggle env clear button visibility
+    let envClear = toolbar.querySelector('#carrier-env-clear');
+    if (f.env && !envClear) {
+      const envRow = toolbar.querySelector('.carrier-chip-row-env');
+      if (envRow) {
+        envClear = document.createElement('button');
+        envClear.type = 'button';
+        envClear.className = 'carrier-chip carrier-chip-clear';
+        envClear.id = 'carrier-env-clear';
+        envClear.setAttribute('aria-label', '清除环境');
+        envClear.textContent = '\u00d7 环境';
+        envRow.insertBefore(envClear, envRow.firstChild);
+      }
+    } else if (!f.env && envClear) {
+      envClear.remove();
+    }
+  },
+
+  _refreshCarrierPicker() {
+    const overlay = document.getElementById('carrier-picker-overlay');
+    const grid = document.getElementById('carrier-picker-grid');
+    if (!overlay || !grid || !overlay.classList.contains('active')) return;
+    const roster = window.CARRIER_ROSTER || [];
+    const filtered = this._applyCarrierFilters(roster);
+    const current = this.letter.carrierId ? roster.find(c => c.id === this.letter.carrierId) : null;
+    this._updateCarrierToolbarState();
+
+    const xinshiMap = this._xinshiIndex || {};
+    const groups = [
+      { key: 'real', label: '真实信使' },
+      { key: 'scifi', label: '科幻 / 奇幻信使' }
+    ];
+
+    if (!filtered.length) {
+      grid.innerHTML = `<div class="carrier-empty-state">
+        <div class="carrier-empty-icon">📭</div>
+        <div class="carrier-empty-text">未找到匹配的信使</div>
+        <button type="button" class="carrier-empty-reset" id="carrier-empty-reset">重置筛选</button>
+      </div>`;
+      const resetBtn = grid.querySelector('#carrier-empty-reset');
+      if (resetBtn) resetBtn.addEventListener('click', () => {
+        this._carrierFilter = { search: '', category: 'all', env: null };
+        this._refreshCarrierPicker();
+      });
+    } else {
+      grid.innerHTML = groups.map(g => {
+        const items = filtered.filter(c => c.category === g.key);
+        if (!items.length) return '';
+        const cards = items.map(c => this._renderCarrierCard(c, current, xinshiMap)).join('');
+        return `<div class="carrier-group">
+          <h4 class="carrier-group-title">${g.label}<span class="carrier-group-count">${items.length}</span></h4>
+          <div class="carrier-group-grid">${cards}</div>
+        </div>`;
+      }).join('');
+      grid.querySelectorAll('.carrier-card').forEach(card => {
+        card.addEventListener('click', () => this.selectCarrier(card.dataset.carrierId));
+      });
+    }
+
+    // 更新随机按钮计数
+    const randomBtn = document.getElementById('carrier-picker-random');
+    if (randomBtn) {
+      const suffix = filtered.length ? ` (剩余 ${filtered.length})` : '';
+      randomBtn.textContent = `🎲 听天由命${suffix}`;
+    }
+  },
+
   openCarrierPicker() {
     const overlay = document.getElementById('carrier-picker-overlay');
     const grid = document.getElementById('carrier-picker-grid');
     if (!overlay || !grid) return;
     const roster = window.CARRIER_ROSTER || [];
-    const current = this.letter.carrierId ? roster.find(c => c.id === this.letter.carrierId) : null;
-    grid.innerHTML = roster.map(c => {
-      const speed = Math.max(1, Math.round(c.baseSpeed * 5));
-      const risk = c.predationRate ? Math.round(c.predationRate * 5) : 0;
-      const life = c.lifespan === Infinity ? 5 : Math.min(5, Math.max(1, Math.round(c.lifespan / 6)));
-      const wonder = c.category === 'scifi' ? 5 : (c.specialAbilities.length ? 4 : 2);
-      const isActive = current && current.id === c.id;
-      return `
-        <div class="carrier-card ${isActive ? 'active' : ''}" data-carrier-id="${c.id}">
-          <div class="carrier-emoji">${c.emoji || '✉'}</div>
-          <div class="carrier-name">${c.name}</div>
-          <div class="carrier-meta">${c.category === 'real' ? '真实' : '科幻/奇幻'} · ${c.lore.slice(0, 18)}…</div>
-          <div class="carrier-stats">
-            ${['speed', 'life', 'risk', 'wonder'].map((k, i) => {
-              const v = [speed, life, risk, wonder][i];
-              const label = ['速', '寿', '险', '奇'][i];
-              return `<span class="carrier-stat" title="${label}">
-                <span class="carrier-stat-label">${label}</span>
-                <span class="carrier-stat-bars">${'▮'.repeat(v)}${'▯'.repeat(5 - v)}</span>
-              </span>`;
-            }).join('')}
-          </div>
-          <div class="carrier-lore">${c.lore}</div>
-        </div>`;
-    }).join('') || '<div class="carrier-grid-empty">信使库为空</div>';
 
-    grid.querySelectorAll('.carrier-card').forEach(card => {
-      card.addEventListener('click', () => this.selectCarrier(card.dataset.carrierId));
+    // 每次打开重置筛选状态，避免上次会话的过滤干扰
+    this._carrierFilter = { search: '', category: 'all', env: null };
+    this._renderCarrierToolbar();  // 初始渲染工具栏 + 绑定事件
+
+    grid.dataset.renderPending = '1';
+    overlay.classList.add('active');
+    overlay.setAttribute('aria-hidden', 'false');
+
+    this._loadXinshiIndex().then(() => {
+      if (!overlay.classList.contains('active')) return;
+      grid.dataset.renderPending = '';
+      this._refreshCarrierPicker();
     });
+
     // 回填在途/定时选项
     const transitCheck = document.getElementById('carrier-transit-check');
     const deliverAtInput = document.getElementById('carrier-deliver-at');
@@ -4136,8 +4638,6 @@ Object.assign(Editor, {
         ? new Date(this.letter.journeyDeliverAt).toISOString().slice(0, 16)
         : '';
     }
-    overlay.classList.add('active');
-    overlay.setAttribute('aria-hidden', 'false');
   },
 
   closeCarrierPicker() {
@@ -4153,11 +4653,28 @@ Object.assign(Editor, {
     const carrier = roster.find(c => c.id === carrierId);
     if (!carrier) return;
     this.letter.carrierId = carrier.id;
-    this._renderCarrierSelected();
-    // 生成预期提示
+    // 立即显示加载态，AI 文案到达后无缝替换
+    this._renderCarrierSelected('loading');
+    this._refreshCarrierInlineGrid();
     const status = document.getElementById('carrier-picker-status');
     if (status && window.JourneyEngine) {
-      status.textContent = `已选择「${carrier.name}」— ` + JourneyEngine.fuzzyTime(carrier);
+      status.textContent = `已选择「${carrier.name}」— 🎞 呼唤信使中…`;
+      if (typeof JourneyEngine.aiExpected === 'function') {
+        JourneyEngine.aiExpected(carrier, this.letter).then(aiText => {
+          // AI 成功：写入信件并刷新行内卡片（不依赖弹窗是否开启）
+          if (aiText) {
+            this.letter.expectedDelivery = aiText;
+            this._renderCarrierSelected('ready');
+            const st = document.getElementById('carrier-picker-status');
+            if (st && document.getElementById('carrier-picker-overlay').classList.contains('active')) {
+              st.textContent = `已选择「${carrier.name}」— ${aiText}`;
+            }
+          } else {
+            // AI 失败：回退本地兜底文案并标注
+            this._renderCarrierSelected('ready');
+          }
+        });
+      }
     }
     // 更新卡片高亮
     document.querySelectorAll('#carrier-picker-grid .carrier-card').forEach(card => {
@@ -4168,7 +4685,7 @@ Object.assign(Editor, {
     }
   },
 
-  _renderCarrierSelected() {
+  _renderCarrierSelected(state = 'ready') {
     const roster = window.CARRIER_ROSTER || [];
     const carrier = roster.find(c => c.id === this.letter.carrierId);
     const box = document.getElementById('carrier-selected');
@@ -4177,24 +4694,153 @@ Object.assign(Editor, {
       box.style.display = 'none';
       return;
     }
-    let expected = '';
-    if (window.JourneyEngine) expected = JourneyEngine.fuzzyTime(carrier);
+    box.style.setProperty('--carrier-accent', this._carrierThemeColor(carrier));
+    const art = this._resolveCarrierArt(carrier, this._xinshiIndex || {});
+    const emojiHtml = art && art.small
+      ? `<img src="${art.small}" alt="${carrier.name}" class="carrier-selected-img" onerror="__carrierImgFallback(this,'${carrier.emoji || '✉'}');">`
+      : `<span class="carrier-emoji-fallback">${carrier.emoji || '✉'}</span>`;
+
+    let expectedHtml = '';
+    if (state === 'loading') {
+      expectedHtml = `<div class="carrier-selected-expected carrier-expected-loading">🎞 呼唤信使中<span class="dots">…</span></div>`;
+    } else if (this.letter.expectedDelivery) {
+      expectedHtml = `<div class="carrier-selected-expected">预期抵达：${this.letter.expectedDelivery}</div>`;
+    } else if (window.JourneyEngine) {
+      expectedHtml = `<div class="carrier-selected-expected carrier-expected-fallback">预期抵达：${JourneyEngine.fuzzyTime(carrier)}（本地兜底文案）</div>`;
+    }
     box.style.display = 'block';
     box.innerHTML = `
       <div class="carrier-selected-row">
-        <span class="carrier-selected-emoji">${carrier.emoji || '✉'}</span>
+        <span class="carrier-selected-emoji">${emojiHtml}</span>
         <div class="carrier-selected-info">
           <div class="carrier-selected-name">${carrier.name}</div>
           <div class="carrier-selected-detail">${carrier.category === 'real' ? '真实' : '科幻/奇幻'}信使</div>
         </div>
         <button id="carrier-clear-btn" type="button" class="carrier-clear-btn">重选</button>
       </div>
-      ${expected ? `<div class="carrier-selected-expected">预期抵达：${expected}</div>` : ''}
+      ${expectedHtml}
     `;
     const clearBtn = document.getElementById('carrier-clear-btn');
     if (clearBtn) clearBtn.addEventListener('click', () => {
       delete this.letter.carrierId;
+      delete this.letter.expectedDelivery;
       this._renderCarrierSelected();
+      this._refreshCarrierInlineGrid();
+    });
+  },
+
+  // === 信使内联栏目（toolbar 常驻展开区） ===
+  _bindCarrierInlineControls() {
+    if (this._carrierInlineBound) return;
+    this._carrierInlineBound = true;
+
+    // 折叠/展开
+    const toggle = document.getElementById('carrier-section-toggle');
+    const body = document.getElementById('carrier-section-body');
+    const arrow = document.getElementById('carrier-collapse-arrow');
+    if (toggle && body) {
+      const toggleCollapse = () => {
+        const collapsed = body.classList.toggle('collapsed');
+        toggle.setAttribute('aria-expanded', String(!collapsed));
+        if (arrow) arrow.classList.toggle('collapsed', collapsed);
+      };
+      toggle.addEventListener('click', toggleCollapse);
+      toggle.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleCollapse(); }
+      });
+    }
+
+    // 随机信使
+    const randomInline = document.getElementById('carrier-random-inline');
+    if (randomInline) randomInline.addEventListener('click', () => {
+      const roster = window.CARRIER_ROSTER || [];
+      if (roster.length) this.selectCarrier(roster[Math.floor(Math.random() * roster.length)].id);
+    });
+
+    // 旅程选项（内联）：写入 letter 并镜像到弹窗控件
+    const transitInline = document.getElementById('carrier-transit-check-inline');
+    if (transitInline) transitInline.addEventListener('change', () => {
+      if (transitInline.checked) this.letter.journeyMode = 'transit';
+      else delete this.letter.journeyMode;
+      const overlayCheck = document.getElementById('carrier-transit-check');
+      if (overlayCheck) overlayCheck.checked = transitInline.checked;
+    });
+    const deliverInline = document.getElementById('carrier-deliver-at-inline');
+    if (deliverInline) deliverInline.addEventListener('change', () => {
+      if (deliverInline.value) this.letter.journeyDeliverAt = new Date(deliverInline.value).getTime();
+      else delete this.letter.journeyDeliverAt;
+      const overlayInput = document.getElementById('carrier-deliver-at');
+      if (overlayInput) overlayInput.value = deliverInline.value;
+    });
+
+    // 弹窗控件 change 时镜像回内联（保持两组一致）
+    const transitOverlay = document.getElementById('carrier-transit-check');
+    if (transitOverlay) transitOverlay.addEventListener('change', () => {
+      if (transitInline) transitInline.checked = transitOverlay.checked;
+    });
+    const deliverOverlay = document.getElementById('carrier-deliver-at');
+    if (deliverOverlay) deliverOverlay.addEventListener('change', () => {
+      if (deliverInline) deliverInline.value = deliverOverlay.value;
+    });
+  },
+
+  _renderCarrierInlineSection() {
+    const grid = document.getElementById('carrier-inline-grid');
+    if (!grid) return;
+    this._renderCarrierSelected();
+    // 回填旅程选项
+    const transitInline = document.getElementById('carrier-transit-check-inline');
+    if (transitInline) transitInline.checked = this.letter.journeyMode === 'transit';
+    const deliverInline = document.getElementById('carrier-deliver-at-inline');
+    if (deliverInline) {
+      if (this.letter.journeyDeliverAt) {
+        const d = new Date(this.letter.journeyDeliverAt);
+        const pad = n => String(n).padStart(2, '0');
+        deliverInline.value = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+      } else {
+        deliverInline.value = '';
+      }
+    }
+    // 更新"全部信使"按钮文案为实际总数
+    const openBtn = document.getElementById('open-carrier-picker');
+    const roster = window.CARRIER_ROSTER || [];
+    if (openBtn) openBtn.textContent = `全部 ${roster.length} 位信使…`;
+    // 推荐信使网格（保持 6 个内置真实信使，素材就绪后用图片重绘）
+    this._paintCarrierInlineGrid({});
+    this._loadXinshiIndex().then(({ map }) => this._paintCarrierInlineGrid(map || {}));
+  },
+
+  _refreshCarrierInlineGrid() {
+    // 选择变化后仅刷新高亮（无需等待素材索引）
+    const grid = document.getElementById('carrier-inline-grid');
+    if (!grid) return;
+    grid.querySelectorAll('.carrier-inline-card').forEach(card => {
+      card.classList.toggle('active', card.dataset.carrierId === this.letter.carrierId);
+    });
+  },
+
+  _paintCarrierInlineGrid(xinshiMap) {
+    const grid = document.getElementById('carrier-inline-grid');
+    if (!grid) return;
+    const roster = (window.CARRIER_ROSTER || []).filter(c => c.category === 'real' && !c._xinshi).slice(0, 6);
+    if (!roster.length) {
+      grid.innerHTML = '<div class="carrier-inline-empty">信使库为空</div>';
+      return;
+    }
+    grid.innerHTML = roster.map(c => {
+      const art = xinshiMap[c.id];
+      const isActive = this.letter.carrierId === c.id;
+      const artHtml = art && art.small
+        ? `<span class="carrier-inline-emoji"><img src="${art.small}" alt="${c.name}" class="carrier-img" onerror="__carrierImgFallback(this,'${c.emoji || '✉'}');"></span>`
+        : `<span class="carrier-inline-emoji">${c.emoji || '✉'}</span>`;
+      return `
+        <button type="button" class="carrier-inline-card ${isActive ? 'active' : ''}" style="--carrier-accent:${this._carrierThemeColor(c)};" data-carrier-id="${c.id}" title="${c.name} · ${c.lore.slice(0, 20)}…">
+          ${artHtml}
+          <span class="carrier-inline-name">${c.name}</span>
+        </button>`;
+    }).join('');
+    grid.querySelectorAll('.carrier-inline-card').forEach(card => {
+      card.addEventListener('click', () => this.selectCarrier(card.dataset.carrierId));
     });
   },
 
@@ -4230,7 +4876,10 @@ Object.assign(Editor, {
       }
       const opts = { mode: this.letter.journeyMode === 'transit' ? 'transit' : 'instant' };
       if (this.letter.journeyDeliverAt) opts.deliverAt = this.letter.journeyDeliverAt;
-      this.letter.journey = window.JourneyEngine.startJourney(this.letter, this.letter.carrierId, opts);
+      // AI 旅程（预期抵达/中途经历/结语），AI 失败自动回退本地模板
+      this.letter.journey = window.JourneyEngine.startJourneyWithAI
+        ? await window.JourneyEngine.startJourneyWithAI(this.letter, this.letter.carrierId, opts)
+        : window.JourneyEngine.startJourney(this.letter, this.letter.carrierId, opts);
     }
     if (sendButton) {
       sendButton.disabled = true;

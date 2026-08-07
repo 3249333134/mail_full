@@ -54,11 +54,11 @@ const COMPRESSIBLE_EXT = new Set([
   '.html', '.js', '.mjs', '.css', '.json', '.svg', '.txt', '.md', '.map', '.xml'
 ]);
 
-// 长缓存扩展名
+// 长缓存扩展名（生产环境可缓存；开发环境建议配合 no-cache 使用）
 const LONG_CACHE_EXT = new Set([
-  '.js', '.mjs', '.css', '.png', '.jpg', '.jpeg', '.gif', '.webp',
+  '.png', '.jpg', '.jpeg', '.gif', '.webp',
   '.svg', '.ico', '.bmp', '.mp3', '.wav', '.ogg', '.mp4', '.webm',
-  '.woff', '.woff2', '.ttf', '.eot', '.map', '.json'
+  '.woff', '.woff2', '.ttf', '.eot', '.map'
 ]);
 
 // ---------- 工具函数 ----------
@@ -90,8 +90,8 @@ function serveFile(res, filePath, status = 200, req = null) {
       'Access-Control-Allow-Origin': '*'
     };
 
-    // 缓存策略
-    if (ext === '.html') {
+    // 缓存策略：开发环境 CSS/JS 不缓存，避免改代码后浏览器仍用旧版本
+    if (ext === '.html' || ext === '.css' || ext === '.js' || ext === '.mjs') {
       headers['Cache-Control'] = 'no-cache, no-store, must-revalidate';
       headers['Pragma'] = 'no-cache';
       headers['Expires'] = '0';

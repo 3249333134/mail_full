@@ -1,0 +1,617 @@
+{
+  "generatedAt": "2026-08-07T00:06:11.952Z",
+  "licenseNote": "CC0=可商用无署名; OGA-BY=需署名; CC-BY=需署名; GPL/CC-BY-SA 谨慎使用",
+  "packages": [
+    {
+      "slug": "animated-wild-animals",
+      "tag": "wild-animals",
+      "note": "动物包：狼鹿兔狐等",
+      "url": "https://opengameart.org/content/animated-wild-animals",
+      "license": [
+        "CC0"
+      ],
+      "zip": "https://opengameart.org/sites/default/files/All.zip",
+      "title": "Animated Wild Animals | OpenGameArt.org"
+    },
+    {
+      "slug": "cute-16x16-animal-icons",
+      "tag": "cute-animals",
+      "note": "动物图标包 16x16",
+      "url": "https://opengameart.org/content/cute-16x16-animal-icons",
+      "license": [
+        "CC0"
+      ],
+      "zip": "https://opengameart.org/sites/default/files/cute_animal_icons.png",
+      "title": "Cute 16x16 Animal Icons | OpenGameArt.org"
+    },
+    {
+      "slug": "pixel-animals-16x16",
+      "tag": "pixel-animals",
+      "note": "像素动物 16x16",
+      "url": "https://opengameart.org/content/pixel-animals-16x16",
+      "license": [
+        "CC0"
+      ],
+      "zip": "https://opengameart.org/sites/default/files/AnimalsBigPreview_0.png",
+      "title": "Pixel Animals 16x16 | OpenGameArt.org"
+    },
+    {
+      "slug": "street-animal-pixel-art",
+      "tag": "street-animals",
+      "note": "街头动物（猫狗等）",
+      "url": "https://opengameart.org/content/street-animal-pixel-art",
+      "license": [
+        "OGA-BY 3.0"
+      ],
+      "zip": "https://opengameart.org/sites/default/files/street_animals.zip",
+      "title": "Street Animal Pixel Art | OpenGameArt.org"
+    },
+    {
+      "slug": "random-animals",
+      "tag": "random-animals",
+      "note": "随机动物合集",
+      "url": "https://opengameart.org/content/random-animals",
+      "license": [
+        "CC0"
+      ],
+      "zip": "https://opengameart.org/sites/default/files/All_9.zip",
+      "title": "Random animals | OpenGameArt.org"
+    },
+    {
+      "slug": "gb-funky-fauna",
+      "tag": "funky-fauna",
+      "note": "GB 风动物",
+      "url": "https://opengameart.org/content/gb-funky-fauna",
+      "license": [
+        "CC0"
+      ],
+      "zip": "https://opengameart.org/sites/default/files/gb-funky-fauna.zip",
+      "title": "gb funky fauna | OpenGameArt.org"
+    },
+    {
+      "slug": "admurins-flora-and-fauna",
+      "tag": "flora-fauna",
+      "note": "动植物合集",
+      "url": "https://opengameart.org/content/admurins-flora-and-fauna",
+      "license": [
+        "CC-BY 4.0"
+      ],
+      "zip": "https://opengameart.org/sites/default/files/premium_flora_fauna.zip",
+      "title": "Admurin's Flora and Fauna | OpenGameArt.org"
+    },
+    {
+      "slug": "tiny-creatures",
+      "tag": "tiny-creatures",
+      "note": "小生物（多种）",
+      "url": "https://opengameart.org/content/tiny-creatures",
+      "license": [
+        "CC0"
+      ],
+      "zip": "https://opengameart.org/sites/default/files/tiny-creatures.zip",
+      "title": "Tiny Creatures | OpenGameArt.org"
+    },
+    {
+      "slug": "pond-pals-art-pack",
+      "tag": "pond-pals",
+      "note": "池塘生物",
+      "url": "https://opengameart.org/content/pond-pals-art-pack",
+      "license": [
+        "OGA-BY 4.0"
+      ],
+      "zip": "https://opengameart.org/sites/default/files/pond_pals_art_pack_0.zip",
+      "title": "Pond Pals Art Pack | OpenGameArt.org"
+    },
+    {
+      "slug": "16x16-pigeon-shrimp-bee-snail-pack",
+      "tag": "pigeon-bee-snail",
+      "note": "鸽子蜜蜂蜗牛虾",
+      "url": "https://opengameart.org/content/16x16-pigeon-shrimp-bee-snail-pack",
+      "license": [
+        "CC-BY 4.0"
+      ],
+      "zip": "https://opengameart.org/sites/default/files/new_piskel_49_0.png",
+      "title": "16x16 Pigeon, Shrimp, Bee, Snail Pack | OpenGameArt.org"
+    },
+    {
+      "slug": "frog-dogcatpig2d-pixel-1616",
+      "tag": "frog-dog-cat-pig",
+      "note": "青蛙狗猫猪",
+      "url": "https://opengameart.org/content/frog-dogcatpig2d-pixel-1616",
+      "license": [
+        "CC0"
+      ],
+      "zip": "https://opengameart.org/sites/default/files/all_43.png",
+      "title": "Frog ,dog,cat,pig,2d pixel 16*16 | OpenGameArt.org"
+    },
+    {
+      "slug": "pixel-art-dog-and-cat",
+      "tag": "dog-cat",
+      "note": "狗和猫",
+      "url": "https://opengameart.org/content/pixel-art-dog-and-cat",
+      "license": [
+        "CC0"
+      ],
+      "zip": "https://opengameart.org/sites/default/files/pixel_dog.png",
+      "title": "Pixel art dog and cat | OpenGameArt.org"
+    },
+    {
+      "slug": "cats-pixel-art",
+      "tag": "cats",
+      "note": "猫合集",
+      "url": "https://opengameart.org/content/cats-pixel-art",
+      "license": [
+        "CC-BY 4.0"
+      ],
+      "zip": "https://opengameart.org/sites/default/files/cats.zip",
+      "title": "Cats"
+    },
+    {
+      "slug": "dogwolf-spritesheet",
+      "tag": "dog-wolf",
+      "note": "狗/狼精灵表",
+      "url": "https://opengameart.org/content/dogwolf-spritesheet",
+      "license": [
+        "CC0"
+      ],
+      "zip": "https://opengameart.org/sites/default/files/Dog_0.png",
+      "title": "Dog/Wolf spritesheet | OpenGameArt.org"
+    },
+    {
+      "slug": "wolf-pack-32x32-walking-wolf-animation",
+      "tag": "wolf-pack",
+      "note": "狼走路动画",
+      "url": "https://opengameart.org/content/wolf-pack-32x32-walking-wolf-animation",
+      "license": [
+        "CC0"
+      ],
+      "zip": "https://opengameart.org/sites/default/files/Wolfpack_1.png",
+      "title": "Wolf Pack! 32x32 Walking Wolf Animation | OpenGameArt.org"
+    },
+    {
+      "slug": "fox-1",
+      "tag": "fox",
+      "note": "狐狸",
+      "url": "https://opengameart.org/content/fox-1",
+      "license": [
+        "CC0"
+      ],
+      "zip": "https://opengameart.org/sites/default/files/fox_sample.png",
+      "title": "Fox | OpenGameArt.org"
+    },
+    {
+      "slug": "bunny-sprite",
+      "tag": "bunny",
+      "note": "兔子",
+      "url": "https://opengameart.org/content/bunny-sprite",
+      "license": [
+        "CC-BY-SA 4.0",
+        "CC-BY-SA 3.0",
+        "GPL 3.0",
+        "GPL 2.0"
+      ],
+      "zip": "https://opengameart.org/sites/default/files/bunny-hop-animation-faster.gif",
+      "title": "Bunny sprite | OpenGameArt.org"
+    },
+    {
+      "slug": "horse-pixel-art-animation",
+      "tag": "horse",
+      "note": "马动画",
+      "url": "https://opengameart.org/content/horse-pixel-art-animation",
+      "license": [
+        "CC0"
+      ],
+      "zip": "https://opengameart.org/sites/default/files/horse_png.zip",
+      "title": "Horse Pixel Art Animation | OpenGameArt.org"
+    },
+    {
+      "slug": "tiny-horses",
+      "tag": "tiny-horses",
+      "note": "小马",
+      "url": "https://opengameart.org/content/tiny-horses",
+      "license": [
+        "CC-BY 3.0"
+      ],
+      "zip": "https://opengameart.org/sites/default/files/tinyHorses.zip",
+      "title": "Tiny Horses | OpenGameArt.org"
+    },
+    {
+      "slug": "pixel-squirrel",
+      "tag": "squirrel",
+      "note": "松鼠",
+      "url": "https://opengameart.org/content/pixel-squirrel",
+      "license": [
+        "CC0"
+      ],
+      "zip": "https://opengameart.org/sites/default/files/sqrl_5frames_2.gif",
+      "title": "Pixel Squirrel | OpenGameArt.org"
+    },
+    {
+      "slug": "open-ocean-game-art-mostly-2d-fish-animations",
+      "tag": "ocean-fish",
+      "note": "海洋鱼类",
+      "url": "https://opengameart.org/content/open-ocean-game-art-mostly-2d-fish-animations",
+      "license": [
+        "CC-BY 3.0",
+        "CC-BY 4.0"
+      ],
+      "zip": "https://opengameart.org/sites/default/files/OpenOceanArt.zip",
+      "title": "Open Ocean Game Art (Mostly 2D Fish Animations) | OpenGameArt.org"
+    },
+    {
+      "slug": "turkey-0",
+      "tag": "turkey",
+      "note": "火鸡",
+      "url": "https://opengameart.org/content/turkey-0",
+      "license": [
+        "CC0"
+      ],
+      "zip": "https://opengameart.org/sites/default/files/turkeysheet1.png",
+      "title": "Turkey | OpenGameArt.org"
+    },
+    {
+      "slug": "pixel-art-duck-20x20",
+      "tag": "duck",
+      "note": "鸭子",
+      "url": "https://opengameart.org/content/pixel-art-duck-20x20",
+      "license": [
+        "CC0"
+      ],
+      "zip": "https://opengameart.org/sites/default/files/new_piskel_39.png",
+      "title": "Pixel art duck 20x20 | OpenGameArt.org"
+    },
+    {
+      "slug": "64x64-pixel-art-pixel-bird",
+      "tag": "pixel-bird",
+      "note": "像素鸟",
+      "url": "https://opengameart.org/content/64x64-pixel-art-pixel-bird",
+      "license": [
+        "CC-BY 4.0"
+      ],
+      "zip": "https://opengameart.org/sites/default/files/Pixel_Bird_png_0.png",
+      "title": "64x64 Pixel Art: Pixel Bird | OpenGameArt.org"
+    },
+    {
+      "slug": "blue-bird-48x48",
+      "tag": "blue-bird",
+      "note": "蓝鸟",
+      "url": "https://opengameart.org/content/blue-bird-48x48",
+      "license": [
+        "CC-BY 3.0"
+      ],
+      "zip": "https://opengameart.org/sites/default/files/arara_voa.gif",
+      "title": "Blue Bird 48x48 | OpenGameArt.org"
+    },
+    {
+      "slug": "16x16-echinoderms",
+      "tag": "echinoderms",
+      "note": "棘皮动物（海星海胆）",
+      "url": "https://opengameart.org/content/16x16-echinoderms",
+      "license": [
+        "CC0"
+      ],
+      "zip": "https://opengameart.org/sites/default/files/all_echinoderms.zip",
+      "title": "16x16 Echinoderms | OpenGameArt.org"
+    },
+    {
+      "slug": "10-fantasy-rpg-enemies",
+      "tag": "fantasy-enemies",
+      "note": "10种RPG敌人",
+      "url": "https://opengameart.org/content/10-fantasy-rpg-enemies",
+      "license": [
+        "CC-BY 3.0",
+        "CC-BY-SA 3.0",
+        "GPL 3.0",
+        "GPL 2.0"
+      ],
+      "zip": "https://opengameart.org/sites/default/files/enemies-preview.png",
+      "title": "10 Fantasy RPG enemies | OpenGameArt.org"
+    },
+    {
+      "slug": "15-pixel-bones-and-skeletons",
+      "tag": "bones-skeletons",
+      "note": "骷髅骨头",
+      "url": "https://opengameart.org/content/15-pixel-bones-and-skeletons",
+      "license": [
+        "CC0"
+      ],
+      "zip": "https://opengameart.org/sites/default/files/bones.jpg",
+      "title": "15 Pixel Bones and skeletons | OpenGameArt.org"
+    },
+    {
+      "slug": "werewolf",
+      "tag": "werewolf",
+      "note": "狼人",
+      "url": "https://opengameart.org/content/werewolf",
+      "license": [
+        "CC-BY 4.0"
+      ],
+      "zip": "https://opengameart.org/sites/default/files/1536892116312Instagram_last_0.png",
+      "title": "WereWolf | OpenGameArt.org"
+    },
+    {
+      "slug": "cat-demon",
+      "tag": "cat-demon",
+      "note": "猫恶魔",
+      "url": "https://opengameart.org/content/cat-demon",
+      "license": [
+        "CC-BY 4.0",
+        "CC-BY 3.0",
+        "CC-BY-SA 4.0",
+        "CC-BY-SA 3.0"
+      ],
+      "zip": "https://opengameart.org/sites/default/files/CatDemonA.png",
+      "title": "Cat Demon | OpenGameArt.org"
+    },
+    {
+      "slug": "pixel-dragon",
+      "tag": "pixel-dragon",
+      "note": "像素龙",
+      "url": "https://opengameart.org/content/pixel-dragon",
+      "license": [
+        "CC0"
+      ],
+      "zip": "https://opengameart.org/sites/default/files/Dragon%20Base.png",
+      "title": "Pixel Dragon | OpenGameArt.org"
+    },
+    {
+      "slug": "chinese-dragon",
+      "tag": "chinese-dragon",
+      "note": "中国龙",
+      "url": "https://opengameart.org/content/chinese-dragon",
+      "license": [
+        "GPL 2.0"
+      ],
+      "zip": "https://opengameart.org/sites/default/files/Dragon%20sprite1_0.png",
+      "title": "Chinese dragon | OpenGameArt.org"
+    },
+    {
+      "slug": "dragon-idle-animation",
+      "tag": "dragon-idle",
+      "note": "龙待机动画",
+      "url": "https://opengameart.org/content/dragon-idle-animation",
+      "license": [
+        "CC-BY 3.0"
+      ],
+      "zip": "https://opengameart.org/sites/default/files/drag%20idle.gif",
+      "title": "Dragon idle animation | OpenGameArt.org"
+    },
+    {
+      "slug": "dragon-icon-pack",
+      "tag": "dragon-icons",
+      "note": "龙图标包",
+      "url": "https://opengameart.org/content/dragon-icon-pack",
+      "license": [
+        "CC-BY 3.0",
+        "OGA-BY 3.0"
+      ],
+      "zip": "https://opengameart.org/sites/default/files/Dragon%20Icon%20Pack.zip",
+      "title": "Dragon Icon Pack | OpenGameArt.org"
+    },
+    {
+      "slug": "magic-pixel-art",
+      "tag": "magic",
+      "note": "魔法特效",
+      "url": "https://opengameart.org/content/magic-pixel-art",
+      "license": [
+        "CC-BY 3.0"
+      ],
+      "zip": "https://opengameart.org/sites/default/files/Magic%20Pixel%20Art.zip",
+      "title": "Magic"
+    },
+    {
+      "slug": "dawnlike-16x16-universal-rogue-like-tileset-v181",
+      "tag": "dawnlike",
+      "note": "roguelike 全生物超大包",
+      "url": "https://opengameart.org/content/dawnlike-16x16-universal-rogue-like-tileset-v181",
+      "license": [
+        "CC-BY 4.0"
+      ],
+      "zip": "https://opengameart.org/sites/default/files/DawnLike_5.zip",
+      "title": "DawnLike"
+    },
+    {
+      "slug": "16x16-fantasy-pixel-art-vehicles",
+      "tag": "fantasy-vehicles",
+      "note": "16x16 奇幻载具",
+      "url": "https://opengameart.org/content/16x16-fantasy-pixel-art-vehicles",
+      "license": [
+        "CC-BY 3.0",
+        "CC-BY-SA 3.0",
+        "GPL 3.0",
+        "GPL 2.0"
+      ],
+      "zip": "https://opengameart.org/sites/default/files/fullsheet.png.preview.jpg",
+      "title": "16x16 fantasy pixel art vehicles | OpenGameArt.org"
+    },
+    {
+      "slug": "pixel-vehicle-pack",
+      "tag": "pixel-vehicles-1",
+      "note": "像素载具包1",
+      "url": "https://opengameart.org/content/pixel-vehicle-pack",
+      "license": [
+        "CC0"
+      ],
+      "zip": "https://opengameart.org/sites/default/files/pixelCarPack_kenney.zip",
+      "title": "Pixel Vehicle Pack | OpenGameArt.org"
+    },
+    {
+      "slug": "pixel-vehicle-pack-0",
+      "tag": "pixel-vehicles-2",
+      "note": "像素载具包2",
+      "url": "https://opengameart.org/content/pixel-vehicle-pack-0",
+      "license": [
+        "CC0"
+      ],
+      "zip": "https://opengameart.org/sites/default/files/combined-image_1.png",
+      "title": "Pixel Vehicle Pack | OpenGameArt.org"
+    },
+    {
+      "slug": "wooden-boat",
+      "tag": "wooden-boat",
+      "note": "木船",
+      "url": "https://opengameart.org/content/wooden-boat",
+      "license": [
+        "CC0"
+      ],
+      "zip": "https://opengameart.org/sites/default/files/boat_0.jpg",
+      "title": "Wooden Boat | OpenGameArt.org"
+    },
+    {
+      "slug": "animated-pixel-art-raft-sprite",
+      "tag": "raft",
+      "note": "竹筏",
+      "url": "https://opengameart.org/content/animated-pixel-art-raft-sprite",
+      "license": [
+        "CC-BY 4.0"
+      ],
+      "zip": "https://opengameart.org/sites/default/files/floss-big_animation-preview.gif",
+      "title": "Animated Pixel Art Raft Sprite | OpenGameArt.org"
+    },
+    {
+      "slug": "lpc-ship",
+      "tag": "lpc-ship",
+      "note": "帆船",
+      "url": "https://opengameart.org/content/lpc-ship",
+      "license": [
+        "CC-BY 4.0",
+        "GPL 3.0",
+        "GPL 2.0",
+        "OGA-BY 3.0"
+      ],
+      "zip": "https://opengameart.org/sites/default/files/lpc-ship.zip",
+      "title": "[LPC] Ship | OpenGameArt.org"
+    },
+    {
+      "slug": "hot-air-balloon",
+      "tag": "hot-air-balloon",
+      "note": "热气球",
+      "url": "https://opengameart.org/content/hot-air-balloon",
+      "license": [
+        "CC0"
+      ],
+      "zip": "https://opengameart.org/sites/default/files/HotAirBalloon_1.png",
+      "title": "Hot air balloon | OpenGameArt.org"
+    },
+    {
+      "slug": "airship-and-hot-air-balloon",
+      "tag": "airship",
+      "note": "飞艇+热气球",
+      "url": "https://opengameart.org/content/airship-and-hot-air-balloon",
+      "license": [
+        "CC0"
+      ],
+      "zip": "https://opengameart.org/sites/default/files/airship_2.png",
+      "title": "airship and hot air balloon | OpenGameArt.org"
+    },
+    {
+      "slug": "saturn-v-pixel-rocket",
+      "tag": "rocket",
+      "note": "土星5火箭",
+      "url": "https://opengameart.org/content/saturn-v-pixel-rocket",
+      "license": [
+        "CC-BY 3.0"
+      ],
+      "zip": "https://opengameart.org/sites/default/files/SaturnVPixelRocket_1.PNG",
+      "title": "Saturn V Pixel Rocket | OpenGameArt.org"
+    },
+    {
+      "slug": "8-bit-space-shuttle",
+      "tag": "space-shuttle",
+      "note": "太空梭",
+      "url": "https://opengameart.org/content/8-bit-space-shuttle",
+      "license": [
+        "CC0"
+      ],
+      "zip": "https://opengameart.org/sites/default/files/Space%20Shuttle_0.png",
+      "title": "8-Bit Space Shuttle | OpenGameArt.org"
+    },
+    {
+      "slug": "pixel-lightning",
+      "tag": "lightning",
+      "note": "闪电",
+      "url": "https://opengameart.org/content/pixel-lightning",
+      "license": [
+        "CC-BY 4.0"
+      ],
+      "zip": "https://opengameart.org/sites/default/files/Lightning.png",
+      "title": "Pixel Lightning | OpenGameArt.org"
+    },
+    {
+      "slug": "space-pixel-art",
+      "tag": "space",
+      "note": "太空元素",
+      "url": "https://opengameart.org/content/space-pixel-art",
+      "license": [
+        "CC-BY 4.0"
+      ],
+      "zip": "https://opengameart.org/sites/default/files/Space%20Pixel.zip",
+      "title": "Space"
+    },
+    {
+      "slug": "wintery-pixel-art-pack",
+      "tag": "wintery",
+      "note": "冬季元素",
+      "url": "https://opengameart.org/content/wintery-pixel-art-pack",
+      "license": [
+        "CC0"
+      ],
+      "zip": "https://opengameart.org/sites/default/files/winter-pixel-pack.zip",
+      "title": "Wintery Pixel Art Pack | OpenGameArt.org"
+    },
+    {
+      "slug": "winter-pixel-art-background-with-mountain",
+      "tag": "winter-mountain",
+      "note": "雪山背景",
+      "url": "https://opengameart.org/content/winter-pixel-art-background-with-mountain",
+      "license": [
+        "OGA-BY 3.0"
+      ],
+      "zip": "https://opengameart.org/sites/default/files/winter_pixel_art_background_with_mountain.zip",
+      "title": "Winter Pixel Art Background With Mountain | OpenGameArt.org"
+    },
+    {
+      "slug": "footprints",
+      "tag": "footprints",
+      "note": "脚印痕迹",
+      "url": "https://opengameart.org/content/footprints",
+      "license": [
+        "CC0"
+      ],
+      "zip": "https://opengameart.org/sites/default/files/footprints_0.png",
+      "title": "Footprints | OpenGameArt.org"
+    },
+    {
+      "slug": "footprint-shoeprint-silhouette",
+      "tag": "footprint-silhouette",
+      "note": "脚印剪影",
+      "url": "https://opengameart.org/content/footprint-shoeprint-silhouette",
+      "license": [
+        "CC0"
+      ],
+      "zip": "https://opengameart.org/sites/default/files/shoeprint_0.png",
+      "title": "Footprint/ shoeprint silhouette | OpenGameArt.org"
+    },
+    {
+      "slug": "fx-smoke-trail-pixel",
+      "tag": "smoke-trail",
+      "note": "烟雾拖尾",
+      "url": "https://opengameart.org/content/fx-smoke-trail-pixel",
+      "license": [
+        "CC0"
+      ],
+      "zip": "https://opengameart.org/sites/default/files/Smoke-Trail.gif",
+      "title": "FX Smoke Trail Pixel | OpenGameArt.org"
+    },
+    {
+      "slug": "rocket-thruster-effect-animations",
+      "tag": "rocket-thruster",
+      "note": "火箭推进痕迹",
+      "url": "https://opengameart.org/content/rocket-thruster-effect-animations",
+      "license": [
+        "CC0"
+      ],
+      "zip": "https://opengameart.org/sites/default/files/rc_art_-_rocket_thruster_animations.zip",
+      "title": "Rocket Thruster Effect Animations | OpenGameArt.org"
+    }
+  ]
+}
