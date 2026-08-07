@@ -155,6 +155,9 @@ code { background:rgba(35,43,61,.06); padding:2px 7px; border-radius:5px; font-f
     <div class="nav-item" data-panel="letters">
       <span class="icon">✉️</span> 信件收发
     </div>
+    <div class="nav-item" data-panel="carriers">
+      <span class="icon">🕊️</span> 信使管理
+    </div>
     <div class="nav-item" data-panel="world">
       <span class="icon">🌍</span> 游戏世界
     </div>
@@ -250,6 +253,27 @@ code { background:rgba(35,43,61,.06); padding:2px 7px; border-radius:5px; font-f
         <button class="btn btn-primary btn-sm" onclick="openLetterModal()">+ 发送新信件</button>
       </div>
       <div class="card-body" id="lettersTable"></div>
+    </div>
+  </div>
+
+  <!-- ======== 信使管理 ======== -->
+  <div class="panel" id="panel-carriers">
+    <div class="card">
+      <div class="card-header">
+        <h3>信使列表（<span id="carrierCountBadge">0</span>）</h3>
+        <button class="btn btn-primary btn-sm" onclick="openCarrierModal()">+ 新建信使</button>
+      </div>
+      <div class="card-body">
+        <div class="search-bar">
+          <input type="text" id="carrierSearch" placeholder="🔍 搜索信使 ID/名称..." oninput="renderCarriers()">
+          <select id="carrierCatFilter" onchange="renderCarriers()">
+            <option value="all">全部类别</option>
+            <option value="real">真实</option>
+            <option value="scifi">科幻/奇幻</option>
+          </select>
+        </div>
+        <div id="carriersTable"></div>
+      </div>
     </div>
   </div>
 
@@ -545,6 +569,45 @@ code { background:rgba(35,43,61,.06); padding:2px 7px; border-radius:5px; font-f
   </div>
 </div>
 
+<!-- ======== 模态框: 新建/编辑信使 ======== -->
+<div class="modal-overlay" id="modal-edit-carrier">
+  <div class="modal" style="max-width:800px">
+    <h3 id="ec-title">新建信使</h3>
+    <p style="font-size:12px;color:var(--text-secondary);margin-bottom:12px">
+      使用已有 ID（含内置）保存即为“编辑/覆盖”；内置可“禁用”（隐藏）或“还原”恢复默认；自定义可直接“删除”。
+      图片路径使用 /api/assets 相对路径（如 mailfile/xinshi/工蚁/small.png）。
+    </p>
+    <div class="form-row">
+      <div class="form-group"><label>ID</label><input id="ec-id" placeholder="唯一标识，如 my-carrier"></div>
+      <div class="form-group"><label>名称</label><input id="ec-name" placeholder="信使名称"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>类别</label>
+        <select id="ec-category"><option value="real">真实</option><option value="scifi">科幻/奇幻</option></select>
+      </div>
+      <div class="form-group"><label>Emoji</label><input id="ec-emoji" placeholder="🐜"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>环境偏好（逗号分隔）</label><input id="ec-env" placeholder="land, sky, water"></div>
+      <div class="form-group"><label>特殊能力（逗号分隔）</label><input id="ec-abilities" placeholder="homing, warp"></div>
+    </div>
+    <div class="form-group"><label>图鉴（small / large 路径或 URL）</label>
+      <div class="form-row">
+        <input id="ec-small" placeholder="small 小图"><input id="ec-large" placeholder="large 大图">
+      </div>
+    </div>
+    <div class="form-group"><label>描述 lore</label><textarea id="ec-lore" rows="2"></textarea></div>
+    <details style="margin-top:8px">
+      <summary style="cursor:pointer;font-size:13px;color:var(--text-secondary)">高级 JSON（完整定义，含 baseSpeed/lifespan/timeSense 等）</summary>
+      <div class="form-group" style="margin-top:8px"><textarea id="ec-json" rows="14" style="font-family:monospace;font-size:12px" placeholder='{"baseSpeed":0.5,"lifespan":10,"timeSense":"normal",...}'></textarea></div>
+    </details>
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="closeModal('modal-edit-carrier')">取消</button>
+      <button class="btn btn-primary" onclick="saveCarrierDef()">保存信使</button>
+    </div>
+  </div>
+</div>
+
 <!-- ======== 模态框: 注册账号 ======== -->
 <div class="modal-overlay" id="modal-register">
   <div class="modal">
@@ -779,6 +842,7 @@ async function refresh() {
   else if (panelId === 'panel-characters') renderCharacterBindings();
   else if (panelId === 'panel-mailboxes') renderMailboxes();
   else if (panelId === 'panel-letters') renderLetters();
+  else if (panelId === 'panel-carriers') renderCarriers();
   else if (panelId === 'panel-world') renderWorldState();
   else if (panelId === 'panel-websocket') renderWSState();
   else if (panelId === 'panel-combat') renderCombatProfiles();
@@ -1794,6 +1858,173 @@ async function saveEditMapDef() {
   } catch (e) {
     alert('请求失败：' + e.message);
   }
+}
+
+// ═══════ 信使管理 ═══════
+
+async function renderCarriers() {
+  const el = document.getElementById('carriersTable');
+  if (!el) return;
+  el.innerHTML = '<p style="color:var(--text-secondary)">加载中...</p>';
+  try {
+    const data = await apiGet('/api/admin/carriers');
+    let list = data.carriers || [];
+    const q = (document.getElementById('carrierSearch')?.value || '').trim().toLowerCase();
+    const cat = document.getElementById('carrierCatFilter')?.value || 'all';
+    if (q) list = list.filter(c => (c.id || '').toLowerCase().includes(q) || (c.name || '').toLowerCase().includes(q));
+    if (cat !== 'all') list = list.filter(c => (c.category || 'real') === cat);
+    document.getElementById('carrierCountBadge').textContent = list.length;
+    if (!list.length) {
+      el.innerHTML = '<p style="color:var(--text-secondary)">暂无信使。</p>';
+      return;
+    }
+    let html = '<table style="width:100%"><thead><tr><th>图</th><th>ID</th><th>名称</th><th>类别</th><th>环境</th><th>能力</th><th>来源</th><th>素材</th><th>操作</th></tr></thead><tbody>';
+    for (const c of list) {
+      const catTag = (c.category === 'scifi')
+        ? '<span class="tag tag-purple">科幻</span>'
+        : '<span class="tag tag-green">真实</span>';
+      const envs = (c.envPreference || []).join(', ') || '-';
+      const abils = (c.specialAbilities || []).join(', ') || '-';
+      const sourceTag = c._custom
+        ? '<span class="tag tag-green">自定义</span>'
+        : (c._modified
+            ? '<span class="tag tag-blue">内置·已修改</span>'
+            : '<span class="tag tag-blue">内置</span>');
+      const assetTag = (c.small || c.large)
+        ? '<span class="tag tag-green">有图</span>'
+        : '<span class="tag tag-gray">emoji</span>';
+      const thumb = c.small
+        ? `<img src="${esc(c.small)}" alt="" style="width:36px;height:36px;object-fit:contain;image-rendering:pixelated">`
+        : `<span style="font-size:22px">${esc(c.emoji || '✉')}</span>`;
+      const editBtn = `<button class="btn btn-outline btn-sm" onclick="openCarrierModal('${esc(c.id)}')">编辑</button>`;
+      const restoreBtn = (c._builtin && c._modified)
+        ? `<button class="btn btn-outline btn-sm" onclick="restoreCarrierDef('${esc(c.id)}')">还原</button>`
+        : '';
+      const delBtn = c._builtin
+        ? `<button class="btn btn-danger btn-sm" onclick="disableCarrierDef('${esc(c.id)}')">禁用</button>`
+        : `<button class="btn btn-danger btn-sm" onclick="deleteCarrierDef('${esc(c.id)}')">删除</button>`;
+      html += `<tr>
+        <td>${thumb}</td>
+        <td><code>${esc(c.id)}</code></td>
+        <td><strong>${esc(c.name || c.id)}</strong></td>
+        <td>${catTag}</td>
+        <td style="max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${esc(envs)}">${esc(envs)}</td>
+        <td style="max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${esc(abils)}">${esc(abils)}</td>
+        <td>${sourceTag}</td>
+        <td>${assetTag}</td>
+        <td>${editBtn} ${restoreBtn} ${delBtn}</td>
+      </tr>`;
+    }
+    html += '</tbody></table>';
+    el.innerHTML = html;
+  } catch (e) {
+    el.innerHTML = `<p style="color:var(--danger)">加载失败：${esc(e.message)}</p>`;
+  }
+}
+
+function openCarrierModal(carrierId) {
+  const setTitle = document.getElementById('ec-title');
+  const fields = ['ec-id', 'ec-name', 'ec-emoji', 'ec-env', 'ec-abilities', 'ec-small', 'ec-large', 'ec-lore', 'ec-json'];
+  fields.forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+  const catSel = document.getElementById('ec-category');
+  if (catSel) catSel.value = 'real';
+  if (!carrierId) {
+    setTitle.textContent = '新建信使';
+    document.getElementById('ec-id').removeAttribute('readonly');
+    document.getElementById('modal-edit-carrier').classList.add('show');
+    return;
+  }
+  apiGet('/api/admin/carriers').then(data => {
+    const c = (data.carriers || []).find(x => x.id === carrierId);
+    if (!c) { alert('未找到信使'); return; }
+    setTitle.textContent = '编辑信使：' + carrierId + (c._builtin ? '（内置' + (c._modified ? '·已修改' : '') + '）' : '（自定义）');
+    const idEl = document.getElementById('ec-id');
+    if (c._builtin) idEl.setAttribute('readonly', 'readonly'); else idEl.removeAttribute('readonly');
+    idEl.value = c.id || '';
+    document.getElementById('ec-name').value = c.name || '';
+    if (c.category && [...catSel.options].some(o => o.value === c.category)) catSel.value = c.category;
+    document.getElementById('ec-emoji').value = c.emoji || '';
+    document.getElementById('ec-env').value = (c.envPreference || []).join(', ');
+    document.getElementById('ec-abilities').value = (c.specialAbilities || []).join(', ');
+    document.getElementById('ec-small').value = c.small ? String(c.small).replace(/^.*\/api\/assets\//, '') : '';
+    document.getElementById('ec-large').value = c.large ? String(c.large).replace(/^.*\/api\/assets\//, '') : '';
+    document.getElementById('ec-lore').value = c.lore || '';
+    document.getElementById('ec-json').value = JSON.stringify(stripDefMeta(c), null, 2);
+    document.getElementById('modal-edit-carrier').classList.add('show');
+  }).catch(e => alert('加载失败：' + e.message));
+}
+
+async function saveCarrierDef() {
+  const id = (document.getElementById('ec-id').value || '').trim();
+  const name = (document.getElementById('ec-name').value || '').trim();
+  if (!id) { alert('请填写信使 ID'); return; }
+  if (!name) { alert('请填写信使名称'); return; }
+  const definition = { id, name };
+  const cat = document.getElementById('ec-category').value;
+  if (cat) definition.category = cat;
+  const emoji = document.getElementById('ec-emoji').value.trim();
+  if (emoji) definition.emoji = emoji;
+  const env = document.getElementById('ec-env').value.split(/[,，\s]+/).map(s => s.trim()).filter(Boolean);
+  if (env.length) definition.envPreference = env;
+  const abils = document.getElementById('ec-abilities').value.split(/[,，\s]+/).map(s => s.trim()).filter(Boolean);
+  if (abils.length) definition.specialAbilities = abils;
+  const small = document.getElementById('ec-small').value.trim();
+  if (small) definition.small = small;
+  const large = document.getElementById('ec-large').value.trim();
+  if (large) definition.large = large;
+  const lore = document.getElementById('ec-lore').value.trim();
+  if (lore) definition.lore = lore;
+  // 高级 JSON 合并（其余字段，如 baseSpeed/lifespan/timeSense 等）
+  const jsonText = document.getElementById('ec-json').value.trim();
+  if (jsonText) {
+    try {
+      const parsed = JSON.parse(jsonText);
+      if (parsed && typeof parsed === 'object') Object.assign(definition, parsed);
+    } catch (_) {
+      // JSON 解析失败则忽略高级字段，仅用表单字段
+    }
+  }
+  definition.id = id;
+  definition.name = name;
+  try {
+    const data = await apiPost('/api/admin/carriers', { definition });
+    if (data.success) {
+      alert('信使已保存！');
+      closeModal('modal-edit-carrier');
+      renderCarriers();
+    } else {
+      alert('保存失败：' + (data.message || data.error || '未知错误'));
+    }
+  } catch (e) {
+    alert('请求失败：' + e.message);
+  }
+}
+
+async function disableCarrierDef(carrierId) {
+  if (!confirm(`确定禁用内置信使 "${carrierId}" 吗？禁用后将从信使列表中隐藏（可重新保存或点击还原恢复）。`)) return;
+  try {
+    const data = await apiPost(`/api/admin/carriers/${encodeURIComponent(carrierId)}/delete`);
+    if (data.success) { alert('内置信使已禁用'); renderCarriers(); }
+    else alert('禁用失败：' + (data.message || '未知错误'));
+  } catch (e) { alert('请求失败：' + e.message); }
+}
+
+async function deleteCarrierDef(carrierId) {
+  if (!confirm(`确定删除自定义信使 "${carrierId}" 吗？（此操作不可撤销）`)) return;
+  try {
+    const data = await apiPost(`/api/admin/carriers/${encodeURIComponent(carrierId)}/delete`);
+    if (data.success) { alert('信使已删除'); renderCarriers(); }
+    else alert('删除失败：' + (data.message || '未知错误'));
+  } catch (e) { alert('请求失败：' + e.message); }
+}
+
+async function restoreCarrierDef(carrierId) {
+  if (!confirm(`确定还原信使 "${carrierId}" 吗？内置将恢复为默认定义，自定义将被移除。`)) return;
+  try {
+    const data = await apiPost(`/api/admin/carriers/${encodeURIComponent(carrierId)}/restore`);
+    if (data.success) { alert('信使已还原'); renderCarriers(); }
+    else alert('还原失败：' + (data.message || '未知错误'));
+  } catch (e) { alert('请求失败：' + e.message); }
 }
 
 // ═══════ 资源包上传 ═══════

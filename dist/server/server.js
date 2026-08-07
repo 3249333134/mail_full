@@ -23,6 +23,10 @@ const {
   mapDefinitions
 } = require('./xiejianGameData');
 
+// 内置信使判定：以 carrierSeed.BUILTIN_CARRIERS（与前端 carrier-roster.js 一致的 17 个）为准
+const BUILTIN_CARRIER_IDS = new Set((carrierSeed.BUILTIN_CARRIERS || []).map(c => c.id));
+function isBuiltinCarrier(id) { return BUILTIN_CARRIER_IDS.has(id); }
+
 const poxiaoData = require('./poxiaoGameData');
 const poxiaoItemDefinitions = poxiaoData.itemDefinitions;
 const poxiaoCharacterDefinitions = poxiaoData.characterDefinitions;
@@ -1479,8 +1483,23 @@ async function handleApi(req, res, parsedUrl) {
     if (req.method === 'GET' && parsedUrl.pathname === '/api/carriers') {
       let carriers = [];
       try {
-        carriers = await mysqlDao.listCarrierDefinitions();
+        carriers = await mysqlDao.listAllCarrierDefinitions();
       } catch (_) { carriers = []; }
+      // 内置 + MySQL 合并：内置缺失时用内置默认，内置被禁用（enabled=0 墓碑）则隐藏
+      const byId = new Map((carriers || []).map(r => [r.id, r]));
+      const out = [];
+      for (const builtin of (carrierSeed.BUILTIN_CARRIERS || [])) {
+        const row = byId.get(builtin.id);
+        if (row && !row.enabled) continue; // 已禁用
+        if (row) out.push({ ...row.definition, id: row.id, name: row.name, category: row.category });
+        else out.push({ ...builtin });
+      }
+      for (const row of (carriers || [])) {
+        if (!row.enabled) continue;
+        if (isBuiltinCarrier(row.id)) continue; // 已作为内置处理
+        out.push({ ...row.definition, id: row.id, name: row.name, category: row.category });
+      }
+      carriers = out;
       if (!carriers || !carriers.length) {
         jsonResponse(res, 200, { version: 2, source: 'local', carriers: [] });
         return true;
@@ -1495,6 +1514,95 @@ async function handleApi(req, res, parsedUrl) {
         return d;
       });
       jsonResponse(res, 200, { version: 2, source: 'mysql', carriers });
+      return true;
+    }
+
+    // ===== 信使管理（后台 CRUD）=====
+
+    // 全量列表：内置 + 自定义合并去重，禁用墓碑隐藏，图片 URL 重写
+    if (req.method === 'GET' && parsedUrl.pathname === '/api/admin/carriers') {
+      let rows = [];
+      try { rows = await mysqlDao.listAllCarrierDefinitions(); } catch (_) { rows = []; }
+      const byId = new Map((rows || []).map(r => [r.id, r]));
+      const out = [];
+      // 内置信使：被覆盖则展示覆盖定义，被禁用则隐藏
+      for (const builtin of (carrierSeed.BUILTIN_CARRIERS || [])) {
+        const row = byId.get(builtin.id);
+        if (row && !row.enabled) continue; // 已禁用
+        if (row) {
+          out.push({ ...row.definition, id: row.id, name: row.name, category: row.category, _builtin: true, _modified: true, enabled: true });
+        } else {
+          out.push({ ...builtin, enabled: true, _builtin: true });
+        }
+      }
+      // 自定义信使（非内置 id）
+      for (const row of (rows || [])) {
+        if (!row.enabled) continue;
+        if (isBuiltinCarrier(row.id)) continue;
+        out.push({ ...row.definition, id: row.id, name: row.name, category: row.category, _custom: true, enabled: true });
+      }
+      // 图片相对路径 → 完整资产 API URL
+      const apiBase = apiAssetBaseUrl(req);
+      if (apiBase) {
+        for (const c of out) {
+          if (c.small) c.small = apiBase + String(c.small).replace(/^\/+/, '');
+          if (c.large) c.large = apiBase + String(c.large).replace(/^\/+/, '');
+          if (c.trace) c.trace = apiBase + String(c.trace).replace(/^\/+/, '');
+        }
+      }
+      jsonResponse(res, 200, { success: true, carriers: out });
+      return true;
+    }
+
+    // 新建/编辑信使（UPSERT，同 id 覆盖）
+    if (req.method === 'POST' && parsedUrl.pathname === '/api/admin/carriers') {
+      const body = await readJsonBody(req);
+      const definition = body.definition || {};
+      if (!definition || !definition.id) {
+        jsonResponse(res, 400, { error: 'definition（含 id）必填' });
+        return true;
+      }
+      if (!definition.name) definition.name = definition.id;
+      const result = await mysqlDao.saveCarrierDefinition(definition);
+      if (!result) {
+        jsonResponse(res, 500, { success: false, message: '保存信使定义失败（可能 MySQL 未启用）' });
+        return true;
+      }
+      broadcastAdmin({ type: 'carrier_updated', carrierId: definition.id, action: 'saved', timestamp: Date.now() });
+      jsonResponse(res, 200, { success: true, carrier: definition, isBuiltin: isBuiltinCarrier(definition.id) });
+      return true;
+    }
+
+    // 删除信使定义（内置 → 软删除禁用；自定义 → 硬删除）
+    const carrierDeleteMatch = parsedUrl.pathname.match(/^\/api\/admin\/carriers\/([^/]+)\/delete$/);
+    if (req.method === 'POST' && carrierDeleteMatch) {
+      const carrierId = decodeURIComponent(carrierDeleteMatch[1]);
+      if (!carrierId) { jsonResponse(res, 400, { error: 'missing_id' }); return true; }
+      if (isBuiltinCarrier(carrierId)) {
+        const builtin = (carrierSeed.BUILTIN_CARRIERS || []).find(c => c.id === carrierId);
+        const result = await mysqlDao.disableCarrierDefinition(carrierId, (builtin && builtin.name) || carrierId);
+        if (!result) {
+          jsonResponse(res, 500, { success: false, message: '禁用内置信使失败（可能 MySQL 未启用）' });
+          return true;
+        }
+        broadcastAdmin({ type: 'carrier_updated', carrierId, action: 'disabled', timestamp: Date.now() });
+        jsonResponse(res, 200, { success: true, carrierId, action: 'disabled', builtin: true });
+        return true;
+      }
+      const result = await mysqlDao.deleteCarrierDefinition(carrierId);
+      broadcastAdmin({ type: 'carrier_updated', carrierId, action: 'deleted', timestamp: Date.now() });
+      jsonResponse(res, 200, { success: !!result, carrierId, action: 'deleted' });
+      return true;
+    }
+
+    // 还原信使定义（删除墓碑/覆盖记录，内置恢复默认 / 自定义移除）
+    const carrierRestoreMatch = parsedUrl.pathname.match(/^\/api\/admin\/carriers\/([^/]+)\/restore$/);
+    if (req.method === 'POST' && carrierRestoreMatch) {
+      const carrierId = decodeURIComponent(carrierRestoreMatch[1]);
+      if (!carrierId) { jsonResponse(res, 400, { error: 'missing_id' }); return true; }
+      const result = await mysqlDao.deleteCarrierDefinition(carrierId);
+      broadcastAdmin({ type: 'carrier_updated', carrierId, action: 'restored', timestamp: Date.now() });
+      jsonResponse(res, 200, { success: !!result, carrierId, action: 'restored', builtin: isBuiltinCarrier(carrierId) });
       return true;
     }
 

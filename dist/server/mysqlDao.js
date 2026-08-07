@@ -1027,6 +1027,42 @@ async function countCarrierDefinitions() {
   return Number(rows[0].cnt) || 0;
 }
 
+/** 返回全部信使定义（含 enabled=0 的禁用墓碑），definition 为已解析对象 */
+async function listAllCarrierDefinitions() {
+  if (!isMysqlEnabled()) return [];
+  const rows = await query('SELECT * FROM carrier_definitions ORDER BY displayOrder ASC, createdAt ASC');
+  if (!rows) return [];
+  return rows.map(row => {
+    let def = {};
+    try { def = typeof row.definition === 'string' ? JSON.parse(row.definition) : (row.definition || {}); } catch (_) {}
+    return { ...def, id: row.id, name: row.name, category: row.category, enabled: row.enabled };
+  });
+}
+
+/** 软删除（墓碑）：禁用内置信使并持久化；重新上传同 id 会恢复 */
+async function disableCarrierDefinition(carrierId, name = '') {
+  if (!isMysqlEnabled() || !carrierId) return false;
+  const now = Date.now();
+  const existing = await query('SELECT id FROM carrier_definitions WHERE id = ? LIMIT 1', [carrierId]);
+  if (existing && existing.length > 0) {
+    const result = await execute('UPDATE carrier_definitions SET enabled = 0, updatedAt = ? WHERE id = ?', [now, carrierId]);
+    return !!(result && result.affectedRows > 0);
+  }
+  const result = await execute(
+    `INSERT INTO carrier_definitions (id, name, category, definition, displayOrder, enabled, createdAt, updatedAt)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+    [carrierId, name || carrierId, 'real', JSON.stringify({ id: carrierId }), 999, 0, now, now]
+  );
+  return !!(result && result.affectedRows > 0);
+}
+
+/** 硬删除：删除自定义信使定义（含墓碑） */
+async function deleteCarrierDefinition(carrierId) {
+  if (!isMysqlEnabled() || !carrierId) return false;
+  const result = await execute('DELETE FROM carrier_definitions WHERE id = ?', [carrierId]);
+  return result && result.affectedRows > 0;
+}
+
 /** 返回全部角色定义（含 enabled=0 的软删除墓碑），definition 为已解析对象 */
 async function listAllCharacterDefinitions(worldCategory = null) {
   if (!isMysqlEnabled()) return [];
@@ -1639,6 +1675,9 @@ module.exports = {
   saveCarrierDefinition,
   listCarrierDefinitions,
   countCarrierDefinitions,
+  listAllCarrierDefinitions,
+  disableCarrierDefinition,
+  deleteCarrierDefinition,
   // asset files（双端互通资产）
   upsertAsset,
   getAssetMeta,
