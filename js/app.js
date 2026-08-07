@@ -447,6 +447,12 @@ const App = {
     }
     if (mbox) {
       if (mbox.category === 'xiejian' || mbox.category === 'hanmen' || mbox.category === 'poxiao') return mbox.category;
+      // 新账号自建信箱：category 可能缺失，但创建时选了地图背景（mapBackground），
+      // 否则会因名称不含关键字而被判为 null，进入地图后走错分支（规则/效果不同）
+      const bg = String(mbox.mapBackground || mbox.mapBg || '').trim();
+      if (bg === 'poxiao') return 'poxiao';
+      if (bg === 'xiejian') return 'xiejian';
+      if (bg === 'hanmen') return 'hanmen';
       const name = (mbox.name || '').toString();
       if (name.includes('挟剑')) return 'xiejian';
       if (name.includes('破晓')) return 'poxiao';
@@ -3956,7 +3962,7 @@ const App = {
     this._mailPollTimer = setInterval(() => {
       if (document.hidden || this.currentView !== 'mailbox' || !this.currentMailboxId) return;
       this._refreshMailboxMail(this.currentMailboxId);
-    }, 8000);
+    }, 3000);
     if (!this._mailFocusBound) {
       this._mailFocusBound = true;
       window.addEventListener('focus', () => {
@@ -4139,10 +4145,9 @@ const App = {
 
     try {
       if (!this._poxiaoCharacterId) {
+        // 破晓场景只认破晓角色绑定，绝不回退到挟剑角色（否则破晓地图会加载挟剑帧导致卡死）
         const boundCharacterId = MultiplayerSync.accountProfile?.poxiaoCharacterId
-          || MultiplayerSync.accountProfile?.xiejianCharacterId
           || MailService.profile?.poxiaoCharacterId
-          || MailService.profile?.xiejianCharacterId
           || STORAGE.loadCharacterBinding(this.currentMailboxId)
           || '';
         if (boundCharacterId) {
@@ -4435,7 +4440,7 @@ const App = {
           const profile = data.accountProfile || {};
           const isPoxiao = this._isPoxiaoMailbox();
           const profileCharId = isPoxiao
-            ? (profile.poxiaoCharacterId || profile.xiejianCharacterId)
+            ? (profile.poxiaoCharacterId || '')
             : profile.xiejianCharacterId;
           if (!profileCharId) {
             this._showXiejianCharacterStep();
@@ -6840,7 +6845,7 @@ const App = {
         const defaultCharacterId = isXiejianMailbox && isLoggedIn
           ? (serverCharacterId || 'zhou-ran')
           : (isPoxiaoMailbox && isLoggedIn
-            ? (serverPoxiaoCharacterId || serverCharacterId || boundCharacterId || 'px-tangqi')
+            ? (serverPoxiaoCharacterId || boundCharacterId || 'px-tangqi')
             : (boundCharacterId || 'xiu-jing'));
 
         // 渲染器数据操作必须等 bootstrap 完成（否则 assetApiBaseUrl 为空，MySQL 资产 API 被跳过）

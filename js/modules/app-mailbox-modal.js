@@ -325,9 +325,27 @@ Object.assign(App, {
               const ak = (typeof MailService.getAccountKey === 'function')
                 ? MailService.getAccountKey(u)
                 : String(u?.username || u?.id || '').toLowerCase();
+              // 成员统一规范化为 accountKey（username 小写）：
+              // 兼容存量 user-xxx/guest-xxx 格式成员（本地临时 id，跨设备不可靠），能反查就转成 username
+              const normalizeMember = (m) => {
+                const raw = String(m == null ? '' : m);
+                const s = raw.trim().toLowerCase();
+                if (!s) return '';
+                const byName = AuthManager.getUserByUsername ? AuthManager.getUserByUsername(s) : null;
+                if (byName && byName.username) return String(byName.username).trim().toLowerCase();
+                if (s.startsWith('user-') || s.startsWith('guest-')) {
+                  const byId = AuthManager.getUserById ? AuthManager.getUserById(raw) : null;
+                  if (byId && byId.username) return String(byId.username).trim().toLowerCase();
+                }
+                return s;
+              };
               const members = Array.isArray(this._mailboxFormData.members)
-                ? this._mailboxFormData.members.map(String)
+                ? this._mailboxFormData.members.map(normalizeMember).filter(Boolean)
                 : (ak ? [ak] : []);
+              // 保证 owner 一定在成员里（否则 owner 刷新后可能因 member 匹配失败而看不到自己的信箱）
+              if (ak && !members.some(m => String(m).toLowerCase() === String(ak).toLowerCase())) {
+                members.push(ak);
+              }
               // 如果是编辑模式（有 id），并且本地有 mailboxCode，一起上传给后端判重 upsert
               const existingCode = this._mailboxFormData.mailboxCode || this._mailboxFormData.code;
               const payload = {
@@ -675,6 +693,9 @@ Object.assign(App, {
       } catch (e) { /* ignore */ }
     }
     const userId = currentUser.id;
+    // 成员标识统一为 accountKey（username），兼容旧数据 user-xxx id
+    const selfUsername = String(currentUser.username || '').trim().toLowerCase();
+    const selfCandidates = new Set([selfUsername, String(userId || '').toLowerCase()].filter(Boolean));
 
     // 展示预览
     if (preview) {
@@ -689,7 +710,10 @@ Object.assign(App, {
       const memberCount = (mb.members && mb.members.length) || 1;
       if (metaEl) metaEl.textContent = `📮 信箱号：${mb.mailboxCode || code} · 👥 ${memberCount} 位成员`;
     }
-    if (mb.members && mb.members.includes(userId)) {
+    const isAlreadyMember = Array.isArray(mb.members)
+      ? mb.members.some(m => selfCandidates.has(String(m).trim().toLowerCase()))
+      : false;
+    if (isAlreadyMember) {
       this._showJoinMsg('你已经是该信箱的成员，可直接使用' + (source === 'remote' ? '（云端同步）' : ''), 'info');
       this._joinPendingMailboxId = mailboxId;
       if (confirmBtn) { confirmBtn.disabled = false; confirmBtn.textContent = '📬 打开信箱'; }
@@ -969,6 +993,22 @@ Object.assign(App, {
     const sharedMailbox = STORAGE.loadSharedMailbox(mailboxId);
     const currentUser = AuthManager.getCurrentUser();
 
+    // 成员标识统一为 accountKey（username）：老数据可能存了 user-xxx id，反查转成 username
+    const rawMembers = sharedMailbox?.members || mailbox.members || (currentUser ? [currentUser.username || currentUser.id] : []);
+    const normalizedMembers = (Array.isArray(rawMembers) ? rawMembers : [])
+      .map(m => {
+        const s = String(m == null ? '' : m).trim().toLowerCase();
+        if (!s) return '';
+        const byName = AuthManager.getUserByUsername ? AuthManager.getUserByUsername(s) : null;
+        if (byName && byName.username) return String(byName.username).trim().toLowerCase();
+        if (s.startsWith('user-') || s.startsWith('guest-')) {
+          const byId = AuthManager.getUserById ? AuthManager.getUserById(m) : null;
+          if (byId && byId.username) return String(byId.username).trim().toLowerCase();
+        }
+        return s;
+      })
+      .filter(Boolean);
+
     this._mailboxFormData = {
       id: mailbox.id,
       name: mailbox.name || '',
@@ -980,7 +1020,7 @@ Object.assign(App, {
       type: mailbox.type || 'normal',
       personA: mailbox.personA || { name: '', icon: '🌸' },
       personB: mailbox.personB || { name: '', icon: '🍃' },
-      members: sharedMailbox?.members || mailbox.members || (currentUser ? [currentUser.id] : []),
+      members: normalizedMembers,
       mailboxCode: mailbox.mailboxCode || sharedMailbox?.mailboxCode || null
     };
 
@@ -1075,6 +1115,11 @@ Object.assign(App, {
 
   _resetMailboxForm() {
     const currentUser = AuthManager.getCurrentUser();
+    // 成员标识统一使用 accountKey（username 小写），绝不用本地生成的 user-xxx id，
+    // 否则跨设备/刷新后按 username 匹配不到 memberAccountKeys，信箱会“消失”
+    const selfAk = currentUser
+      ? String(currentUser.username || (MailService && MailService.getAccountKey ? MailService.getAccountKey(currentUser) : '') || currentUser.id || '').trim().toLowerCase()
+      : '';
     this._mailboxFormData = {
       id: null,
       name: '',
@@ -1086,7 +1131,7 @@ Object.assign(App, {
       type: 'normal',
       personA: { name: '', icon: '🌸' },
       personB: { name: '', icon: '🍃' },
-      members: currentUser ? [currentUser.id] : [],
+      members: selfAk ? [selfAk] : [],
       mailboxCode: null
     };
 
@@ -1167,14 +1212,17 @@ Object.assign(App, {
     }
 
     listEl.innerHTML = '';
-    members.forEach(userId => {
-      const user = AuthManager.getUserById(userId);
+    members.forEach(memberId => {
+      // 成员可能存的是 username（新数据）或旧数据里的 user-xxx id，反查时兼容两种
+      const lower = String(memberId).toLowerCase();
+      const user = AuthManager.getUserByUsername(lower) || AuthManager.getUserById(memberId);
       if (!user) return;
 
       const item = document.createElement('div');
       item.className = 'member-item';
 
-      const isCreator = userId === (currentUser?.id);
+      const isCreator = lower === String(currentUser?.username || '').toLowerCase() ||
+        String(memberId) === String(currentUser?.id);
       const isLastMember = members.length <= 1;
       const canDelete = !isLastMember;
 
@@ -1197,13 +1245,13 @@ Object.assign(App, {
             ${roleLabel ? `<span class="member-role">${roleLabel}</span>` : ''}
           </div>
         </div>
-        <button class="member-delete-btn" data-user-id="${userId}" title="${canDelete ? '移除成员' : '不能移除最后一个成员'}" ${canDelete ? '' : 'disabled style="opacity:0.3;cursor:not-allowed;"'}>✕</button>
+        <button class="member-delete-btn" data-user-id="${memberId}" title="${canDelete ? '移除成员' : '不能移除最后一个成员'}" ${canDelete ? '' : 'disabled style="opacity:0.3;cursor:not-allowed;"'}>✕</button>
       `;
 
       const deleteBtn = item.querySelector('.member-delete-btn');
       if (deleteBtn && canDelete) {
         deleteBtn.addEventListener('click', () => {
-          this._handleRemoveMember(userId);
+          this._handleRemoveMember(memberId);
         });
       }
 
@@ -1224,30 +1272,45 @@ Object.assign(App, {
       alert('用户不存在');
       return;
     }
+    // 成员标识统一用 accountKey（username 小写），避免本地 user-xxx id 混入导致跨设备匹配失败
+    const accountKey = String(user.username || user.id || '').trim().toLowerCase();
+    if (!accountKey) return;
 
     const members = this._mailboxFormData.members || [];
-    if (members.includes(user.id)) {
+    const already = members.some(m =>
+      String(m).toLowerCase() === accountKey ||
+      (user.id && String(m) === String(user.id))
+    );
+    if (already) {
       alert('该用户已是成员');
       return;
     }
 
-    this._mailboxFormData.members = [...members, user.id];
+    this._mailboxFormData.members = [...members, accountKey];
     this._renderMembersList();
 
     if (input) input.value = '';
   },
 
-  _handleRemoveMember(userId) {
+  _handleRemoveMember(memberId) {
     const members = this._mailboxFormData.members || [];
     if (members.length <= 1) {
       alert('至少保留一个成员');
       return;
     }
 
-    const user = AuthManager.getUserById(userId);
-    if (!confirm(`确定要移除成员"${user?.displayName || user?.username}"吗？`)) return;
+    // memberId 可能是 username 或旧数据里的 user-xxx id，统一按“值”删除并兼容 id 对应关系
+    const lower = String(memberId || '').toLowerCase();
+    const user = AuthManager.getUserByUsername(lower) || AuthManager.getUserById(memberId);
+    const userLowerId = user?.id ? String(user.id).toLowerCase() : '';
+    const filtered = members.filter(m => {
+      const s = String(m).toLowerCase();
+      return s !== lower && s !== userLowerId;
+    });
+    if (filtered.length === members.length) return;
+    if (!confirm(`确定要移除成员"${user?.displayName || user?.username || memberId}"吗？`)) return;
 
-    this._mailboxFormData.members = members.filter(id => id !== userId);
+    this._mailboxFormData.members = filtered;
     this._renderMembersList();
   },
 

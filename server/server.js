@@ -954,8 +954,12 @@ function flushStateNow() {
   try {
     fs.mkdirSync(DATA_DIR, { recursive: true });
     const tempFile = `${STATE_FILE}.tmp`;
-    fs.writeFileSync(tempFile, JSON.stringify(persistentState, null, 2), 'utf8');
-    fs.renameSync(tempFile, STATE_FILE);
+    const data = JSON.stringify(persistentState, null, 2);
+    // 异步写盘：避免大 state.json（含信件 base64）的同步写阻塞事件循环，导致 WS/API 消息排队（多人同步延迟大）
+    fs.writeFile(tempFile, data, 'utf8', (err) => {
+      if (err) { console.warn('[state] 异步落盘失败:', err?.message || err); return; }
+      try { fs.renameSync(tempFile, STATE_FILE); } catch (e) { console.warn('[state] rename 失败:', e?.message || e); }
+    });
   } catch (e) {
     console.warn('[state] 落盘失败（内存态不受影响）:', e?.message || e);
   }

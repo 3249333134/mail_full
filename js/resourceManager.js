@@ -278,11 +278,18 @@
         for (let i = 0; i < candidates.length; i++) {
           const url = candidates[i];
           for (let attempt = 0; attempt < this.config.maxRetries; attempt++) {
+            let ctrl = null;
+            let timer = null;
             try {
+              // 防挂起：单次请求超时（如资产 API 不可达/慢查询时避免永久阻塞主流程）
+              ctrl = new AbortController();
+              timer = setTimeout(() => ctrl.abort(), 15000);
               const res = await fetch(url, {
                 cache: opts.bypassCache ? 'no-cache' : 'default',
                 mode: /^https?:\/\//i.test(url) ? 'cors' : 'same-origin',
+                signal: ctrl.signal,
               });
+              clearTimeout(timer); timer = null;
               if (!res.ok) {
                 throw new Error(`HTTP ${res.status}`);
               }

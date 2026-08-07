@@ -1577,6 +1577,12 @@ Object.assign(MailboxManager, {
         }
       }
     } catch (_) { accountKey = ''; }
+    // 兜底：解析结果若是本地临时 id（user-xxx/guest-xxx），且存在已登录用户，则强制用其 username（accountKey）
+    // —— 本地临时 id 跨设备不可靠，混入 memberAccountKeys 会导致刷新/换设备后信箱匹配不上
+    const cur = AuthManager.getCurrentUser ? AuthManager.getCurrentUser() : null;
+    if (cur && cur.username && (accountKey.startsWith('user-') || accountKey.startsWith('guest-'))) {
+      accountKey = String(cur.username).trim().toLowerCase();
+    }
     if (!accountKey) return { success: false, message: '未能识别当前用户身份', mailbox: null };
 
     if (window.MailService &&

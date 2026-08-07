@@ -375,29 +375,38 @@ export class GameMapRenderer {
   }
 
   async loadCharacter(charId) {
-    if (this.loadingCharacter === charId) return;
+    // 并发安全：同一角色加载中直接复用；不同角色等前一个完成后顺序加载
+    if (this._charLoadPromise) {
+      if (this.selectedCharacter === charId) return this._charLoadPromise;
+      try { await this._charLoadPromise; } catch (_) {}
+    }
     const loadToken = Date.now();
     this.loadingCharacter = charId;
     this.currentLoadToken = loadToken;
     this.selectedCharacter = charId;
 
-    const char = this.getCharacterInfo(charId);
-    if (!char) return;
-    this.currentCharacterModel = CharacterSystem.getCharacter(charId);
+    const task = (async () => {
+      const char = this.getCharacterInfo(charId);
+      if (!char) return;
+      this.currentCharacterModel = CharacterSystem.getCharacter(charId);
 
-    if (JINGYUAN_CHARACTERS.some(c => c.id === charId)) {
-      await this.loadJingyuanCharacter(char.dir, 'xiejian');
-    } else if (HANMEN_CHARACTERS.some(c => c.id === charId)) {
-      await this.loadJingyuanCharacter(char.dir, 'hanmen');
-    } else if (POXIAO_CHARACTERS.some(c => c.id === charId)) {
-      await this.loadJingyuanCharacter(char.dir, 'poxiao');
-    } else {
-      await this.loadMainCharacter(char.group);
-    }
-
-    // Only apply the loaded character if it's still the latest request
-    if (this.currentLoadToken === loadToken) {
-      this.loadingCharacter = null;
+      if (JINGYUAN_CHARACTERS.some(c => c.id === charId)) {
+        await this.loadJingyuanCharacter(char.dir, 'xiejian');
+      } else if (HANMEN_CHARACTERS.some(c => c.id === charId)) {
+        await this.loadJingyuanCharacter(char.dir, 'hanmen');
+      } else if (POXIAO_CHARACTERS.some(c => c.id === charId)) {
+        await this.loadJingyuanCharacter(char.dir, 'poxiao');
+      } else {
+        await this.loadMainCharacter(char.group);
+      }
+    })();
+    this._charLoadPromise = task;
+    try {
+      await task;
+    } finally {
+      // 无论成功失败/是否被新请求覆盖，都必须清理加载态，避免永久卡死
+      if (this.currentLoadToken === loadToken) this.loadingCharacter = null;
+      if (this._charLoadPromise === task) this._charLoadPromise = null;
     }
   }
 
@@ -423,10 +432,13 @@ export class GameMapRenderer {
       .map(id => CharacterSystem.getCharacter(id))
       .find(character => character?.dir === charDir);
     if (model) {
-      for (const action of model.listAvailableActions()) {
+      // 并行加载所有动作帧（破晓 25 动作/角色，串行会因逐帧网络往返拖慢进入地图）
+      const actions = model.listAvailableActions();
+      const results = await Promise.all(actions.map(async (action) => {
         const loaded = (await Promise.all(model.getActionFramePaths(action).map(path => this.assetManager.loadImage(path)))).filter(Boolean);
-        if (loaded.length) frames[action] = loaded;
-      }
+        return [action, loaded];
+      }));
+      results.forEach(([action, loaded]) => { if (loaded.length) frames[action] = loaded; });
       if (Object.keys(frames).length) return frames;
     }
     

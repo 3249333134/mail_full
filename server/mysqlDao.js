@@ -24,6 +24,70 @@ function normalizeAccountKey(v) {
   return String(v || '').trim().toLocaleLowerCase('en-US');
 }
 
+/**
+ * 账号识别兼容：返回账号的所有候选标识（accountKey + userId/users.id 变体）。
+ * 历史数据里 memberAccountKeys/ownerAccountKey 可能混入 user-xxx 本地临时 id，
+ * 而 listMailboxesByMember 只按 accountKey(username) 匹配 → 跨设备/刷新后信箱“消失”。
+ * 这里把该账号在 users/accounts 表里登记的 id 一并参与匹配，兼容存量脏数据。
+ */
+async function resolveAccountIdVariants(accountKey) {
+  const variants = new Set([normalizeAccountKey(accountKey)].filter(Boolean));
+  if (!accountKey) return Array.from(variants);
+  try {
+    // accounts 表的 userId 字段（注册/登录时由 syncAccount 写入 users 表 id）
+    const accRows = await query('SELECT userId FROM accounts WHERE accountKey = ? LIMIT 1', [accountKey]);
+    if (accRows && accRows.length && accRows[0].userId) {
+      variants.add(normalizeAccountKey(accRows[0].userId));
+    }
+    // users 表 id（username = accountKey 的账号主键）
+    const uRows = await query('SELECT id FROM users WHERE username = ? LIMIT 1', [accountKey]);
+    if (uRows && uRows.length && uRows[0].id) {
+      variants.add(normalizeAccountKey(uRows[0].id));
+    }
+    // 若 accountKey 本身是 user-xxx 格式，反查它的 username 也加入候选
+    if (String(accountKey).startsWith('user-')) {
+      const byIdRows = await query('SELECT username FROM users WHERE id = ? LIMIT 1', [accountKey]);
+      if (byIdRows && byIdRows.length && byIdRows[0].username) {
+        variants.add(normalizeAccountKey(byIdRows[0].username));
+      }
+    }
+  } catch (_) {}
+  return Array.from(variants);
+}
+
+/**
+ * 规范化成员标识列表：把 user-xxx / guest-xxx 本地临时 id 尽量转成 username。
+ * 用于写入 memberAccountKeys 前清洗，防止脏 id 继续污染远端数据。
+ * 转不了（查不到账号）的项会被丢弃，避免永久无法匹配。
+ */
+async function sanitizeMemberAccountKeys(members = []) {
+  if (!Array.isArray(members)) members = [];
+  const out = new Set();
+  for (const raw of members) {
+    if (raw == null) continue;
+    const s = normalizeAccountKey(raw);
+    if (!s) continue;
+    if (s.startsWith('user-') || s.startsWith('guest-')) {
+      try {
+        const byIdRows = await query('SELECT username FROM users WHERE id = ? LIMIT 1', [s]);
+        if (byIdRows && byIdRows.length && byIdRows[0].username) {
+          out.add(normalizeAccountKey(byIdRows[0].username));
+          continue;
+        }
+        // users 表查不到时再试 accounts.userId
+        const accRows = await query('SELECT accountKey FROM accounts WHERE userId = ? LIMIT 1', [s]);
+        if (accRows && accRows.length && accRows[0].accountKey) {
+          out.add(normalizeAccountKey(accRows[0].accountKey));
+          continue;
+        }
+      } catch (_) { /* 查不到则丢弃该脏 id */ }
+      continue; // 无法反查的临时 id 不再写入
+    }
+    out.add(s);
+  }
+  return Array.from(out);
+}
+
 function genBusinessId(prefix) {
   return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 }
@@ -208,6 +272,16 @@ async function upsertMailboxRemote(patch) {
   if (patch.code && !patch.mailboxCode) patch.mailboxCode = patch.code;
 
   const existing = await query('SELECT * FROM mailboxes WHERE id = ? LIMIT 1', [patch.id]);
+  // 写入前清洗成员标识：user-xxx/guest-xxx 本地临时 id 尽量转成 username，避免跨设备匹配失败
+  if (patch.memberAccountKeys) {
+    patch.memberAccountKeys = await sanitizeMemberAccountKeys(patch.memberAccountKeys);
+  }
+  // 保证 owner（username）在成员里
+  const ownerKey = normalizeAccountKey(patch.ownerAccountKey);
+  if (ownerKey) {
+    if (!Array.isArray(patch.memberAccountKeys)) patch.memberAccountKeys = [];
+    if (!patch.memberAccountKeys.includes(ownerKey)) patch.memberAccountKeys.push(ownerKey);
+  }
   if (existing && existing.length > 0) {
     // UPDATE：动态构建
     const fields = [];
@@ -288,12 +362,25 @@ async function listMailboxesByMember(accountKey) {
   if (!isMysqlEnabled()) return null;
   accountKey = normalizeAccountKey(accountKey);
   if (!accountKey) return [];
-  // memberAccountKeys 是 JSON 数组，使用 JSON_CONTAINS 查询
+  // 账号识别兼容：同时匹配 username 与该账号登记的 userId（user-xxx 本地临时 id 的旧数据）
+  const variants = await resolveAccountIdVariants(accountKey);
+  const conds = [];
+  const params = [];
+  const seen = new Set();
+  for (const v of variants) {
+    if (!v || seen.has(v)) continue;
+    seen.add(v);
+    conds.push('ownerAccountKey = ?');
+    params.push(v);
+    conds.push('JSON_CONTAINS(memberAccountKeys, JSON_QUOTE(?))');
+    params.push(v);
+  }
+  if (conds.length === 0) return [];
   const rows = await query(
     `SELECT * FROM mailboxes
-     WHERE ownerAccountKey = ? OR JSON_CONTAINS(memberAccountKeys, JSON_QUOTE(?))
+     WHERE ${conds.join(' OR ')}
      ORDER BY updatedAt DESC`,
-    [accountKey, accountKey]
+    params
   );
   return (rows || []).map(row => {
     // Parse JSON columns that may be stored as strings
@@ -406,6 +493,8 @@ async function joinMailboxByCode(code, accountKey) {
   let members = parseJson(mb.memberAccountKeys, []);
   let memberNames = parseJson(mb.memberNames, {});
   let memberCharacters = parseJson(mb.memberCharacters, {});
+  // 清洗存量脏 id（user-xxx/guest-xxx 本地临时 id → username），保证跨设备按 username 可匹配
+  members = await sanitizeMemberAccountKeys(members);
   
   // Try to get user's display name
   let displayName = accountKey;

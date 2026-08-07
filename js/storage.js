@@ -363,7 +363,10 @@ const STORAGE = {
     let ok = false;
     for (const mb of mailboxes) {
       if (!mb || !mb.name) continue;
-      const isDirty = mb._memberDataDirty === true || mb._remoteUpsertNeeded === true || mb._remoteSynced !== true;
+      // 只推送“显式脏”的信箱：新建失败待重试(_remoteUpsertNeeded) 或成员数据刚变更(_memberDataDirty)。
+      // 绝不能用 _remoteSynced !== true 判断——本地缓存过旧/不完整的存量信箱会被误判为脏，
+      // 上传时用本地不完整成员列表覆盖远端权威数据（曾导致 mailbox-xiejian 的 xuanxuan 成员被覆盖丢失）。
+      const isDirty = mb._memberDataDirty === true || mb._remoteUpsertNeeded === true;
       const owner = String(mb.ownerAccountKey || mb.owner || mb.createdBy || '').toLowerCase();
       const isOwner = owner && owner === ak;
       const isMember = (Array.isArray(mb.members) && (mb.members.includes(ak) || mb.members.map(String).map(s=>s.toLowerCase()).includes(ak)))
@@ -372,6 +375,32 @@ const STORAGE = {
       if (mb._remoteSynced && !isDirty) continue;
       // 既不是 owner 也不是成员，跳过（无权写）
       if (!isOwner && !isMember) continue;
+
+      // 成员统一规范化为 accountKey（username 小写），user-xxx/guest-xxx 本地临时 id 能反查就转成 username
+      // （否则跨设备/刷新后按 username 匹配不到 memberAccountKeys，信箱会“消失”）
+      const normalizeMemberList = (arr) => {
+        const out = new Set();
+        (Array.isArray(arr) ? arr : []).forEach((x) => {
+          const s = String(x == null ? '' : x).trim().toLowerCase();
+          if (!s) return;
+          if (typeof AuthManager !== 'undefined' && AuthManager.getUserByUsername) {
+            const byName = AuthManager.getUserByUsername(s);
+            if (byName && byName.username) { out.add(String(byName.username).trim().toLowerCase()); return; }
+          }
+          if ((s.startsWith('user-') || s.startsWith('guest-')) && typeof AuthManager !== 'undefined' && AuthManager.getUserById) {
+            const byId = AuthManager.getUserById(x);
+            if (byId && byId.username) { out.add(String(byId.username).trim().toLowerCase()); return; }
+          }
+          out.add(s);
+        });
+        return Array.from(out);
+      };
+      const rawMemberKeys = Array.isArray(mb.memberAccountKeys)
+        ? mb.memberAccountKeys
+        : (Array.isArray(mb.members) ? mb.members : (ak ? [ak] : []));
+      const memberAccountKeys = normalizeMemberList(rawMemberKeys);
+      if (memberAccountKeys.length === 0 && ak) memberAccountKeys.push(ak);
+      if (!memberAccountKeys.includes(ak)) memberAccountKeys.push(ak);
 
       const payload = {
         name: mb.name,
@@ -389,12 +418,8 @@ const STORAGE = {
         owner: ak,
         ...(mb.id ? { id: mb.id } : {}),
         ...((mb.mailboxCode || mb.code) ? { mailboxCode: mb.mailboxCode || mb.code } : {}),
-        memberAccountKeys: Array.isArray(mb.memberAccountKeys)
-          ? mb.memberAccountKeys
-          : (Array.isArray(mb.members) ? mb.members : (ak ? [ak] : [])),
-        members: Array.isArray(mb.members)
-          ? mb.members
-          : (Array.isArray(mb.memberAccountKeys) ? mb.memberAccountKeys : (ak ? [ak] : [])),
+        memberAccountKeys,
+        members: memberAccountKeys,
         memberCharacters: mb.memberCharacters || {},
         memberNames: mb.memberNames || {}
       };
@@ -404,6 +429,7 @@ const STORAGE = {
         if (r && r.success && r.mailbox) {
           mb._remoteSynced = true;
           mb._memberDataDirty = false;
+          mb._remoteUpsertNeeded = false;
           mb.id = r.mailbox.id || mb.id;
           if (r.mailbox.mailboxCode && !mb.mailboxCode) {
             mb.mailboxCode = r.mailbox.mailboxCode;
