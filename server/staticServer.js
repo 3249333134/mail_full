@@ -42,7 +42,7 @@ function proxyHttp(req, res, pathname, url) {
       host: BACKEND_HOST,
       port: BACKEND_PORT,
       method: req.method,
-      path: pathname + (url.search || ''),
+      path: url.pathname + (url.search || ''),
       headers,
       timeout: 30000,
     },
@@ -71,7 +71,7 @@ function proxyWs(req, socket, head, pathname, url) {
     host: BACKEND_HOST,
     port: BACKEND_PORT,
     method: 'GET',
-    path: pathname + (url.search || ''),
+    path: url.pathname + (url.search || ''),
     headers: {
       ...req.headers,
       host: `${BACKEND_HOST}:${BACKEND_PORT}`,
