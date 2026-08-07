@@ -30,8 +30,10 @@ window.MailService = MailService = {
     if (typeof window.MAIL_API_BASE_URL === 'string' && window.MAIL_API_BASE_URL) {
       return window.MAIL_API_BASE_URL.replace(/\/$/, '');
     }
-    const protocol = window.location.protocol === 'https:' ? 'https:' : 'http:';
-    return `${protocol}//${window.location.hostname}:3000`;
+    // 默认同域相对路径：/api 由当前静态服务器(3005)或 nginx 反代到后端 3000。
+    // 避免 https 域名下直连 hostname:3000（node 无 TLS）导致 API 全部失败，
+    // 也避免跨端口/CORS 问题；IP:3005 直连时同样走 3005 的 /api 反代。
+    return '';
   },
 
   getAccountKey(user = AuthManager.getCurrentUser()) {

@@ -109,8 +109,9 @@ export const RemoteResourceLoader = {
         }
       } catch (_) {}
       if (!finalAssetApiBase && window.location) {
-        const proto = window.location.protocol === 'https:' ? 'https:' : 'http:';
-        finalAssetApiBase = `${proto}//${window.location.hostname}:3000/api/assets/`;
+        // 同域相对路径：由 nginx / 静态服务器(3005) 反代 /api/assets/ 到后端 3000，
+        // 避免 https 域名下直连 hostname:3000 失败
+        finalAssetApiBase = '/api/assets/';
       }
     }
     // 优先级：资产 API（MySQL 主存，双端互通）→ CDN/备用 → 本地静态

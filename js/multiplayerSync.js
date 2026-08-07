@@ -115,7 +115,9 @@ const MultiplayerSync = {
 
   _connectWebSocket() {
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    this._wsUrl = this._customServerUrl || `${protocol}//${window.location.hostname}:3000`;
+    // 默认同域 /ws：由 nginx(80/443) 或静态服务器(3005) 的 WS 反代转发到后端 3000。
+    // 避免 https 域名下 wss://hostname:3000 直连失败（node 3000 无 TLS）。
+    this._wsUrl = this._customServerUrl || `${protocol}//${window.location.host}/ws`;
 
     try {
       this._ws = new WebSocket(this._wsUrl);
