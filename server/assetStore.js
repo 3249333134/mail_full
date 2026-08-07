@@ -71,6 +71,57 @@ function sanitizeAssetPath(raw) {
   return p.slice(0, 500);
 }
 
+/**
+ * 规范化相对路径：解析 ./ 与 ../ 段（前端代码常见 ../../fill/... 相对写法）。
+ * 仅用于生成可命中 MySQL 的候选路径，最终仍须过 sanitizeAssetPath 安全校验。
+ */
+function normalizeRelPath(raw) {
+  const segs = String(raw || '').split('/');
+  const out = [];
+  for (const seg of segs) {
+    if (!seg || seg === '.') continue;
+    if (seg === '..') { out.pop(); continue; }
+    out.push(seg);
+  }
+  return out.join('/');
+}
+
+/**
+ * 生成可命中 MySQL asset_files 的候选路径列表。
+ * 前端两类不匹配：
+ *  1) 地图/道具路径 xiejian/... 无前缀，而 MySQL 存 sendbox/src/assets/xiejian/...
+ *  2) 角色帧路径 ../../fill/... 含 .. 段，而 MySQL 存 sendbox/fill/...
+ */
+function candidateAssetPaths(raw) {
+  const rawStr = String(raw || '').replace(/\\/g, '/').replace(/^\/+/, '').replace(/^\.\//, '');
+  const norm = normalizeRelPath(rawStr);
+  const set = new Set();
+  const add = (p) => { if (p) set.add(p); };
+  add(rawStr);
+  add(norm);
+  // 去掉 sendbox 前缀后的路径（兼容前端用前缀、MySQL 存无前缀的情况）
+  add(rawStr.replace(/^sendbox\/src\/assets\//, ''));
+  add(rawStr.replace(/^sendbox\/fill\//, ''));
+  add(rawStr.replace(/^sendbox\//, ''));
+  add(norm.replace(/^sendbox\/src\/assets\//, ''));
+  add(norm.replace(/^sendbox\/fill\//, ''));
+  add(norm.replace(/^sendbox\//, ''));
+  // 加上 sendbox 标准前缀（兼容前端用无前缀、MySQL 存带前缀的情况）
+  add('sendbox/src/assets/' + norm);
+  add('sendbox/fill/' + norm);
+  add('sendbox/' + norm);
+  // 角色帧：前端 ../../fill/... 规范化后为 fill/...，MySQL 存 sendbox/fill/...
+  if (norm.startsWith('fill/')) {
+    add('sendbox/fill/' + norm.slice(5));
+  }
+  const out = [];
+  for (const p of set) {
+    const safe = sanitizeAssetPath(p);
+    if (safe) out.push(safe);
+  }
+  return [...new Set(out)];
+}
+
 function mysqlReady() {
   return !!(mysqlClient && typeof mysqlClient.isMysqlEnabled === 'function' && mysqlClient.isMysqlEnabled());
 }
@@ -132,7 +183,8 @@ async function serveAsset(req, res, assetPath) {
     res.end('Bad Request');
     return;
   }
-  const cf = cacheFileFor(clean);
+  // 多候选路径：兼容前端无前缀（xiejian/...）与含 ..（../../fill/...）的相对写法
+  const candidates = candidateAssetPaths(assetPath);
   // 缓存路径 sha1 作 ETag（不依赖 MySQL），浏览器 304 校验走本地
   const etag = `"${sha1Of(clean)}"`;
   const ifNoneMatch = String(req.headers['if-none-match'] || '');
@@ -148,39 +200,44 @@ async function serveAsset(req, res, assetPath) {
   };
 
   // ① 磁盘缓存优先（命中即返回，零 MySQL 往返）
-  let fromCache = false;
-  try { fromCache = fs.existsSync(cf); } catch (_) {}
-  if (fromCache) {
-    res.writeHead(200, {
-      ...commonHeaders,
-      'Content-Type': mimeOf(clean),
-      'X-Asset-Source': 'cache'
-    });
-    fs.createReadStream(cf).pipe(res);
-    return;
+  for (const cand of candidates) {
+    let fromCache = false;
+    try { fromCache = fs.existsSync(cacheFileFor(cand)); } catch (_) {}
+    if (fromCache) {
+      res.writeHead(200, {
+        ...commonHeaders,
+        'Content-Type': mimeOf(cand),
+        'X-Asset-Source': 'cache'
+      });
+      fs.createReadStream(cacheFileFor(cand)).pipe(res);
+      return;
+    }
   }
 
   // ② MySQL 兜底 + 回填缓存（不阻塞响应）
   if (mysqlReady()) {
-    try {
-      const meta = await mysqlDao.getAssetMeta(clean);
-      const data = await mysqlDao.getAssetDataByPath(clean);
-      if (data) {
-        try {
-          const tmp = cf + '.tmp' + process.pid;
-          fs.writeFileSync(tmp, data);
-          fs.renameSync(tmp, cf);
-        } catch (_) {}
-        res.writeHead(200, {
-          ...commonHeaders,
-          'Content-Type': (meta && meta.mimeType) || mimeOf(clean),
-          'X-Asset-Source': 'mysql'
-        });
-        res.end(data);
-        return;
+    for (const cand of candidates) {
+      try {
+        const meta = await mysqlDao.getAssetMeta(cand);
+        const data = await mysqlDao.getAssetDataByPath(cand);
+        if (data) {
+          try {
+            const cf = cacheFileFor(cand);
+            const tmp = cf + '.tmp' + process.pid;
+            fs.writeFileSync(tmp, data);
+            fs.renameSync(tmp, cf);
+          } catch (_) {}
+          res.writeHead(200, {
+            ...commonHeaders,
+            'Content-Type': (meta && meta.mimeType) || mimeOf(cand),
+            'X-Asset-Source': 'mysql'
+          });
+          res.end(data);
+          return;
+        }
+      } catch (e) {
+        console.warn('[asset] MySQL 兜底失败:', e?.message || e);
       }
-    } catch (e) {
-      console.warn('[asset] MySQL 兜底失败:', e?.message || e);
     }
   }
 

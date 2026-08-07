@@ -330,10 +330,14 @@ Object.assign(MailboxManager, {
     }
 
     try {
-      // 加载测试音频文件
+      // 加载测试音频文件（资源统一从 MySQL 经 /api/assets 获取）
       const audioUrl = 'mailfile/mail_re/6月27日.m4a';
-      console.log('[测试录音] 开始加载:', audioUrl);
-      const response = await fetch(audioUrl);
+      const apiBase = (window.MailService && typeof window.MailService.getBaseUrl === 'function')
+        ? String(window.MailService.getBaseUrl() || '').replace(/\/+$/, '')
+        : '';
+      const fetchUrl = apiBase ? `${apiBase}/api/assets/${audioUrl}` : audioUrl;
+      console.log('[测试录音] 开始加载:', fetchUrl);
+      const response = await fetch(fetchUrl);
       console.log('[测试录音] 响应状态:', response.status, response.ok);
       if (!response.ok) {
         console.error('[测试录音] fetch 失败:', response.statusText);

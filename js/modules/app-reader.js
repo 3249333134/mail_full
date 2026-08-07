@@ -691,6 +691,15 @@ Object.assign(App, {
     const recordDuration = document.getElementById('record-duration');
     if (!recordPlayer || !recordBtn || !recordDuration) return;
 
+    // 资源统一从 MySQL 经 /api/assets 获取
+    const testRecordUrl = () => {
+      const rel = 'mailfile/mail_re/6月27日.m4a';
+      const apiBase = (window.MailService && typeof window.MailService.getBaseUrl === 'function')
+        ? String(window.MailService.getBaseUrl() || '').replace(/\/+$/, '')
+        : '';
+      return apiBase ? `${apiBase}/api/assets/${rel}` : rel;
+    };
+
     this._currentRecordLetterId = letterId;
     this._recordBlob = null;
     this._recordUrl = null;
@@ -709,7 +718,7 @@ Object.assign(App, {
         recordPlayer.style.display = 'flex';
         console.log('[录音] 已加载，大小:', blob.size, '类型:', this._recordBlob.type);
       } else if (letterId === 'brenuo-1') {
-        this._recordUrl = 'mailfile/mail_re/6月27日.m4a';
+        this._recordUrl = testRecordUrl();
         this._recordDuration = savedDuration || 4;
         recordDuration.textContent = this._formatDuration(this._recordDuration);
         recordPlayer.style.display = 'flex';
@@ -720,7 +729,7 @@ Object.assign(App, {
     }).catch((err) => {
       console.error('[录音] 加载失败:', err);
       if (letterId === 'brenuo-1') {
-        this._recordUrl = 'mailfile/mail_re/6月27日.m4a';
+        this._recordUrl = testRecordUrl();
         this._recordDuration = savedDuration || 4;
         recordDuration.textContent = this._formatDuration(this._recordDuration);
         recordPlayer.style.display = 'flex';

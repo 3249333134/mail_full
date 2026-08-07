@@ -978,6 +978,9 @@ function disableAssetApi() {
 // 资产 API 基址（双端互通：任意端口/设备前端都指向本后端）
 function apiAssetBaseUrl(req) {
   if (disableAssetApi()) return '';
+  // 优先用显式配置（Docker/公网部署最可靠，不依赖请求头推断）
+  const hardcoded = String(process.env.PUBLIC_API_BASE_URL || '').replace(/\/+$/, '');
+  if (hardcoded) return `${hardcoded}/api/assets/`;
   const host = (req && req.headers && req.headers.host) ? String(req.headers.host) : '';
   if (!host) return '';
   const proto = String(req.headers['x-forwarded-proto'] || 'http').split(',')[0].trim();
@@ -1372,6 +1375,10 @@ async function handleApi(req, res, parsedUrl) {
   try {
     // ======== 资源持久化：bootstrap 配置 ========
     if (req.method === 'GET' && parsedUrl.pathname === '/api/resources/bootstrap') {
+      let assetCount = -1;
+      let mysqlEnabled = false;
+      try { assetCount = await mysqlDao.countAssets().catch(() => -1); } catch (_) {}
+      try { mysqlEnabled = isMysqlEnabled(); } catch (_) {}
       jsonResponse(res, 200, {
         resourceVersion: DEFINITIONS_VERSION,
         cacheVersion: DEFINITIONS_VERSION,
@@ -1382,6 +1389,13 @@ async function handleApi(req, res, parsedUrl) {
         localBaseUrl: './',
         maxRetries: 3,
         enableCache: true,
+        // 调试辅助：一眼判断「MySQL 空」还是「前端路径错」
+        debug: {
+          assetApiBase: apiAssetBaseUrl(req),
+          assetCount,
+          mysqlEnabled,
+          publicApiBaseUrl: String(process.env.PUBLIC_API_BASE_URL || ''),
+        },
       });
       return true;
     }
@@ -1624,7 +1638,13 @@ async function handleApi(req, res, parsedUrl) {
           localManifestBaseUrl: '/assets/game/',
           localAssetBaseUrl: './sendbox/src/assets/'
         },
-        features: { remoteResources: envUrlList('GAME_ASSET_BASE_URLS').length > 0 || !disableAssetApi(), localFallback: true }
+        features: { remoteResources: envUrlList('GAME_ASSET_BASE_URLS').length > 0 || !disableAssetApi(), localFallback: true },
+        // 调试辅助：一眼判断「MySQL 空」还是「前端路径错」
+        debug: {
+          assetApiBase: apiAssetBaseUrl(req),
+          assetCount: await mysqlDao.countAssets().catch(() => -1),
+          mysqlEnabled: isMysqlEnabled(),
+        }
       });
       return true;
     }
@@ -4322,6 +4342,17 @@ async function seedPresetUsers() {
           }
         } catch (e) {
           console.warn('[carrier] seed 异常（忽略，继续启动）:', e?.message || e);
+        }
+
+        // 资产自动迁移：asset_files 为空时从本地 sendbox 目录批量入库（地图/角色帧/道具/BGM）
+        // 后台执行不阻塞启动；期间前端请求 /api/assets 走本地静态兜底
+        try {
+          const migrateAssetsToMysql = require('./migrateAssetsToMysql');
+          migrateAssetsToMysql.autoMigrateIfNeeded({ force: false }).catch(e =>
+            console.warn('[bootstrap] 资产自动迁移失败（前端走本地静态兜底）:', e?.message || e)
+          );
+        } catch (e) {
+          console.warn('[bootstrap] 资产自动迁移初始化异常（忽略）:', e?.message || e);
         }
       } catch (e) {
         console.warn('[bootstrap] 数据加载异常（忽略）：', e?.message || e);

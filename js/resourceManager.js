@@ -25,6 +25,18 @@
     return [...new Set(arr.filter(Boolean))];
   }
 
+  /** 规范化相对路径：解析 ./ 与 ../ 段，避免生成含 .. 的 API URL（服务器拒绝穿越路径） */
+  function normalizeRelPath(raw) {
+    const segs = String(raw || '').split('/');
+    const out = [];
+    for (const seg of segs) {
+      if (!seg || seg === '.') continue;
+      if (seg === '..') { out.pop(); continue; }
+      out.push(seg);
+    }
+    return out.join('/');
+  }
+
   function toArrayBuffer(blob) {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
@@ -222,7 +234,8 @@
     resolveCandidates(relativePath) {
       const p = String(relativePath || '');
       if (/^(data:|blob:|https?:\/\/)/i.test(p)) return [p];
-      const clean = p.replace(/^\.\//, '').replace(/^\//, '');
+      // 规范化相对路径（解析 ./ ../ 段），避免生成含 .. 的 API URL（服务器拒绝穿越路径）
+      const clean = normalizeRelPath(p.replace(/^\.\//, '').replace(/^\//, ''));
       // 资产 API 源（MySQL 主存，双端互通）→ CDN → 本地
       const api = this.config.remoteAssetApiBase ? [this.config.remoteAssetApiBase + clean] : [];
       const remotes = this.config.remoteBaseUrls.map((b) => b + clean);
