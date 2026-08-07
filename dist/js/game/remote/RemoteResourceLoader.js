@@ -5,6 +5,18 @@ function cleanBase(value) {
 
 function unique(values) { return [...new Set(values.filter(Boolean))]; }
 
+/** 规范化相对路径：解析 ./ 与 ../ 段（如 ../../fill/... → fill/...） */
+function normalizeRelPath(raw) {
+  const segs = String(raw || '').split('/');
+  const out = [];
+  for (const seg of segs) {
+    if (!seg || seg === '.') continue;
+    if (seg === '..') { out.pop(); continue; }
+    out.push(seg);
+  }
+  return out.join('/');
+}
+
 export const RemoteResourceLoader = {
   manifestBaseUrls: [], assetBaseUrls: [], assetApiBaseUrl: '', localManifestBaseUrl: '/assets/game/',
   localAssetBaseUrl: './sendbox/src/assets/', version: 'local', _cache: new Map(), _configured: false,
@@ -69,12 +81,43 @@ export const RemoteResourceLoader = {
   resolveAssetCandidates(relativePath, localBase = this.localAssetBaseUrl) {
     const path = String(relativePath || '');
     if (/^(data:|blob:|https?:\/\/)/i.test(path)) return [path];
-    const clean = path.replace(/^\.\//, '').replace(/^\//, '');
+    // 规范化相对路径：解析 ./ 与 ../ 段，避免生成含 .. 的 API URL（服务器会拒绝穿越路径）
+    const norm = normalizeRelPath(path.replace(/^\.\//, ''));
+    // 映射到 MySQL 存储前缀：assets 资源存 sendbox/src/assets/...，角色帧存 sendbox/fill/...
+    let apiRel = norm;
+    if (!apiRel.startsWith('sendbox/')) {
+      if (apiRel.startsWith('fill/')) {
+        apiRel = `sendbox/fill/${apiRel.slice(5)}`;
+      } else {
+        apiRel = `sendbox/src/assets/${apiRel}`;
+      }
+    }
+    // 本地静态兜底：fill 帧在 sendbox/fill/，其余在 sendbox/src/assets/
+    const localCandidates = [cleanBase(localBase) + norm];
+    if (norm.startsWith('fill/')) {
+      localCandidates.push(`./sendbox/fill/${norm.slice(5)}`);
+    } else if (!norm.startsWith('sendbox/')) {
+      localCandidates.push(`./sendbox/${norm}`);
+    }
+    // 资产 API 候选：优先 configure 的配置，未配置时用 MailService.getBaseUrl() 兜底拼后端 /api/assets/
+    let finalAssetApiBase = this.assetApiBaseUrl;
+    if (!finalAssetApiBase && typeof window !== 'undefined') {
+      try {
+        if (window.MailService && typeof window.MailService.getBaseUrl === 'function') {
+          const b = String(window.MailService.getBaseUrl() || '').replace(/\/+$/, '');
+          if (b) finalAssetApiBase = `${b}/api/assets/`;
+        }
+      } catch (_) {}
+      if (!finalAssetApiBase && window.location) {
+        const proto = window.location.protocol === 'https:' ? 'https:' : 'http:';
+        finalAssetApiBase = `${proto}//${window.location.hostname}:3000/api/assets/`;
+      }
+    }
     // 优先级：资产 API（MySQL 主存，双端互通）→ CDN/备用 → 本地静态
     return unique([
-      ...(this.assetApiBaseUrl ? [this.assetApiBaseUrl + clean] : []),
-      ...this.assetBaseUrls.map(base => `${base}${clean}`),
-      `${cleanBase(localBase)}${clean}`
+      ...(finalAssetApiBase ? [cleanBase(finalAssetApiBase) + apiRel] : []),
+      ...this.assetBaseUrls.map(base => `${base}${norm}`),
+      ...localCandidates
     ]);
   },
 

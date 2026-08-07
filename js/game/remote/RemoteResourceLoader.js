@@ -99,9 +99,23 @@ export const RemoteResourceLoader = {
     } else if (!norm.startsWith('sendbox/')) {
       localCandidates.push(`./sendbox/${norm}`);
     }
+    // 资产 API 候选：优先 configure 的配置，未配置时用 MailService.getBaseUrl() 兜底拼后端 /api/assets/
+    let finalAssetApiBase = this.assetApiBaseUrl;
+    if (!finalAssetApiBase && typeof window !== 'undefined') {
+      try {
+        if (window.MailService && typeof window.MailService.getBaseUrl === 'function') {
+          const b = String(window.MailService.getBaseUrl() || '').replace(/\/+$/, '');
+          if (b) finalAssetApiBase = `${b}/api/assets/`;
+        }
+      } catch (_) {}
+      if (!finalAssetApiBase && window.location) {
+        const proto = window.location.protocol === 'https:' ? 'https:' : 'http:';
+        finalAssetApiBase = `${proto}//${window.location.hostname}:3000/api/assets/`;
+      }
+    }
     // 优先级：资产 API（MySQL 主存，双端互通）→ CDN/备用 → 本地静态
     return unique([
-      ...(this.assetApiBaseUrl ? [this.assetApiBaseUrl + apiRel] : []),
+      ...(finalAssetApiBase ? [cleanBase(finalAssetApiBase) + apiRel] : []),
       ...this.assetBaseUrls.map(base => `${base}${norm}`),
       ...localCandidates
     ]);

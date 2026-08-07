@@ -221,7 +221,22 @@ export class GameMapRenderer {
     this.maps = PRESET_MAPS.map((m, i) => ({ index: i, name: m.name }));
   }
 
-  init() {
+  async init() {
+    // ===== 关键：先 bootstrap 远端资源加载器，再渲染地图 =====
+    // 否则 RemoteResourceLoader.assetApiBaseUrl 为空 → resolveAssetCandidates 跳过 MySQL 资产 API
+    // → 只剩下 CDN（空）+ 本地静态（静态服务器不一定挂载 sendbox/src/assets）→ 地图全黑
+    try {
+      const rrlPromise = RemoteResourceLoader.bootstrapConfig ? RemoteResourceLoader.bootstrapConfig() : Promise.resolve(null);
+      const rmPromise = (typeof window !== 'undefined' && window.ResourceManager && typeof window.ResourceManager.bootstrap === 'function')
+        ? window.ResourceManager.bootstrap().catch(() => null)
+        : Promise.resolve(null);
+      await Promise.all([rrlPromise, rmPromise]);
+      const rrlCfg = RemoteResourceLoader.getConfig ? RemoteResourceLoader.getConfig() : null;
+      console.log('[GameMapRenderer] bootstrap done:', JSON.stringify(rrlCfg));
+    } catch (e) {
+      console.warn('[GameMapRenderer] bootstrap failed (will use dynamic fallback in resolveAssetCandidates):', e?.message || e);
+    }
+
     const existingCanvas = this.container.querySelector('.game-map-canvas');
     if (existingCanvas) {
       existingCanvas.remove();

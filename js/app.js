@@ -6829,9 +6829,9 @@ const App = {
     const isLoggedIn = !!currentUser;
 
     if (!window.gameMapRenderer) {
-      import('./gameMapRenderer.js?v=20260804p').then(module => {
+      import('./gameMapRenderer.js?v=20260807fix').then(module => {
         window.gameMapRenderer = new module.GameMapRenderer(mapContainer);
-        window.gameMapRenderer.init();
+        const initDone = Promise.resolve(window.gameMapRenderer.init());
 
         // 单人模式：不再设置搭档，始终单人
         const boundCharacterId = STORAGE.loadCharacterBinding(this.currentMailboxId);
@@ -6842,43 +6842,83 @@ const App = {
           : (isPoxiaoMailbox && isLoggedIn
             ? (serverPoxiaoCharacterId || serverCharacterId || boundCharacterId || 'px-tangqi')
             : (boundCharacterId || 'xiu-jing'));
-        window.gameMapRenderer.loadCharacter(defaultCharacterId);
-        window.gameMapRenderer.setPartner(null);
-        
-        window.gameMapRenderer.setMapBackground(mapBg);
 
-        // Save per-user character binding (first character when entering map)
-        if (defaultCharacterId && currentUser) {
-          const accountKey = typeof MailService !== 'undefined'
-            ? MailService.getAccountKey(currentUser)
-            : String(currentUser.username || '').trim().toLocaleLowerCase('en-US');
-          STORAGE.saveUserCharacterBinding(this.currentMailboxId, accountKey, defaultCharacterId);
-          this._saveMemberCharacterToMailbox(this.currentMailboxId, accountKey, defaultCharacterId);
-        }
+        // 渲染器数据操作必须等 bootstrap 完成（否则 assetApiBaseUrl 为空，MySQL 资产 API 被跳过）
+        initDone.then(() => {
+          window.gameMapRenderer.loadCharacter(defaultCharacterId);
+          window.gameMapRenderer.setPartner(null);
+          window.gameMapRenderer.setMapBackground(mapBg);
 
-        if (isXiejianMailbox && defaultCharacterId) {
-            this._xiejianCharacterId = defaultCharacterId;
-        }
-        if (isPoxiaoMailbox && defaultCharacterId) {
-            this._poxiaoCharacterId = defaultCharacterId;
-        }
+          // Save per-user character binding (first character when entering map)
+          if (defaultCharacterId && currentUser) {
+            const accountKey = typeof MailService !== 'undefined'
+              ? MailService.getAccountKey(currentUser)
+              : String(currentUser.username || '').trim().toLocaleLowerCase('en-US');
+            STORAGE.saveUserCharacterBinding(this.currentMailboxId, accountKey, defaultCharacterId);
+            this._saveMemberCharacterToMailbox(this.currentMailboxId, accountKey, defaultCharacterId);
+          }
 
-        // 进入地图时加载本地背包数据
-        const savedInventory = !AuthManager.getCurrentUser() ? STORAGE.loadInventory(this._getCurrentAccountKey()) : null;
-        if (savedInventory && typeof MultiplayerSync !== 'undefined' && !MultiplayerSync.inventory) {
-          MultiplayerSync.inventory = savedInventory;
-        }
+          if (isXiejianMailbox && defaultCharacterId) {
+              this._xiejianCharacterId = defaultCharacterId;
+          }
+          if (isPoxiaoMailbox && defaultCharacterId) {
+              this._poxiaoCharacterId = defaultCharacterId;
+          }
 
-        // 单人模式：不再初始化多人游戏
-        if (isXiejianMailbox && !isLoggedIn) {
-          this._initGuestXiejianSystems();
-        } else if (isPoxiaoMailbox && !isLoggedIn) {
-          this._initGuestPoxiaoSystems();
-        } else if (!isXiejianMailbox && !isPoxiaoMailbox && currentUser && (currentUser.role === 'xiu-jing' || currentUser.role === 'xuan-xuan')) {
+          // 进入地图时加载本地背包数据
+          const savedInventory = !AuthManager.getCurrentUser() ? STORAGE.loadInventory(this._getCurrentAccountKey()) : null;
+          if (savedInventory && typeof MultiplayerSync !== 'undefined' && !MultiplayerSync.inventory) {
+            MultiplayerSync.inventory = savedInventory;
+          }
+
+          // 单人模式：不再初始化多人游戏
+          if (isXiejianMailbox && !isLoggedIn) {
+            this._initGuestXiejianSystems();
+          } else if (isPoxiaoMailbox && !isLoggedIn) {
+            this._initGuestPoxiaoSystems();
+          } else if (!isXiejianMailbox && !isPoxiaoMailbox && currentUser && (currentUser.role === 'xiu-jing' || currentUser.role === 'xuan-xuan')) {
+            setTimeout(() => {
+              this._syncMapCharacter(currentUser.role);
+            }, 200);
+          }
+
+          applyMailboxGameScope();
+
           setTimeout(() => {
-            this._syncMapCharacter(currentUser.role);
+            if (this._isXiejianMailbox()) return;
+            // currentMapIndex 是标准地图索引（0-5，对应 this.maps），不是 getMaps() 合并数组索引
+            // getMaps() 合并数组有 10 个挟剑子地图前置，因此索引偏移，用 renderer.maps 才能读到正确名
+            const stdMaps = window.gameMapRenderer.maps || [];
+            const curIdx = window.gameMapRenderer.currentMapIndex;
+            const mapNameEl = document.getElementById('map-name');
+            if (mapNameEl && stdMaps[curIdx]) {
+              mapNameEl.textContent = stdMaps[curIdx].name;
+            }
           }, 200);
-        }
+
+          if (window.gameMapRenderer.canvas.width === 0 || window.gameMapRenderer.canvas.height === 0) {
+            setTimeout(() => {
+              window.gameMapRenderer.resize();
+            }, 50);
+          }
+
+          // 首次创建渲染器也必须立即连接账号房间并加载服务器地图物品。
+          if ((isXiejianMailbox || isPoxiaoMailbox) && currentUser) {
+            this._initMultiplayer(this.currentMailboxId);
+            if (typeof MailService.getWorldItems === 'function') {
+              const defaultMapKey = isPoxiaoMailbox ? 'px-d-city' : 'xj-jingyuan';
+              const currentMapKey = window.gameMapRenderer.currentMapBgKey || mapBg || defaultMapKey;
+              MailService.getWorldItems(currentMapKey).then(items => {
+                if (window.gameMapRenderer.currentMapBgKey !== currentMapKey) return;
+                MultiplayerSync.worldItems = items;
+                window.gameMapRenderer.setWorldItems(items);
+                this._updateXiejianWorldItemStatus(items);
+              }).catch(error => console.warn('[WorldItems] 首次加载地图物品失败:', error));
+            }
+          } else if (isSharedMailbox && isLoggedIn) {
+            this._initMultiplayer(this.currentMailboxId);
+          }
+        }).catch(e => console.warn('[GameMapRenderer] init.then failed (fallback applied via resolveAssetCandidates dynamic):', e?.message || e));
 
         const renderCharacterGrid = (category) => {
           const grid = document.getElementById('character-grid');
@@ -6977,18 +7017,6 @@ const App = {
           if (t.dataset.category === defaultCategory) t.classList.add('active');
         });
 
-        setTimeout(() => {
-          if (this._isXiejianMailbox()) return;
-          // currentMapIndex 是标准地图索引（0-5，对应 this.maps），不是 getMaps() 合并数组索引
-          // getMaps() 合并数组有 10 个挟剑子地图前置，因此索引偏移，用 renderer.maps 才能读到正确名
-          const stdMaps = window.gameMapRenderer.maps || [];
-          const curIdx = window.gameMapRenderer.currentMapIndex;
-          const mapNameEl = document.getElementById('map-name');
-          if (mapNameEl && stdMaps[curIdx]) {
-            mapNameEl.textContent = stdMaps[curIdx].name;
-          }
-        }, 200);
-
         const renderPartnerSelector = () => {
           // 单人模式：不再渲染搭档选择器
           const partnerSelect = document.getElementById('partner-select');
@@ -6998,7 +7026,6 @@ const App = {
         this._renderMapPartnerSelector = renderPartnerSelector;
 
         renderPartnerSelector();
-        applyMailboxGameScope();
 
         document.querySelectorAll('.character-card').forEach(card => {
           card.addEventListener('click', () => {
@@ -7245,29 +7272,6 @@ const App = {
             }
           }, { passive: false });
         });
-
-        if (window.gameMapRenderer.canvas.width === 0 || window.gameMapRenderer.canvas.height === 0) {
-          setTimeout(() => {
-            window.gameMapRenderer.resize();
-          }, 50);
-        }
-
-        // 首次创建渲染器也必须立即连接账号房间并加载服务器地图物品。
-        if ((isXiejianMailbox || isPoxiaoMailbox) && currentUser) {
-          this._initMultiplayer(this.currentMailboxId);
-          if (typeof MailService.getWorldItems === 'function') {
-            const defaultMapKey = isPoxiaoMailbox ? 'px-d-city' : 'xj-jingyuan';
-            const currentMapKey = window.gameMapRenderer.currentMapBgKey || mapBg || defaultMapKey;
-            MailService.getWorldItems(currentMapKey).then(items => {
-              if (window.gameMapRenderer.currentMapBgKey !== currentMapKey) return;
-              MultiplayerSync.worldItems = items;
-              window.gameMapRenderer.setWorldItems(items);
-              this._updateXiejianWorldItemStatus(items);
-            }).catch(error => console.warn('[WorldItems] 首次加载地图物品失败:', error));
-          }
-        } else if (isSharedMailbox && isLoggedIn) {
-          this._initMultiplayer(this.currentMailboxId);
-        }
       });
     } else {
       // 防御性修复：切信箱/切视图时 mailbox-view 可能被重新渲染，
