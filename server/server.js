@@ -1505,13 +1505,13 @@ async function handleApi(req, res, parsedUrl) {
       for (const builtin of (carrierSeed.BUILTIN_CARRIERS || [])) {
         const row = byId.get(builtin.id);
         if (row && !row.enabled) continue; // 已禁用
-        if (row) out.push({ ...row.definition, id: row.id, name: row.name, category: row.category });
+        if (row) out.push({ ...row });
         else out.push({ ...builtin });
       }
       for (const row of (carriers || [])) {
         if (!row.enabled) continue;
         if (isBuiltinCarrier(row.id)) continue; // 已作为内置处理
-        out.push({ ...row.definition, id: row.id, name: row.name, category: row.category });
+        out.push({ ...row });
       }
       carriers = out;
       if (!carriers || !carriers.length) {
@@ -1544,7 +1544,7 @@ async function handleApi(req, res, parsedUrl) {
         const row = byId.get(builtin.id);
         if (row && !row.enabled) continue; // 已禁用
         if (row) {
-          out.push({ ...row.definition, id: row.id, name: row.name, category: row.category, _builtin: true, _modified: true, enabled: true });
+          out.push({ ...row, _builtin: true, _modified: true, enabled: true });
         } else {
           out.push({ ...builtin, enabled: true, _builtin: true });
         }
@@ -1553,7 +1553,7 @@ async function handleApi(req, res, parsedUrl) {
       for (const row of (rows || [])) {
         if (!row.enabled) continue;
         if (isBuiltinCarrier(row.id)) continue;
-        out.push({ ...row.definition, id: row.id, name: row.name, category: row.category, _custom: true, enabled: true });
+        out.push({ ...row, _custom: true, enabled: true });
       }
       // 图片相对路径 → 完整资产 API URL
       const apiBase = apiAssetBaseUrl(req);
